@@ -1,4 +1,3 @@
-```plantuml
 @startuml activity_module3_uc07
 ' ══════════════════════════════════════════════════════════════════
 ' รองรับภาษาไทย — อ่านก่อน render:
@@ -73,4 +72,3 @@ legend right
 endlegend
 
 @enduml
-```
