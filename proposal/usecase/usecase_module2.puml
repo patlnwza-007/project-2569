@@ -1,0 +1,50 @@
+' โมดูล 2 (M2 · catalog): ค้นหาและแสดงสิ่งของ — UC-01 ถึง UC-04
+@startuml usecase_module2
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #757575
+  FontStyle bold
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU</b>\n(Use Case Diagram — โมดูล 2 · ค้นหาและแสดงสิ่งของ)
+
+left to right direction
+
+actor "นักศึกษา\n(Student)" as Student
+
+rectangle "โมดูล 2 · ค้นหาและแสดงสิ่งของ" {
+  package "E1 · ค้นหาและแสดงสิ่งของ (Student)" {
+    usecase "UC-01\nดูรายการวัสดุและครุภัณฑ์" as UC01
+    usecase "UC-02\nค้นหาและกรองสิ่งของ" as UC02
+    usecase "UC-03\nดูรายละเอียดสิ่งของ" as UC03
+    usecase "UC-04\nดูแผนผังตำแหน่งชั้นวาง" as UC04
+  }
+}
+
+Student -- UC01
+Student -- UC02
+Student -- UC03
+Student -- UC04
+
+UC02 ..> UC01 : <<extend>>
+UC03 ..> UC01 : <<extend>>
+
+@enduml

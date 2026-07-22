@@ -1,0 +1,83 @@
+@startuml activity_module1_uc14
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_account_UC14_manage_profile.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ไม่มี partition ไหนสีต่างจากที่อื่น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-14 · จัดการข้อมูลส่วนตัว — Activity Diagram\nMonolith: partition ระบบตัวเดียว · ไม่วาด OAuth ซ้ำ (ดู UC-16)
+
+|นักศึกษา|
+start
+' สมมติว่า login แล้ว (session ผ่าน allauth ตาม UC-16) — ไม่วาดขั้นตอน OAuth ซ้ำในไดอะแกรมนี้
+:เปิดหน้าโปรไฟล์ (profile_detail);
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (นักศึกษาเจ้าของบัญชีเท่านั้น);
+:ดึงข้อมูลส่วนตัว + วันที่เข้าสู่ระบบครั้งแรก (date_joined)\nและวันเวลาเข้าสู่ระบบครั้งล่าสุด (last_login) ที่บันทึกไว้ตอน UC-16;
+:แสดงข้อมูลส่วนตัวพร้อม first login / last login;
+
+|นักศึกษา|
+:แก้ไขข้อมูลติดต่อ (เช่น เบอร์โทรศัพท์);
+:กดบันทึก;
+
+|ระบบ UBORROWU|
+:ตรวจสอบความครบถ้วน/ความถูกต้องของข้อมูลที่กรอก (validation);
+:บันทึกข้อมูลส่วนตัวที่แก้ไข (profile_update, write);
+
+fork
+  :แสดงข้อความยืนยันบันทึกสำเร็จ (main flow);
+fork again
+  :บันทึก audit log (แก้ไขข้อมูลส่วนตัว) ผ่าน signal;
+end fork
+
+stop
+
+note right
+  ลำดับเหตุการณ์ทางเลือก (Alternative Flow ตาม UC-14):
+  หากนักศึกษามีข้อมูลติดต่อไม่ครบ (เช่น ไม่มีเบอร์โทรศัพท์)
+  แล้วพยายามส่งคำขอยืม (UC-06) ระบบจะบังคับพากลับมา
+  ที่หน้าโปรไฟล์นี้ก่อน (ตาม FR-15) — ไม่วาดเป็นไดอะแกรมแยก
+  เพราะเป็นการ redirect เข้ามาที่ use case เดียวกันนี้ซ้ำ
+end note
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: flow นี้ไม่วาดขั้นตอน Google OAuth ซ้ำ — สมมติว่าผ่าน UC-16 (login) มาแล้ว
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (ตรวจว่าเป็นเจ้าของโปรไฟล์เท่านั้น)
+endlegend
+
+@enduml

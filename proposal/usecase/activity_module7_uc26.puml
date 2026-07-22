@@ -1,0 +1,76 @@
+@startuml activity_module7_uc26
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_inventory_stock_settings_manage.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+
+title UC-26 · จัดการข้อมูลพื้นฐานของคลัง — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+
+' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+|เจ้าหน้าที่|
+start
+:เปิดหน้าตั้งค่าคลัง;
+:เลือกจัดการหมวดหมู่/สถานะ/ตำแหน่ง;
+:เลือกการกระทำ (เพิ่ม/แก้ไข/ลบ) กับรายการที่เลือก;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
+
+if (การกระทำที่เลือกคือ "ลบ" หรือไม่?) then (ลบ)
+  :ตรวจสอบว่ารายการนี้ถูกใช้งานโดยสิ่งของอยู่หรือไม่;
+  if (ยังถูกใช้งานโดยสิ่งของอยู่หรือไม่?) then (ยังใช้งานอยู่)
+    :ปฏิเสธการลบ และแจ้งเหตุผล;
+    stop
+  else (ไม่ได้ใช้งานแล้ว)
+    :ลบรายการออกจากข้อมูลพื้นฐานของคลัง (write);
+  endif
+else (เพิ่ม/แก้ไข)
+  :บันทึกข้อมูลหมวดหมู่/สถานะ/ตำแหน่งที่เพิ่มหรือแก้ไข (write);
+endif
+
+fork
+  :แสดงผลยืนยันการเปลี่ยนแปลงให้เจ้าหน้าที่ (main flow);
+fork again
+  :เขียน audit log (จัดการข้อมูลพื้นฐานคลัง) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ข้อมูลพื้นฐานที่จัดการที่นี่ (หมวดหมู่/สถานะ/ตำแหน่ง) ถูกใช้อ้างอิงใน UC-21 (เพิ่ม/แก้ไขวัสดุ)
+endlegend
+
+@enduml

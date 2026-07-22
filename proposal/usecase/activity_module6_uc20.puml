@@ -1,0 +1,75 @@
+@startuml activity_module6_uc20
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc20_borrow_history.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-20 · ดูประวัติการยืม-คืนของนักศึกษาทั้งหมด — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+
+' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+|เจ้าหน้าที่|
+start
+:เปิดหน้าประวัติการยืม-คืนทั้งระบบ (staff:borrow_history_list);
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:แสดงรายการประวัติการยืม-คืนทั้งหมด (ค่าเริ่มต้น);
+
+|เจ้าหน้าที่|
+:ค้นหา/กรองตามชื่อนักศึกษาหรือช่วงวันที่;
+
+|ระบบ UBORROWU|
+:สืบค้นข้อมูลตามเงื่อนไข (ORM query);
+if (พบประวัติที่ตรงเงื่อนไขหรือไม่?) then (ไม่พบ)
+  :แสดงข้อความ "ไม่พบข้อมูล";
+else (พบ)
+  :แสดงรายการประวัติตามเงื่อนไขที่กรอง;
+endif
+
+|เจ้าหน้าที่|
+:เห็นประวัติการยืม-คืนที่ต้องการ;
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: flow นี้เป็นการอ่านข้อมูล/ค้นหา (read-only) ไม่มี write จึงไม่ต้องใช้ fork audit/notification
+endlegend
+
+@enduml

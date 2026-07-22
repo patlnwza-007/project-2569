@@ -1,0 +1,83 @@
+```plantuml
+@startuml activity_module3_uc05
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_borrow_UC05_manage_cart.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-05 จัดการตะกร้าสิ่งของ — Activity Diagram\nMonolith: partition ระบบเดียว (ตรวจจำนวนคงเหลือจาก model ของ catalog แบบ in-process ไม่ใช่เรียกข้าม service)
+
+|นักศึกษา|
+start
+' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+:กดเพิ่มสิ่งของลงตะกร้าจากหน้ารายการ/รายละเอียดสิ่งของ;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
+:ตรวจจำนวนคงเหลือของสิ่งของ (อ่าน model ของ catalog — in-process call ตาม §1.2);
+if (จำนวนที่ต้องการเพิ่ม <= จำนวนคงเหลือหรือไม่?) then (เกิน)
+  :แจ้งเตือน "จำนวนเกินจำนวนคงเหลือ" ไม่อนุญาตให้เพิ่ม;
+else (ไม่เกิน)
+  :เพิ่มรายการลงตะกร้า / บันทึกสถานะตะกร้า;
+endif
+
+|นักศึกษา|
+:เปิดหน้าตะกร้า;
+
+repeat
+  :แก้ไขจำนวนที่ต้องการยืมของแต่ละรายการ หรือลบรายการออกจากตะกร้า;
+  |ระบบ UBORROWU|
+  :ตรวจจำนวนใหม่เทียบกับจำนวนคงเหลือ (อ่าน model ของ catalog);
+  if (จำนวนใหม่เกินจำนวนคงเหลือหรือไม่?) then (เกิน)
+    :แจ้งเตือน ไม่อนุญาตให้แก้ไขเกินจำนวนคงเหลือ (คงค่าตะกร้าเดิมไว้);
+  else (ไม่เกิน)
+    :บันทึกสถานะตะกร้าล่าสุด;
+  endif
+  |นักศึกษา|
+repeat while (ต้องการแก้ไข/ลบรายการในตะกร้าต่อหรือไม่?) is (ต้องการ) not (พอแล้ว — ออกจากหน้าตะกร้า)
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ตะกร้าเป็นข้อมูลชั่วคราวไม่มีการแจ้งเตือน จึงไม่มี fork audit/notification ใน use case นี้
+  ตามข้อ FR-39/40/41 การแจ้งเตือนอัตโนมัติเริ่มที่ UC-06/UC-08/UC-11/UC-18 เท่านั้น (ดู note ทั่วไปใน use_case_description.md)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml
+```

@@ -1,0 +1,59 @@
+' โมดูล 7 (M7 · staff_inventory): การจัดการคลังสิ่งของและตั้งค่า — UC-21 ถึง UC-26
+@startuml usecase_module7
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #757575
+  FontStyle bold
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU</b>\n(Use Case Diagram — โมดูล 7 · การจัดการคลังสิ่งของและตั้งค่า)
+
+left to right direction
+
+actor "เจ้าหน้าที่\n(Staff)" as Staff
+
+rectangle "โมดูล 7 · การจัดการคลังสิ่งของและตั้งค่า" {
+  package "E1 · การจัดการคลังสิ่งของ" {
+    usecase "UC-21\nเพิ่ม/แก้ไขข้อมูล\nวัสดุและครุภัณฑ์" as UC21
+    usecase "UC-22\nดูภาพรวมสถานะ\nวัสดุครุภัณฑ์ในคลัง" as UC22
+    usecase "UC-23\nลบวัสดุออกจากระบบ" as UC23
+    usecase "UC-24\nเปลี่ยนสถานะครุภัณฑ์" as UC24
+    usecase "UC-25\nนำเข้าข้อมูลคลังแบบชุด" as UC25
+  }
+
+  package "E2 · การตั้งค่าคลัง" {
+    usecase "UC-26\nจัดการข้อมูลพื้นฐานของคลัง" as UC26
+  }
+}
+
+Staff -- UC21
+Staff -- UC22
+Staff -- UC23
+Staff -- UC24
+Staff -- UC25
+Staff -- UC26
+
+UC25 ..> UC21 : <<extend>>
+UC21 ..> UC22 : <<extend>>
+UC23 ..> UC22 : <<extend>>
+UC24 ..> UC22 : <<extend>>
+
+@enduml

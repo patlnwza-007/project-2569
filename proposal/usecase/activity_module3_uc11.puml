@@ -1,0 +1,100 @@
+```plantuml
+@startuml activity_module3_uc11
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_borrow_UC11_manage_queue.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-11 จัดการคิวการจอง — Activity Diagram\nรวม 3 sub-action: จองคิว / ดูรายการคิว / ออกจากคิว ในไดอะแกรมเดียว (1 use case)
+
+|นักศึกษา|
+start
+' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+:กดจองคิวจากหน้ารายละเอียดสิ่งของที่ถูกยืมหมด;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
+:ตรวจจำนวนคงเหลือของสิ่งของ (อ่าน model ของ catalog — in-process call);
+if (จำนวนคงเหลือ = 0 หรือไม่?) then (มีคงเหลือ > 0)
+  :ไม่อนุญาตให้จองคิว และแนะนำให้ยืมได้ทันที;
+  stop
+else (คงเหลือ = 0)
+  :เพิ่มนักศึกษาเข้าคิว (write) และคำนวณลำดับที่;
+  :แจ้งลำดับคิวให้นักศึกษาทราบ;
+endif
+
+|นักศึกษา|
+:เปิดหน้ารายการคิวที่จองอยู่เพื่อติดตามลำดับ;
+
+|ระบบ UBORROWU|
+:ดึงรายการคิวและลำดับปัจจุบันของนักศึกษา (ORM query);
+:แสดงรายการคิว;
+
+|นักศึกษา|
+if (ต้องการออกจากคิวหรือไม่ (ไม่ต้องการยืมแล้ว)?) then (ต้องการออก)
+  :กดออกจากคิว;
+  |ระบบ UBORROWU|
+  :ลบนักศึกษาออกจากคิว (write);
+  stop
+else (ยังต้องการรอคิวต่อ)
+endif
+
+' ===== เหตุการณ์อัตโนมัติ: เมื่อสิ่งของว่างและถึงคิวของนักศึกษาคนนี้ (background job, แยกจาก action ของ actor ข้างบน) =====
+|ระบบ UBORROWU|
+:(อัตโนมัติ) ตรวจพบสิ่งของว่างและถึงคิวของนักศึกษาคนนี้;
+:อัปเดตสถานะคิวเป็น "ถึงคิวแล้ว" ให้นักศึกษาไปยืมภายในเวลาที่กำหนด (write);
+
+fork
+  :แสดงสถานะ "ถึงคิวแล้ว" ในหน้ารายการคิว (main flow);
+fork again
+  :ส่งแจ้งเตือนในหน้าเว็บ (in-app notification) ผ่าน signal (FR-39);
+fork again
+  |เซิร์ฟเวอร์อีเมล (external)|
+  :ส่งอีเมลแจ้งถึงคิวแล้ว (FR-39);
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: "ถึงคิวแล้ว" เป็นเหตุการณ์ที่ FR-39 ระบุชัดเจนว่าต้องแจ้งเตือนทั้ง in-app และอีเมลทันที — เป็น fork ที่มีหลักฐานรองรับจากข้อความต้นทาง
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml
+```

@@ -1,0 +1,60 @@
+' โมดูล 10 (M10 · admin_panel): การจัดการบัญชีผู้ใช้งานและ Whitelist — UC-33 ถึง UC-38
+@startuml usecase_module10
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #757575
+  FontStyle bold
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU</b>\n(Use Case Diagram — โมดูล 10 · การจัดการบัญชีผู้ใช้งานและ Whitelist)
+
+left to right direction
+
+actor "ผู้ดูแลระบบ\n(Admin)" as Admin
+
+rectangle "โมดูล 10 · การจัดการบัญชีผู้ใช้งานและ Whitelist" {
+  package "E1 · การจัดการบัญชีผู้ใช้งาน" {
+    usecase "UC-33\nจัดการบัญชีผู้ใช้งานทั้งหมด" as UC33
+  }
+
+  package "E2 · การกำหนดบทบาท (Role Override)" {
+    usecase "UC-34\nกำหนดบทบาทผู้ใช้\nเป็นรายบุคคล" as UC34
+    usecase "UC-35\nกำหนดบทบาทผู้ใช้\nแบบกลุ่มผ่านไฟล์" as UC35
+  }
+
+  package "E3 · การนำเข้า/ส่งออกรายชื่อผู้มีสิทธิ์ใช้งาน" {
+    usecase "UC-36\nส่งออกไฟล์ CSV\nรายชื่อบุคลากร" as UC36
+    usecase "UC-37\nนำเข้ารายชื่อนักศึกษา\nที่มีสิทธิ์" as UC37
+    usecase "UC-38\nนำเข้ารายชื่อเจ้าหน้าที่\nที่มีสิทธิ์" as UC38
+  }
+}
+
+Admin -- UC33
+Admin -- UC34
+Admin -- UC35
+Admin -- UC36
+Admin -- UC37
+Admin -- UC38
+
+UC34 ..> UC33 : <<include>>
+UC35 ..> UC34 : <<extend>>
+
+@enduml

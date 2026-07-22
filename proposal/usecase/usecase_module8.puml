@@ -1,0 +1,45 @@
+' โมดูล 8 (M8 · staff_student): การจัดการผู้ใช้และการระงับสิทธิ์ — UC-27, UC-28
+@startuml usecase_module8
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #757575
+  FontStyle bold
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU</b>\n(Use Case Diagram — โมดูล 8 · การจัดการผู้ใช้และการระงับสิทธิ์)
+
+left to right direction
+
+actor "เจ้าหน้าที่\n(Staff)" as Staff
+
+rectangle "โมดูล 8 · การจัดการผู้ใช้และการระงับสิทธิ์" {
+  package "E1 · การจัดการผู้ใช้และการระงับสิทธิ์" {
+    usecase "UC-27\nดูและค้นหารายชื่อนักศึกษา" as UC27
+    usecase "UC-28\nจัดการสิทธิ์การยืมของนักศึกษา" as UC28
+  }
+}
+
+Staff -- UC27
+Staff -- UC28
+
+UC28 ..> UC27 : <<include>>
+
+@enduml

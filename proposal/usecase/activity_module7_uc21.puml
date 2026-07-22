@@ -1,0 +1,78 @@
+@startuml activity_module7_uc21
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_inventory_item_create_update.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+
+title UC-21 · เพิ่ม/แก้ไขข้อมูลวัสดุและครุภัณฑ์ — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+
+' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+' หมายเหตุ: หมวดหมู่และตำแหน่งที่จะเลือกใช้ต้องถูกตั้งค่าไว้ก่อนแล้ว (UC-26)
+|เจ้าหน้าที่|
+start
+:เปิดหน้าเพิ่ม/แก้ไขวัสดุหรือครุภัณฑ์;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
+:โหลดตัวเลือกหมวดหมู่และตำแหน่งที่ตั้งค่าไว้ (UC-26);
+
+|เจ้าหน้าที่|
+:กรอกชื่อ อัปโหลดรูปภาพ เลือกหมวดหมู่และตำแหน่ง\nและระบุจำนวนวันสูงสุดที่ยืมได้ (กรณีครุภัณฑ์);
+:กดบันทึก;
+
+|ระบบ UBORROWU|
+if (ข้อมูลบังคับครบถ้วนหรือไม่?) then (ไม่ครบ)
+  :แจ้งเตือนข้อมูลไม่ครบ;
+  :ไม่บันทึกข้อมูล;
+  stop
+else (ครบ)
+endif
+
+:บันทึกข้อมูลวัสดุ/ครุภัณฑ์ (write);
+
+fork
+  :แสดงหน้ายืนยันการบันทึกให้เจ้าหน้าที่ (main flow);
+fork again
+  :เขียน audit log (เพิ่ม/แก้ไขวัสดุ) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: หลังบันทึกสำเร็จ นักศึกษาเห็นข้อมูลล่าสุดในหน้ารายการ (UC-01) เนื่องจากอ่านจากฐานข้อมูลเดียวกัน (ไม่ใช่ external call)
+endlegend
+
+@enduml

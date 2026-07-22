@@ -1,0 +1,81 @@
+@startuml activity_module10_uc35
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_admin_panel_uc35_role_override_bulk_import.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+
+title UC-35 · กำหนดบทบาทผู้ใช้แบบกลุ่มผ่านไฟล์ (Bulk Role Override) — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view) · <<extend>> ของ UC-34
+
+' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
+' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+|ผู้ดูแลระบบ|
+start
+:กดดาวน์โหลดไฟล์ต้นแบบ (template);
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (Admin เท่านั้น);
+:สร้างไฟล์ต้นแบบ (อีเมล + คอลัมน์บทบาท) ให้ดาวน์โหลด;
+
+|ผู้ดูแลระบบ|
+:กรอกอีเมลและบทบาทที่ต้องการกำหนดของผู้ใช้หลายรายการลงในไฟล์;
+:อัปโหลดไฟล์ CSV กลับเข้าระบบ;
+
+|ระบบ UBORROWU|
+:ตรวจสอบรูปแบบไฟล์และ validate ทีละแถว;
+
+if (มีแถวข้อมูลผิดพลาดหรือไม่?) then (มี)
+  :รวบรวมรายการแถวที่ผิดพลาด (ไม่นำเข้าแถวนั้น);
+else (ไม่มี/ผ่านทั้งหมด)
+endif
+
+:บันทึกบทบาทที่กำหนด (Role Override) ให้ทุกบัญชีในไฟล์ที่ผ่าน validation (write);
+note right
+  Business rule: ใช้กฎเดียวกับ UC-34
+  Role Override มีผลเหนือกว่า Whitelist
+  เสมอ กับทุกบัญชีในไฟล์
+end note
+
+fork
+  :แสดงสรุปผลนำเข้า (สำเร็จ/ผิดพลาด) ให้แอดมิน (main flow);
+fork again
+  :เขียน audit log (นำเข้า Role Override แบบกลุ่ม) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (ผู้ดูแลระบบ) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: บทบาทที่บันทึกมีผลตั้งแต่การเข้าสู่ระบบครั้งถัดไป (UC-16) · ทุก view ผ่าน login_required + permission (Admin)
+endlegend
+
+@enduml

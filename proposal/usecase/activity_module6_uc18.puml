@@ -1,0 +1,111 @@
+@startuml activity_module6_uc18
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc18_approve_reject.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-18 · อนุมัติ/ปฏิเสธคำขอยืม — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+
+' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+|เจ้าหน้าที่|
+start
+:เปิดรายการคำขอยืมที่รออนุมัติทั้งหมด (staff:request_pending_list);
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:แสดงรายการคำขอสถานะ "รออนุมัติ";
+
+|เจ้าหน้าที่|
+:เลือกคำขอ 1 รายการหรือหลายรายการ (bulk);
+if (อนุมัติหรือปฏิเสธ?) then (ปฏิเสธ)
+  :กดปฏิเสธ;
+  |ระบบ UBORROWU|
+  if (ระบุเหตุผลครบหรือไม่?) then (ไม่ครบ)
+    :แสดงข้อความบังคับให้ระบุเหตุผลก่อนบันทึก;
+    |เจ้าหน้าที่|
+    :กรอกเหตุผลการปฏิเสธ;
+  else (ครบ)
+  endif
+else (อนุมัติ)
+  :กดอนุมัติ;
+endif
+
+|ระบบ UBORROWU|
+:ตรวจสอบรายการที่เลือก — ข้ามรายการที่ถูกยกเลิกไปแล้ว (UC-07) และเตรียมแจ้งผลลัพธ์;
+if (มีรายการที่ถูกข้าม?) then (มี)
+  :บันทึกรายการที่ข้าม เพื่อแจ้งผลลัพธ์ให้เจ้าหน้าที่ทราบ;
+else (ไม่มี)
+endif
+
+if (การกระทำคือ?) then (ปฏิเสธ)
+  :เปลี่ยนสถานะคำขอเป็น "ปฏิเสธแล้ว" พร้อมเหตุผล (write);
+else (อนุมัติ)
+  :เปลี่ยนสถานะคำขอเป็น "รอรับของ" และเริ่มนับกำหนด 2 วันสำหรับมารับของ (write);
+endif
+
+fork
+  :แสดงผลลัพธ์การอนุมัติ/ปฏิเสธให้เจ้าหน้าที่ (main flow);
+fork again
+  :เขียน audit log (อนุมัติ/ปฏิเสธคำขอยืม) ผ่าน signal;
+fork again
+  :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษา (FR-39);
+  |เซิร์ฟเวอร์อีเมล (external)|
+  :ส่งอีเมลแจ้งผลคำขอยืมให้นักศึกษา (FR-39);
+end fork
+
+|เจ้าหน้าที่|
+:เห็นผลลัพธ์การอนุมัติ/ปฏิเสธ (รวมรายการที่ถูกข้ามถ้ามี);
+
+stop
+
+note right
+  **หมายเหตุ — กระบวนการอัตโนมัติแยกต่างหาก (ไม่ใช่ actor มนุษย์):**
+  Auto-expire 2 วัน — background job (Celery/django-q beat) ตรวจคำขอสถานะ
+  "รอรับของ" ทุกรอบเวลาที่กำหนด หากเกิน 2 วันนับจากวันที่อนุมัติโดยนักศึกษา
+  ยังไม่กดยืนยันรับของ (UC-08) ระบบดึงสิ่งของกลับเข้าคลังอัตโนมัติ
+  เปลี่ยนสถานะเป็น "หมดอายุ" (Expired) และแจ้งเตือนนักศึกษาทันที (FR-41)
+  — ไม่มี actor มนุษย์ริเริ่ม จึงไม่วาดเป็น partition ในกระบวนการนี้
+end note
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml

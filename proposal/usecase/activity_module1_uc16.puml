@@ -1,0 +1,98 @@
+@startuml activity_module1_uc16
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_account_UC16_login.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ไม่มี partition ไหนสีต่างจากที่อื่น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-16 · เข้าสู่ระบบด้วย Google OAuth — Activity Diagram\nflow เดียวที่วาดขั้นตอน Google OAuth (external) + ตรวจ Whitelist + Role Override
+
+' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
+' ผู้ใช้ทั้ง 3 บทบาท (นักศึกษา/เจ้าหน้าที่/ผู้ดูแลระบบ) ใช้ flow เดียวกันนี้ในการเข้าสู่ระบบ
+|ผู้ใช้ (นักศึกษา / เจ้าหน้าที่ / ผู้ดูแลระบบ)|
+start
+:กดปุ่มเข้าสู่ระบบด้วย Google;
+
+' ===== บริการภายนอกจริง — Google OAuth 2.0 (นอกขอบเขต Django) =====
+|Google OAuth (allauth) (external)|
+:ยืนยันตัวตนกับ Google OAuth 2.0;
+:ผู้ใช้อนุญาต (consent) และคืนอีเมลที่ยืนยันแล้ว;
+
+' ===== ระบบ Django ประมวลผล (django-allauth) =====
+|ระบบ UBORROWU|
+:รับอีเมลที่ยืนยันแล้วจาก Google;
+:ตรวจสอบอีเมลกับรายชื่อ Whitelist (นักศึกษา/เจ้าหน้าที่ — UC-37/UC-38);
+
+if (พบอีเมลใน Whitelist หรือไม่?) then (ไม่พบ)
+  :ปฏิเสธการเข้าสู่ระบบ + แจ้งเหตุผล (ไม่อยู่ใน Whitelist);
+  stop
+else (พบ)
+endif
+
+:กำหนดบทบาทเริ่มต้น (Student/Staff) ตามประเภท Whitelist ที่พบ;
+:ตรวจสอบว่าบัญชีถูกระงับสิทธิ์ (Block) โดยแอดมินหรือไม่;
+
+if (บัญชีถูกระงับสิทธิ์ (Block) หรือไม่?) then (ถูกระงับ)
+  :ปฏิเสธการเข้าสู่ระบบ + แจ้งเหตุผล (บัญชีถูกระงับสิทธิ์);
+  stop
+else (ไม่ถูกระงับ)
+endif
+
+:ตรวจสอบ Role Override เฉพาะบุคคล (UC-34/UC-35);
+if (มีการกำหนด Role Override หรือไม่?) then (มี)
+  :ใช้บทบาทที่ถูกกำหนด (Role Override) แทนบทบาทเริ่มต้นจาก Whitelist;
+else (ไม่มี)
+  :ใช้บทบาทเริ่มต้นจาก Whitelist ตามที่กำหนดไว้;
+endif
+
+:สร้างเซสชันผู้ใช้ตามบทบาทที่ได้ (session cookie);
+
+fork
+  :พาผู้ใช้เข้าสู่หน้าหลักตามบทบาท (main flow);
+fork again
+  :บันทึก audit log (เข้าสู่ระบบสำเร็จ + วัน-เวลา first/last login) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา/เจ้าหน้าที่/ผู้ดูแลระบบ) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith, django-allauth) — เส้นขอบทึบ |
+  |<back:#F5F5F5>    </back>| บริการภายนอก (Google OAuth 2.0) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: มีเพียง UC-16 นี้เท่านั้นที่วาดขั้นตอนติดต่อ Google OAuth — flow อื่นทั้งหมดถือว่า login แล้ว (session) เริ่มที่ actor ได้เลย
+  หมายเหตุ: ลำดับตรวจต้อง Whitelist ก่อน แล้วจึงเช็ค Role Override ทับเสมอ (ไม่ตรวจพร้อมกัน) ตาม Business Rule ของ UC-16
+endlegend
+
+@enduml

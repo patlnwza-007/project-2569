@@ -1,0 +1,76 @@
+```plantuml
+@startuml activity_module3_uc07
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_borrow_UC07_cancel_request.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-07 ยกเลิกคำขอยืม — Activity Diagram\nMonolith: partition ระบบเดียว
+
+|นักศึกษา|
+start
+' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+:เปิดรายการคำขอยืมของตนเอง;
+:เลือกคำขอที่ต้องการยกเลิก และกดยกเลิก;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (เจ้าของคำขอเท่านั้น);
+:ตรวจสถานะปัจจุบันของคำขอ;
+if (คำขอยังอยู่ในสถานะ "รออนุมัติ" หรือไม่?) then (ไม่ใช่ — อนุมัติ/ปฏิเสธไปแล้ว)
+  :ไม่อนุญาตให้ยกเลิก และแจ้งสถานะปัจจุบันของคำขอ;
+  stop
+else (ใช่ — ยังรออนุมัติ)
+  :เปลี่ยนสถานะคำขอเป็น "ยกเลิกแล้ว" (write);
+endif
+
+fork
+  :แสดงผลยืนยันการยกเลิกให้นักศึกษา (main flow);
+fork again
+  :เขียน audit log (ยกเลิกคำขอยืม) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: การยกเลิกคำขอโดยนักศึกษาไม่อยู่ในรายการเหตุการณ์แจ้งเตือนอัตโนมัติ FR-39/40/41 (เป็นการกระทำของนักศึกษาเอง ไม่ต้องแจ้งซ้ำ)
+  จึงไม่ใส่ fork ส่งอีเมล/in-app — มีเฉพาะ fork audit log เท่านั้น
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml
+```

@@ -1,0 +1,54 @@
+' โมดูล 1 (M1 · account): บัญชีและการเข้าสู่ระบบ — UC-14, UC-16
+' ตามรหัสใน use_case_description.md (M1 · account)
+' หมายเหตุ: UC-16 (เข้าสู่ระบบ) เป็นเงื่อนไขก่อนเริ่มงาน (pre-condition) ร่วมของทุก use case
+' ในโมดูลอื่นทั้งหมด (M2–M10) แต่ไม่วาดเป็นเส้นความสัมพันธ์ข้ามโมดูลเชิง include/extend
+' เพราะเป็น cross-cutting concern ที่ระบุไว้ครั้งเดียวในเอกสารข้อความแทนการเขียนซ้ำ
+@startuml usecase_module1
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #757575
+  FontStyle bold
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU</b>\n(Use Case Diagram — โมดูล 1 · บัญชีและการเข้าสู่ระบบ)
+
+left to right direction
+
+actor "นักศึกษา\n(Student)" as Student
+actor "เจ้าหน้าที่\n(Staff)" as Staff
+actor "ผู้ดูแลระบบ\n(Admin)" as Admin
+
+rectangle "โมดูล 1 · บัญชีและการเข้าสู่ระบบ" {
+  package "E1 · การเข้าสู่ระบบ (ใช้ร่วมกันทุกบทบาท)" {
+    usecase "UC-16\nเข้าสู่ระบบด้วย Google OAuth" as UC16
+  }
+
+  package "E2 · ข้อมูลส่วนตัว (Student)" {
+    usecase "UC-14\nจัดการข้อมูลส่วนตัว" as UC14
+  }
+}
+
+Student -- UC16
+Staff -- UC16
+Admin -- UC16
+Student -- UC14
+
+@enduml

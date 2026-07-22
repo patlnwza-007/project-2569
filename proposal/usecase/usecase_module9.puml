@@ -1,0 +1,34 @@
+' โมดูล 9 (M9 · staff_report): การส่งออกรายงาน — UC-31
+@startuml usecase_module9
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU</b>\n(Use Case Diagram — โมดูล 9 · การส่งออกรายงาน)
+
+left to right direction
+
+actor "เจ้าหน้าที่\n(Staff)" as Staff
+
+rectangle "โมดูล 9 · การส่งออกรายงาน" {
+  usecase "UC-31\nส่งออกรายงาน" as UC31
+}
+
+Staff -- UC31
+
+@enduml

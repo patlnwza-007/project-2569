@@ -1,0 +1,96 @@
+```plantuml
+@startuml activity_module3_uc06
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_borrow_UC06_submit_request.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-06 ส่งคำขอยืมสิ่งของ — Activity Diagram\n<<include>> UC-05 (จัดการตะกร้าสิ่งของ) · Monolith: partition ระบบเดียว
+
+|นักศึกษา|
+start
+' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+note right
+  Pre-condition: ตะกร้ามีรายการอย่างน้อย 1 รายการแล้ว
+  (มาจาก UC-05 จัดการตะกร้าสิ่งของ — <<include>> เสมอ)
+end note
+:กดยืนยันส่งคำขอยืมจากหน้าตะกร้า;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
+:ตรวจข้อมูลติดต่อของนักศึกษา (ตาม FR-15);
+if (ข้อมูลติดต่อครบถ้วนหรือไม่?) then (ไม่ครบ)
+  :พาไปหน้าแก้ไขโปรไฟล์ (เชื่อมโยง UC-14);
+  stop
+else (ครบ)
+endif
+
+:ตรวจสถานะระงับสิทธิ์การยืม (Block);
+if (นักศึกษาถูกระงับสิทธิ์อยู่หรือไม่?) then (ถูกระงับ)
+  :ปฏิเสธการส่งคำขอ พร้อมแจ้งเหตุผล;
+  stop
+else (ไม่ถูกระงับ)
+endif
+
+|นักศึกษา|
+repeat
+  :ระบุเหตุผลการยืม และวันที่ต้องการใช้งาน (กรณีมีครุภัณฑ์ในตะกร้า);
+  |ระบบ UBORROWU|
+  :ตรวจ Business Rule — วันที่ใช้งานบังคับกรอกเฉพาะเมื่อตะกร้ามีครุภัณฑ์อย่างน้อย 1 ชิ้น;
+repeat while (มีครุภัณฑ์ในตะกร้าแต่ยังไม่ระบุวันที่ใช้งานหรือไม่?) is (ไม่ครบ — กรอกใหม่) not (ครบแล้ว)
+
+|ระบบ UBORROWU|
+:บันทึกคำขอยืม (สถานะ "รออนุมัติ") และล้างตะกร้า (write);
+
+fork
+  :แสดงหน้ายืนยันคำขอให้นักศึกษา (main flow) — รอเจ้าหน้าที่พิจารณาต่อที่ UC-18;
+fork again
+  :เขียน audit log (สร้างคำขอยืม) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: สถานะ "รออนุมัติ" ไม่อยู่ในรายการเหตุการณ์ที่ต้องแจ้งเตือนอัตโนมัติตาม FR-39/40/41
+  (รายการนั้นมีแค่ผลอนุมัติ/ปฏิเสธที่ UC-18, ถึงคิวที่ UC-11, ใกล้/เกินกำหนดคืนต่อเนื่องจาก UC-08, และยกเลิกอัตโนมัติที่ UC-18)
+  จึงไม่ใส่ fork ส่งอีเมล/in-app ใน use case นี้ — มีเฉพาะ fork audit log เท่านั้น
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml
+```

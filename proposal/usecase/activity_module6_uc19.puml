@@ -1,0 +1,100 @@
+@startuml activity_module6_uc19
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc19_return_handling.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-19 · จัดการรับคืนครุภัณฑ์ — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+
+note over
+  **หมายเหตุ — asynchronous handoff จาก UC-09:** นักศึกษาแจ้งคืน (UC-09) เป็นคนละ actor
+  และคนละรอบเวลา ไม่ใช่ความสัมพันธ์ <<include>>/<<extend>> เชิง UML — ไดอะแกรมนี้จึงเริ่มที่
+  เจ้าหน้าที่ตรวจสอบครุภัณฑ์ที่นักศึกษานำมาคืนจริงแล้วเท่านั้น ไม่วาดขั้นตอนฝั่งนักศึกษาซ้ำ
+end note
+
+' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+|เจ้าหน้าที่|
+start
+:เปิดรายการครุภัณฑ์ที่กำลังถูกยืมอยู่ พร้อมวันครบกำหนดคืน (staff:return_pending_list);
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:แสดงรายการครุภัณฑ์ที่กำลังยืม พร้อมวันครบกำหนดคืน;
+
+|เจ้าหน้าที่|
+:ตรวจสอบสภาพของจริงที่นักศึกษานำมาคืน;
+if (สภาพของครบ/ไม่ชำรุดหรือไม่?) then (ไม่ครบ/ชำรุด)
+  :กดปฏิเสธการรับคืน (staff:return_reject);
+  |ระบบ UBORROWU|
+  :คงสถานะครุภัณฑ์เป็น "กำลังยืม" (ไม่เปลี่ยนแปลง);
+  fork
+    :แจ้งผลการปฏิเสธพร้อมเหตุผลให้เจ้าหน้าที่ (main flow);
+  fork again
+    :เขียน audit log (ปฏิเสธการรับคืน) ผ่าน signal;
+  fork again
+    :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษาพร้อมเหตุผล;
+    |เซิร์ฟเวอร์อีเมล (external)|
+    :ส่งอีเมลแจ้งเหตุผลการปฏิเสธรับคืนให้นักศึกษา;
+  end fork
+else (ครบ/ไม่ชำรุด)
+  :กดยืนยันการรับคืน (staff:return_confirm);
+  |ระบบ UBORROWU|
+  :เปลี่ยนสถานะครุภัณฑ์เป็น "ว่าง/พร้อมให้ยืม" (write);
+  fork
+    :แสดงผลการยืนยันรับคืนให้เจ้าหน้าที่ (main flow);
+  fork again
+    :เขียน audit log (ยืนยันรับคืนครุภัณฑ์) ผ่าน signal;
+  fork again
+    :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษา;
+    |เซิร์ฟเวอร์อีเมล (external)|
+    :ส่งอีเมลยืนยันรับคืนให้นักศึกษา;
+  end fork
+endif
+
+|เจ้าหน้าที่|
+:เห็นผลลัพธ์การดำเนินการรับคืน;
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml

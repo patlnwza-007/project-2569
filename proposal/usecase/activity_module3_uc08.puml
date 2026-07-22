@@ -1,0 +1,90 @@
+```plantuml
+@startuml activity_module3_uc08
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_borrow_UC08_confirm_pickup.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-08 ยืนยันรับสิ่งของ — Activity Diagram\nMonolith: partition ระบบเดียว · แยกสถานะตามประเภทสิ่งของ (วัสดุ/ครุภัณฑ์)
+
+|นักศึกษา|
+start
+' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+:ไปรับสิ่งของจากเจ้าหน้าที่ตามที่นัดหมาย;
+:กดยืนยันการรับของในระบบ;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (เจ้าของคำขอเท่านั้น);
+:ตรวจสถานะคำขอปัจจุบัน;
+if (คำขอถูกเปลี่ยนเป็น "หมดอายุ" ไปแล้วหรือไม่ (เกิน 2 วันหลังอนุมัติ — auto-expire ที่ UC-18)?) then (หมดอายุแล้ว)
+  :แจ้งว่าไม่สามารถยืนยันรับของได้อีก ต้องส่งคำขอยืมใหม่ (UC-06);
+  stop
+else (ยังไม่หมดอายุ — "อนุมัติแล้ว/รอรับของ")
+endif
+
+repeat
+  :ตรวจประเภทของรายการถัดไปในคำขอ;
+  if (ประเภทสิ่งของ?) then (วัสดุ)
+    :เปลี่ยนสถานะรายการเป็น "เบิกสำเร็จ" (สิ้นสุด — ไม่มีขั้นตอนคืน);
+  else (ครุภัณฑ์)
+    :เปลี่ยนสถานะรายการเป็น "กำลังยืม" และเริ่มนับกำหนดคืนจากวันนี้ (write);
+  endif
+repeat while (ยังมีรายการที่ยังไม่ตรวจในคำขอหรือไม่?) is (มี) not (ตรวจครบทุกรายการแล้ว)
+
+note right
+  รายการครุภัณฑ์ที่เข้าสถานะ "กำลังยืม" จะเริ่มถูกระบบแจ้งเตือนอัตโนมัติ
+  เมื่อใกล้ครบกำหนด/เกินกำหนดคืน (FR-40) ต่อเนื่องจนกว่าจะแจ้งคืนสำเร็จที่ UC-09
+  — เป็น background job (scheduled task) แยกจาก flow ที่นักศึกษาเป็นผู้ริเริ่มใน use case นี้
+  จึงไม่วาดเป็น fork ในไดอะแกรมนี้ (ดูข้อ 3.3 ของคู่มือ — ไม่ block, แต่ก็ไม่ใช่ side effect ของ write ครั้งนี้โดยตรง)
+end note
+
+fork
+  :แสดงผลยืนยันการรับของให้นักศึกษา (main flow);
+fork again
+  :เขียน audit log (ยืนยันรับของ) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: การยืนยันรับของเองไม่ได้อยู่ในรายการเหตุการณ์แจ้งเตือนทันทีตาม FR-39/40/41 (แจ้งเตือนที่ตามมาเป็น background job ของ UC-08→UC-09)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml
+```

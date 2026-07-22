@@ -1,0 +1,73 @@
+@startuml activity_module2_uc02
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 catalog_activity_UC02_search_filter.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ไม่มี partition ไหนสีต่างจากที่อื่น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-02 · ค้นหาและกรองสิ่งของ — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view) · <<extend>> ของ UC-01
+
+|นักศึกษา|
+start
+' Pre-condition: นักศึกษาอยู่ในหน้ารายการสิ่งของ (UC-01) และเข้าสู่ระบบแล้ว (session ผ่าน allauth)
+:กรอกคำค้นหา และ/หรือเลือกตัวกรองหมวดหมู่/ประเภท/สถานะ;
+
+|ระบบ UBORROWU|
+:ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอินแล้ว);
+:ประมวลผลคำค้นหา/ตัวกรอง (catalog:item_list?q=&category=&type=&status=);
+
+if (พบสิ่งของที่ตรงเงื่อนไขหรือไม่?) then (ไม่พบ)
+  :แสดงข้อความ "ไม่พบรายการที่ค้นหา";
+else (พบ)
+  :แสดงรายการสิ่งของที่ตรงเงื่อนไขค้นหา/กรอง;
+endif
+
+|นักศึกษา|
+repeat
+  :ปรับเงื่อนไขค้นหา/กรองซ้ำ;
+  |ระบบ UBORROWU|
+  :ประมวลผลและแสดงรายการที่ตรงเงื่อนไขใหม่;
+repeat while (ต้องการปรับเงื่อนไขค้นหา/กรองต่ออีกหรือไม่?) is (ต้องการ — ปรับเงื่อนไขใหม่) not (ไม่ต้องการแล้ว)
+
+stop
+
+legend right
+  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: UC-02 เป็น <<extend>> ของ UC-01 (ดูรายการวัสดุและครุภัณฑ์) — เกิดเฉพาะเมื่อผู้ใช้เลือกค้นหา/กรองจากหน้ารายการ
+  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+endlegend
+
+@enduml

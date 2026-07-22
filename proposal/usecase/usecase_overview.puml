@@ -1,0 +1,64 @@
+@startuml usecase_overview
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU · ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี</b>\n(Use Case Diagram — ภาพรวมระดับสูง / Top View)
+
+left to right direction
+
+actor "นักศึกษา\n(Student)" as Student
+actor "เจ้าหน้าที่\n(Staff)" as Staff
+actor "ผู้ดูแลระบบ\n(Admin)" as Admin
+
+rectangle "ระบบยืม-คืนพัสดุออนไลน์ (UBORROWU)" {
+  usecase "โมดูล 1\nบัญชีและการเข้าสู่ระบบ" as M1
+  usecase "โมดูล 2\nค้นหาและแสดงสิ่งของ" as M2
+  usecase "โมดูล 3\nตะกร้า ยืม คืน คิว ประวัติ" as M3
+  usecase "โมดูล 4\nเสนอแนะและจัดซื้อสิ่งของ" as M4
+  usecase "โมดูล 5\nการประเมินความพึงพอใจ" as M5
+  usecase "โมดูล 6\nแดชบอร์ดและจัดการคำขอยืม-คืน" as M6
+  usecase "โมดูล 7\nจัดการคลังสิ่งของและตั้งค่า" as M7
+  usecase "โมดูล 8\nจัดการผู้ใช้และระงับสิทธิ์" as M8
+  usecase "โมดูล 9\nการส่งออกรายงาน" as M9
+  usecase "โมดูล 10\nจัดการบัญชีผู้ใช้งานและ Whitelist" as M10
+}
+
+' ===== ความสัมพันธ์ actor–use case (เส้นธรรมดา) =====
+' หมายเหตุ: Staff และ Admin เชื่อมกับ M1 ด้วย เพราะ UC-16 (เข้าสู่ระบบ) ใช้ร่วมกันทุกบทบาท
+Student -- M1
+Staff -- M1
+Admin -- M1
+
+Student -- M2
+Student -- M3
+
+Student -- M4
+Staff -- M4
+
+Student -- M5
+Staff -- M5
+
+Staff -- M6
+Staff -- M7
+Staff -- M8
+Staff -- M9
+
+Admin -- M10
+
+@enduml

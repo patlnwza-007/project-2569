@@ -1,0 +1,54 @@
+' โมดูล 6 (M6 · staff): แดชบอร์ดและการจัดการคำขอยืม-คืน — UC-17 ถึง UC-20
+@startuml usecase_module6
+!theme plain
+skinparam defaultFontName TH Sarabun New
+skinparam defaultFontSize 14
+skinparam roundcorner 10
+
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #795548
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #757575
+  FontStyle bold
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #9E9E9E
+}
+skinparam ArrowColor #424242
+
+title <b>UBORROWU</b>\n(Use Case Diagram — โมดูล 6 · แดชบอร์ดและการจัดการคำขอยืม-คืน)
+
+left to right direction
+
+actor "เจ้าหน้าที่\n(Staff)" as Staff
+
+rectangle "โมดูล 6 · แดชบอร์ดและการจัดการคำขอยืม-คืน" {
+  package "E1 · แดชบอร์ด" {
+    usecase "UC-17\nดูแดชบอร์ดภาพรวมระบบ" as UC17
+  }
+
+  package "E2 · การจัดการคำขอยืม-คืน" {
+    usecase "UC-18\nอนุมัติ/ปฏิเสธคำขอยืม" as UC18
+    usecase "UC-19\nจัดการรับคืนครุภัณฑ์" as UC19
+    usecase "UC-20\nดูประวัติการยืม-คืนของ\nนักศึกษาทั้งหมด" as UC20
+  }
+}
+
+Staff -- UC17
+Staff -- UC18
+Staff -- UC19
+Staff -- UC20
+
+' หมายเหตุ: UC-18 มี auto-expire (background job) เป็น business rule ภายในตัวเอง ไม่แยกเป็น use case ใหม่
+' UC-06 (นักศึกษาส่งคำขอยืม, โมดูล 3) กับ UC-18, และ UC-09 (นักศึกษาแจ้งคืน, โมดูล 3) กับ UC-19
+' เป็นคนละ actor คนละรอบเวลา (asynchronous handoff) — ไม่วาดเส้นความสัมพันธ์ข้ามโมดูล
+
+@enduml
