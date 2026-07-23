@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · เพิ่ม/แก้ไขสิ่งของ (UC-21)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-xl mx-auto">
+    <a href="page-item-overview.html" class="text-sm text-blue-600 hover:underline">← กลับภาพรวมคลัง</a>
+    <h1 id="title" class="text-2xl font-bold text-gray-800 mt-2 mb-1">เพิ่มสิ่งของใหม่</h1>
+    <p class="text-sm text-gray-500 mb-6">หมวดหมู่และตำแหน่งต้องตั้งค่าไว้ก่อนที่หน้าตั้งค่าคลัง (UC-26)</p>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <div><label class="text-sm font-semibold text-gray-700">ชื่อสิ่งของ <span class="text-red-500">*</span></label>
+        <input id="f-name" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      <div><label class="text-sm font-semibold text-gray-700">รูปภาพ (emoji แทนรูปถ่ายจริงในสาธิต)</label>
+        <input id="f-image" placeholder="📦" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-semibold text-gray-700">หมวดหมู่ <span class="text-red-500">*</span></label>
+          <select id="f-cat" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></select></div>
+        <div><label class="text-sm font-semibold text-gray-700">ตำแหน่งวาง <span class="text-red-500">*</span></label>
+          <select id="f-pos" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-semibold text-gray-700">ประเภท <span class="text-red-500">*</span></label>
+          <select id="f-type" onchange="toggleDays()" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="material">วัสดุ (เบิก ไม่ต้องคืน)</option><option value="equipment">ครุภัณฑ์ (ต้องคืน)</option></select></div>
+        <div><label class="text-sm font-semibold text-gray-700">จำนวนทั้งหมด <span class="text-red-500">*</span></label>
+          <input id="f-qty" type="number" min="0" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      </div>
+      <div id="days-field"><label class="text-sm font-semibold text-gray-700">จำนวนวันสูงสุดที่ยืมได้ (ครุภัณฑ์)</label>
+        <input id="f-days" type="number" min="1" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      <p id="err" class="hidden text-xs text-red-600">กรุณากรอกข้อมูลบังคับให้ครบก่อนบันทึก</p>
+      <button onclick="save()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2">บันทึก</button>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    let editId = null;
+    function init() {
+      notifyParentPage("item-form");
+      document.getElementById("f-cat").innerHTML = db("categories").map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+      document.getElementById("f-pos").innerHTML = db("positions").map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+      const id = qparam("id");
+      if (id) {
+        editId = Number(id);
+        const item = itemById(editId);
+        document.getElementById("title").textContent = "แก้ไขสิ่งของ";
+        document.getElementById("f-name").value = item.name;
+        document.getElementById("f-image").value = item.image;
+        document.getElementById("f-cat").value = item.category_id;
+        document.getElementById("f-pos").value = item.position_id;
+        document.getElementById("f-type").value = item.type;
+        document.getElementById("f-qty").value = item.qty_total;
+        document.getElementById("f-days").value = item.max_borrow_days || "";
+      }
+      toggleDays();
+    }
+    function toggleDays() { document.getElementById("days-field").classList.toggle("hidden", document.getElementById("f-type").value !== "equipment"); }
+    function save() {
+      const name = document.getElementById("f-name").value.trim();
+      const qty = document.getElementById("f-qty").value;
+      if (!name || qty === "") { document.getElementById("err").classList.remove("hidden"); return; }
+      document.getElementById("err").classList.add("hidden");
+      const items = db("items");
+      const type = document.getElementById("f-type").value;
+      const data = {
+        name, image: document.getElementById("f-image").value.trim() || "📦",
+        category_id: Number(document.getElementById("f-cat").value), position_id: Number(document.getElementById("f-pos").value),
+        type, qty_total: Number(qty), max_borrow_days: type === "equipment" ? (Number(document.getElementById("f-days").value) || 7) : null,
+        base_status: "พร้อมให้ยืม",
+      };
+      if (editId) {
+        const item = items.find(i => i.id === editId);
+        const diff = data.qty_total - item.qty_total;
+        Object.assign(item, data);
+        item.qty_available = Math.max(0, item.qty_available + diff);
+      } else {
+        items.push({ id: nextId(items), qty_available: data.qty_total, ...data });
+      }
+      dbSave("items", items);
+      toastBanner("บันทึกข้อมูลสิ่งของสำเร็จ");
+      setTimeout(() => location.href = "page-item-overview.html", 600);
+    }
+  </script>
+</body>
+</html>

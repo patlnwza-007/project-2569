@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU (Admin) · นำเข้า Whitelist นักศึกษา (UC-37)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:sans-serif;}</style>
+</head>
+<body class="bg-white min-h-screen p-4" onload="notifyParentPage('import-student-whitelist')">
+  <h1 class="text-xl font-bold mb-1">นำเข้ารายชื่อนักศึกษาที่มีสิทธิ์ (Whitelist)</h1>
+  <p class="text-xs text-gray-500 mb-3">รูปแบบไฟล์: 1 อีเมลต่อบรรทัด — เป็นการเพิ่มเข้ารายชื่อเดิมเท่านั้น (Additive-only) ไม่ลบของเก่า<br>
+    หากต้องการเพิกถอนสิทธิ์ ให้ใช้หน้าจัดการบัญชีผู้ใช้งานแทน (ไม่ใช่ไฟล์นี้)</p>
+  <input id="file" type="file" accept=".csv,.txt" class="border px-2 py-1 text-sm mb-3"><br>
+  <button onclick="doImport()" class="bg-blue-600 text-white text-sm px-3 py-1.5 rounded">นำเข้า</button>
+  <div id="result" class="mt-3 text-sm"></div>
+  <h2 class="text-sm font-bold mt-6 mb-1">รายชื่อปัจจุบันใน Whitelist</h2>
+  <ul id="current" class="text-xs font-mono list-disc list-inside"></ul>
+  <script src="../shared.js"></script>
+  <script>
+    function refreshList() {
+      const list = db("whitelist_student");
+      document.querySelector("h2").textContent = `รายชื่อปัจจุบันใน Whitelist (${list.length})`;
+      document.getElementById("current").innerHTML = list.map(e => `<li>${e}</li>`).join("");
+    }
+    refreshList();
+    function doImport() {
+      const f = document.getElementById("file");
+      if (!f.files.length) { toastBanner("กรุณาเลือกไฟล์ก่อน", "error"); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = e.target.result.split(/\r?\n/).map(l=>l.trim()).filter(l => l !== "");
+        const list = db("whitelist_student");
+        const errors = []; let added = 0, dup = 0;
+        lines.forEach((line, idx) => {
+          const email = line.split(",")[0].trim();
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { errors.push(`แถวที่ ${idx+1}: รูปแบบอีเมลไม่ถูกต้อง (${line})`); return; }
+          if (list.includes(email)) { dup++; return; }
+          list.push(email); added++;
+        });
+        dbSave("whitelist_student", list);
+        document.getElementById("result").innerHTML = `<p class="text-green-700">เพิ่มสำเร็จ ${added} รายชื่อ${dup ? `, ข้ามซ้ำ ${dup} รายชื่อ` : ""}</p>` +
+          (errors.length ? `<p class="text-red-600 mt-1">ผิดพลาด ${errors.length} แถว:</p><ul class="list-disc list-inside text-xs text-red-500">${errors.map(x=>`<li>${x}</li>`).join("")}</ul>` : "");
+        toastBanner(`เพิ่ม Whitelist สำเร็จ ${added} รายชื่อ`);
+        refreshList();
+      };
+      reader.readAsText(f.files[0]);
+    }
+  </script>
+</body>
+</html>

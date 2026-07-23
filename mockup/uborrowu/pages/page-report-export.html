@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ส่งออกรายงาน (UC-31)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="notifyParentPage('report-export')">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">ส่งออกรายงาน</h1>
+    <p class="text-sm text-gray-500 mb-4">เลือกช่วงวันที่ (สำหรับรายงานที่อ้างอิงวันที่) แล้วเลือกรูปแบบรายงานที่ต้องการ</p>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-5 flex gap-3 items-end">
+      <div><label class="text-xs font-semibold text-gray-500">ตั้งแต่วันที่</label><input id="from" type="date" class="mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      <div><label class="text-xs font-semibold text-gray-500">ถึงวันที่</label><input id="to" type="date" class="mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+    </div>
+    <div id="reports" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6"></div>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center justify-between">
+      <div><p class="text-sm font-semibold text-gray-800">ส่งออกข้อมูลคลังทั้งหมด (CSV)</p><p class="text-xs text-gray-400">รายชื่อวัสดุ/ครุภัณฑ์ทั้งหมดพร้อมสถานะปัจจุบัน</p></div>
+      <button onclick="exportCSV()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">ดาวน์โหลด CSV</button>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    const REPORTS = [
+      { id: 1, name: "สรุปสถานะการยืม-คืนรายเดือน", filter: r => true },
+      { id: 2, name: "ครุภัณฑ์เกินกำหนดคืน", filter: r => r.status === "BORROWING" && daysLeft(r.due_date) < 0 },
+      { id: 3, name: "นักศึกษาที่ถูกระงับสิทธิ์", isStudent: true, filter: s => s.blocked },
+      { id: 4, name: "สิ่งของยอดนิยม (ยืมมากที่สุด)", isItem: true, filter: () => true },
+      { id: 5, name: "คำขอที่ถูกปฏิเสธ", filter: r => r.status === "REJECTED" },
+      { id: 6, name: "คำเสนอแนะสิ่งของ", isSuggestion: true, filter: () => true },
+      { id: 7, name: "ผลประเมินความพึงพอใจ", isEval: true, filter: () => true },
+      { id: 8, name: "ภาพรวมคลังวัสดุ-ครุภัณฑ์", isItem2: true, filter: () => true },
+    ];
+    document.getElementById("reports").innerHTML = REPORTS.map(r => `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center justify-between">
+      <p class="text-sm font-semibold text-gray-800">📄 ${r.name}</p>
+      <button onclick="genReport(${r.id})" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg px-3 py-1.5">สร้าง PDF</button>
+    </div>`).join("");
+
+    function inRange(dateStr) {
+      const from = document.getElementById("from").value, to = document.getElementById("to").value;
+      if (!dateStr) return true;
+      const d = dateStr.slice(0,10);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    }
+
+    function genReport(id) {
+      const rep = REPORTS.find(r => r.id === id);
+      let rows = [];
+      if (rep.isStudent) rows = db("students").filter(rep.filter).map(s => `${s.id} - ${s.name} (${s.block_reason||''})`);
+      else if (rep.isItem) { const tally = {}; db("requests").forEach(r => r.items.forEach(it => tally[it.item_id] = (tally[it.item_id]||0)+it.qty)); rows = Object.entries(tally).sort((a,b)=>b[1]-a[1]).map(([iid,q]) => `${itemById(iid)?.name} — ยืมรวม ${q} ครั้ง`); }
+      else if (rep.isSuggestion) rows = db("suggestions").map(s => `${s.name} — ${STATUS_LABEL[s.status]||s.status}`);
+      else if (rep.isEval) rows = db("eval_responses").map(e => `คำขอ #${e.request_id} — ${JSON.stringify(e.answers)}`);
+      else if (rep.isItem2) rows = db("items").map(i => `${i.name} — ${i.base_status} (${i.qty_available}/${i.qty_total})`);
+      else rows = db("requests").filter(r => inRange(r.created_at)).filter(rep.filter).map(r => `#${r.id} ${studentById(r.student_id)?.name||r.student_id} — ${STATUS_LABEL[r.status]} — ${r.created_at}`);
+
+      if (rows.length === 0) { toastBanner("ไม่มีข้อมูลในช่วงที่เลือก ไม่สร้างไฟล์ว่าง", "error"); return; }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text("UBORROWU - " + rep.name, 14, 16);
+      doc.setFontSize(9);
+      let y = 28;
+      rows.forEach(line => {
+        const wrapped = doc.splitTextToSize(String(line), 180);
+        wrapped.forEach(w => { if (y > 280) { doc.addPage(); y = 16; } doc.text(w, 14, y); y += 6; });
+      });
+      doc.save(`report_${rep.id}_${rep.name.replace(/\s+/g,'_')}.pdf`);
+      toastBanner("สร้างรายงาน PDF สำเร็จ (ดาวน์โหลดแล้ว)");
+    }
+
+    function exportCSV() {
+      const items = db("items");
+      let csv = "id,name,type,category,position,qty_total,qty_available,status\n";
+      items.forEach(i => { csv += `${i.id},"${i.name}",${i.type},"${categoryById(i.category_id)?.name||''}","${positionById(i.position_id)?.name||''}",${i.qty_total},${i.qty_available},"${i.base_status}"\n`; });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "inventory_export.csv"; a.click();
+      toastBanner("ส่งออกไฟล์ CSV สำเร็จ");
+    }
+  </script>
+</body>
+</html>

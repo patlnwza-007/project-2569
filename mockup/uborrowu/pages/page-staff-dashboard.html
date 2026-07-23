@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · แดชบอร์ดเจ้าหน้าที่ (UC-17)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">แดชบอร์ดภาพรวมระบบ</h1>
+    <p class="text-sm text-gray-500 mb-6">ภาพรวมสถานการณ์ยืม-คืนทั้งระบบ อัปเดตล่าสุดวันนี้</p>
+
+    <div id="kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm font-semibold text-gray-700 mb-3">สถานะการยืมทั้งหมด</p>
+        <div id="bar-chart" class="space-y-2"></div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm font-semibold text-gray-700 mb-3">สัดส่วนนักศึกษา</p>
+        <div id="donut" class="flex flex-col items-center"></div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mt-4">
+      <p class="text-sm font-semibold text-gray-700 mb-3">สิ่งของที่ถูกยืมมากที่สุด 3 อันดับแรก</p>
+      <div id="top3" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+    </div>
+  </div>
+
+  <script src="../shared.js"></script>
+  <script>
+    function init() {
+      notifyParentPage("staff-dashboard");
+      const reqs = db("requests");
+      const students = db("students");
+
+      const pending = reqs.filter(r => r.status === "PENDING").length;
+      const borrowing = reqs.filter(r => r.status === "BORROWING").length;
+      const returnPending = reqs.filter(r => r.status === "RETURN_PENDING").length;
+      document.getElementById("kpis").innerHTML = [
+        ["รออนุมัติ", pending, "amber", "✅"],
+        ["กำลังยืม", borrowing, "blue", "📦"],
+        ["รอยืนยันการคืน", returnPending, "yellow", "↩️"],
+        ["คำขอทั้งหมด", reqs.length, "gray", "📋"],
+      ].map(([label, val, color, icon]) => `
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+          <div class="flex items-center justify-between">
+            <div><p class="text-xs text-gray-400">${label}</p><p class="text-2xl font-bold text-gray-800">${val}</p></div>
+            <div class="text-2xl bg-${color}-100 text-${color}-700 rounded-xl w-10 h-10 flex items-center justify-center">${icon}</div>
+          </div>
+        </div>`).join("");
+
+      const statuses = ["PENDING","APPROVED_WAIT_PICKUP","BORROWING","RETURN_PENDING","RETURNED","ISSUED","REJECTED","EXPIRED","CANCELLED"];
+      const counts = statuses.map(s => reqs.filter(r => r.status === s).length);
+      const max = Math.max(1, ...counts);
+      document.getElementById("bar-chart").innerHTML = statuses.map((s, i) => `
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-32 text-gray-500 shrink-0">${STATUS_LABEL[s]}</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden"><div class="h-4 bg-blue-500 rounded-full" style="width:${(counts[i]/max*100)}%"></div></div>
+          <span class="w-6 text-right font-mono">${counts[i]}</span>
+        </div>`).join("");
+
+      const blocked = students.filter(s => s.blocked).length;
+      const normal = students.length - blocked;
+      const pct = students.length ? Math.round(normal/students.length*100) : 0;
+      document.getElementById("donut").innerHTML = `
+        <div class="w-32 h-32 rounded-full flex items-center justify-center" style="background: conic-gradient(#2563eb 0% ${pct}%, #facc15 ${pct}% 100%)">
+          <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center text-sm font-bold text-gray-700">${pct}%</div>
+        </div>
+        <div class="flex gap-4 mt-3 text-xs">
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>ปกติ (${normal})</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span>ถูกระงับ (${blocked})</span>
+        </div>`;
+
+      const tally = {};
+      reqs.forEach(r => r.items.forEach(it => { tally[it.item_id] = (tally[it.item_id]||0) + it.qty; }));
+      const top3 = Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      document.getElementById("top3").innerHTML = top3.map(([id, qty], i) => {
+        const item = itemById(id);
+        return `<div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
+          <div class="text-2xl font-bold text-blue-300">#${i+1}</div>
+          <div class="text-3xl">${item.image}</div>
+          <div><p class="text-sm font-semibold text-gray-800">${item.name}</p><p class="text-xs text-gray-400">ยืมรวม ${qty} ครั้ง</p></div>
+        </div>`;
+      }).join("") || `<p class="text-xs text-gray-400 col-span-3">ยังไม่มีข้อมูลการยืม</p>`;
+    }
+  </script>
+</body>
+</html>

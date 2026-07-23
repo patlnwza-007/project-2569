@@ -1,0 +1,450 @@
+@startuml ui_state_diagram
+' ══════════════════════════════════════════════════════════════════
+' UBORROWU · ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี
+' UI State Transition Diagram — สร้างจาก use case ทั้งหมด (UC-01–UC-38)
+' อ้างอิง: proposal/usecase/use_case_description.md,
+'          proposal/usecase/usecase_overview.puml + usecase_module1–10.puml,
+'          proposal/usecase/activity_module*_uc*.puml
+'
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 ui_state_diagram.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'
+' แนวคิดการออกแบบ:
+'   - แบ่งเป็น 4 โซนตามบทบาท: ก่อนเข้าสู่ระบบ / นักศึกษา / เจ้าหน้าที่ / ผู้ดูแลระบบ
+'     (บทบาทถูกกำหนดตอนเข้าสู่ระบบ UC-16 จาก Whitelist หรือ Role Override)
+'   - แสดงเฉพาะ "หน้าจอหลัก" ของแต่ละ use case ไม่แยก dialog ยืนยัน/toast แจ้งเตือนเป็น state
+'   - use case ที่เป็น <<extend>> ของอีก use case หนึ่ง (เช่น ค้นหา/กรอง, นำเข้าแบบไฟล์)
+'     ไม่แยกเป็น state ใหม่ แต่ระบุเป็นความสามารถในหน้าเดียวกัน หรือ transition ย่อย
+'   - ทุก state มี note กำกับ 3 อย่าง (ถ้ามี): แสดง/ฟิลด์ (ส่วนประกอบหลักของหน้าจอ),
+'     ผิดพลาด/ว่าง (empty & error state ตาม Alternative Flow ของ use case),
+'     และเงื่อนไข/กฎทางธุรกิจที่กระทบ UI — ใช้เป็นฐานสำหรับทำ mockup รายหน้าจอ
+' ══════════════════════════════════════════════════════════════════
+!pragma layout smetana
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam noteFontSize 11
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 11
+
+' ===== Monochrome เท่านั้น =====
+skinparam state {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  ArrowFontName "TH Sarabun New"
+}
+skinparam note {
+  BackgroundColor #FFFDE7
+  BorderColor #9E9E9E
+}
+
+title UBORROWU — UI State Transition Diagram (การนำทางระหว่างหน้าจอ)\nระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี
+
+' ═════════ โซนก่อนเข้าสู่ระบบ (Guest) ═════════
+state "ยังไม่เข้าสู่ระบบ" as PreAuth {
+  state "หน้าแรก (Welcome)" as Welcome
+  note right of Welcome
+    แสดง: โลโก้ระบบ + ปุ่ม "เข้าสู่ระบบด้วย Google" เท่านั้น
+    ไม่มีฟอร์ม ไม่มีข้อมูลอื่นก่อนล็อกอิน
+  end note
+
+  state "เข้าสู่ระบบด้วย Google\n(UC-16)" as Login
+  note right of Login
+    แสดง: redirect ไปหน้า Google OAuth 2.0 (ไม่มี UI ฟอร์มของระบบเอง)
+    ผิดพลาด: อีเมลไม่อยู่ใน Whitelist → ข้อความปฏิเสธ + เหตุผล /
+    บัญชีถูกระงับสิทธิ์ (Block) → ข้อความปฏิเสธการเข้าสู่ระบบ
+    กฎ: ตรวจ Whitelist ก่อนเสมอ แล้วจึงเช็ค Role Override ทับ (UC-34/35)
+  end note
+
+  [*] --> Welcome
+  Welcome --> Login : กด "เข้าสู่ระบบด้วย Google"
+  Login --> Login : อีเมลไม่อยู่ใน Whitelist /\nบัญชีถูกระงับสิทธิ์ (Block)\n→ ปฏิเสธการเข้าสู่ระบบ
+}
+
+' ═════════ โซนนักศึกษา (Student — UC-01 ถึง UC-15) ═════════
+state "นักศึกษา (Student)" as Student {
+  state "หน้าหลัก\nสถานะการยืมของฉัน (UC-10)" as StuHome
+  note right of StuHome
+    แสดง: รายการคำขอยืมของฉันทั้งหมด + ป้ายสถานะแยกวัสดุ/ครุภัณฑ์
+    (รออนุมัติ / ปฏิเสธแล้ว / อนุมัติแล้ว-รอรับของ / หมดอายุ /
+    กำลังยืม / รอยืนยันการคืน / คืนสำเร็จ / เบิกสำเร็จ)
+    ว่าง: "ยังไม่มีรายการยืม"
+  end note
+
+  state "โปรไฟล์ส่วนตัว\n(UC-14)" as Profile
+  note right of Profile
+    ฟิลด์แก้ไขได้: เบอร์โทรศัพท์
+    อ่านอย่างเดียว: วันที่เข้าสู่ระบบครั้งแรก, วันเวลาเข้าสู่ระบบล่าสุด
+    กฎ: ข้อมูลติดต่อต้องครบก่อนส่งคำขอยืมได้ (บังคับใช้ที่ UC-06)
+  end note
+
+  state "รายการวัสดุ/ครุภัณฑ์\nค้นหา + กรอง (UC-01, extend UC-02)" as ItemList
+  note right of ItemList
+    แสดง: รูปภาพ, ชื่อ, หมวดหมู่, สถานะ, จำนวนคงเหลือ ต่อรายการ (pagination/scroll)
+    ฟิลด์: ช่องค้นหาชื่อ + ตัวกรองหมวดหมู่/ประเภท/สถานะ (UC-02)
+    ว่าง: "ยังไม่มีรายการสิ่งของ" / "ไม่พบรายการที่ค้นหา"
+  end note
+
+  state "รายละเอียดสิ่งของ\n(UC-03)" as ItemDetail
+  note right of ItemDetail
+    แสดง: ชื่อ, รูปภาพ, จำนวนคงเหลือ, ตำแหน่งชั้นวาง, ข้อมูลคิวรอ
+    ปุ่ม: "เพิ่มลงตะกร้า" (คงเหลือ > 0) หรือ "จองคิว" (คงเหลือ = 0, UC-11)
+    ผิดพลาด: สิ่งของถูกลบ/ปลดระวางแล้ว → "ไม่พบสิ่งของนี้"
+  end note
+
+  state "แผนผังตำแหน่งชั้นวาง\n(UC-04)" as PositionMap
+  note right of PositionMap
+    แสดง: จัดกลุ่มตามตู้/ชั้นวาง พร้อมสิ่งของที่อยู่ในแต่ละตำแหน่ง
+    ว่าง: "ยังไม่มีข้อมูลตำแหน่งจัดเก็บ"
+  end note
+
+  state "รายการคิวของฉัน\n(UC-11)" as QueueList
+  note right of QueueList
+    แสดง: ลำดับคิวของฉันต่อสิ่งของแต่ละชิ้น + ปุ่ม "ออกจากคิว"
+    หมายเหตุ: การจองคิวใหม่ทำที่ปุ่มบนหน้า ItemDetail ไม่ใช่หน้านี้
+    แจ้งเตือน: อัตโนมัติ (in-app + email) เมื่อถึงคิวที่จองไว้
+  end note
+
+  state "ตะกร้า\n(UC-05)" as Cart
+  note right of Cart
+    แสดง: รายการสิ่งของ + ช่องแก้ไขจำนวนต่อรายการ + ปุ่มลบรายการ
+    ผิดพลาด: จำนวนที่ต้องการเกินจำนวนคงเหลือจริง → แจ้งเตือน ไม่ให้เพิ่ม/แก้เกิน
+  end note
+
+  state "กรอกเหตุผล + วันที่ใช้งาน\nยืนยันส่งคำขอยืม (UC-06)" as RequestForm
+  note right of RequestForm
+    ฟิลด์: เหตุผลการยืม (บังคับ), วันที่ต้องการใช้งาน
+    (บังคับเฉพาะเมื่อตะกร้ามีครุภัณฑ์อย่างน้อย 1 ชิ้น — วัสดุไม่ต้องระบุ)
+    ผิดพลาด: ไม่ระบุวันที่ที่จำเป็น → แจ้งเตือนให้กรอกครบ /
+    ถูกระงับสิทธิ์ (Block) → ปฏิเสธการส่งคำขอ พร้อมเหตุผล
+  end note
+
+  state "ยืนยันรับของ\n(UC-08)" as ConfirmPickup
+  note right of ConfirmPickup
+    แสดง: รายละเอียดคำขอที่อนุมัติแล้ว + ปุ่ม "ยืนยันรับของ"
+    กฎ: ต้องกดภายใน 2 วันหลังอนุมัติ มิฉะนั้นระบบดึงของคืนคลัง
+    อัตโนมัติและเปลี่ยนคำขอเป็น "หมดอายุ" (กดยืนยันตรงนี้ไม่ได้อีก)
+  end note
+
+  state "แจ้งคืนครุภัณฑ์\n(UC-09)" as NotifyReturn
+  note right of NotifyReturn
+    แสดง: รายการครุภัณฑ์ที่กำลังยืมอยู่ของฉัน + ปุ่ม "แจ้งคืน" ต่อรายการ
+    แจ้งเตือน: อัตโนมัติเมื่อใกล้/เกินกำหนดคืน จนกว่าจะแจ้งคืนสำเร็จ
+  end note
+
+  state "ประวัติการยืม\n(UC-12)" as History
+  note right of History
+    แสดง: รายการยืม-คืนทั้งหมดของฉัน เรียงตามวันที่
+    ว่าง: "ยังไม่มีประวัติการยืม"
+  end note
+
+  state "แบบประเมินความพึงพอใจ\n(UC-15)" as Evaluation
+  note right of Evaluation
+    แสดง: แบบฟอร์มคำถามที่เจ้าหน้าที่ออกแบบไว้ (UC-32)
+    ผิดพลาด: เคยประเมินรายการนี้ไปแล้ว → ไม่อนุญาตให้ส่งซ้ำ
+  end note
+
+  state "เสนอแนะสิ่งของใหม่ +\nติดตามสถานะ (UC-13)" as Suggestion
+  note right of Suggestion
+    ฟิลด์: ชื่อสิ่งของ, รายละเอียดที่ต้องการเสนอแนะ
+    แสดงเพิ่ม: รายการติดตามสถานะคำเสนอแนะของฉัน (รอพิจารณา/อนุมัติ/ปฏิเสธ)
+    ผิดพลาด: กรอกข้อมูลไม่ครบ → แจ้งเตือนก่อนส่ง
+  end note
+
+  [*] --> StuHome
+
+  StuHome --> Profile : เมนูโปรไฟล์
+  Profile --> StuHome : บันทึกสำเร็จ / กลับ
+
+  StuHome --> ItemList : เมนูรายการสิ่งของ
+  ItemList --> StuHome : กลับ
+  ItemList --> ItemDetail : เลือกสิ่งของ (UC-03)
+  ItemDetail --> ItemList : กลับ
+  ItemDetail --> PositionMap : ดูตำแหน่งชั้นวาง (UC-04)
+  PositionMap --> ItemDetail : กลับ
+  ItemDetail --> Cart : เพิ่มลงตะกร้า\n(จำนวนคงเหลือ > 0)
+  ItemDetail --> ItemDetail : กดจองคิว (UC-11)\n(จำนวนคงเหลือ = 0)\n→ เพิ่มเข้าคิว + แจ้งลำดับที่
+  StuHome --> QueueList : เมนู "คิวของฉัน"
+  QueueList --> StuHome : กลับ
+  QueueList --> QueueList : กดออกจากคิว
+
+  ItemList --> Cart : เพิ่มลงตะกร้าจากรายการ
+  StuHome --> Cart : เมนูตะกร้า
+  Cart --> StuHome : กลับ
+  Cart --> ItemList : เลือกซื้อเพิ่ม
+  Cart --> RequestForm : กดยืนยันส่งคำขอยืม\n(include UC-05)
+  RequestForm --> Profile : ข้อมูลติดต่อไม่ครบ\n→ บังคับกรอกให้ครบก่อน (UC-14)
+  Profile --> Cart : ข้อมูลครบแล้ว (มาจาก RequestForm)\n→ กลับไปลองส่งคำขอยืมอีกครั้ง
+  RequestForm --> Cart : ยกเลิก / แก้ไขตะกร้าต่อ
+  RequestForm --> StuHome : ส่งคำขอสำเร็จ\n(สถานะ "รออนุมัติ" → รอ UC-18)
+
+  StuHome --> StuHome : ยกเลิกคำขอยืม (UC-07)\n(เฉพาะสถานะ "รออนุมัติ")
+  StuHome --> ConfirmPickup : เลือกคำขอสถานะ\n"อนุมัติแล้ว/รอรับของ"
+  ConfirmPickup --> StuHome : ยืนยันรับของสำเร็จ\nวัสดุ → "เบิกสำเร็จ" /\nครุภัณฑ์ → "กำลังยืม"
+  StuHome --> NotifyReturn : เลือกครุภัณฑ์สถานะ\n"กำลังยืม"
+  NotifyReturn --> StuHome : แจ้งคืนสำเร็จ\n(สถานะ "รอยืนยันการคืน" → รอ UC-19)
+
+  StuHome --> History : เมนูประวัติการยืม (UC-12)
+  History --> StuHome : กลับ
+  History --> Evaluation : ประเมินความพึงพอใจ (UC-15)\n(เฉพาะรายการที่คืน/เบิกสำเร็จแล้ว)
+  Evaluation --> History : ส่งแบบประเมินสำเร็จ / กลับ
+
+  StuHome --> Suggestion : เมนูเสนอแนะสิ่งของ (UC-13)
+  Suggestion --> StuHome : ส่งคำเสนอแนะสำเร็จ / กลับ
+}
+
+' ═════════ โซนเจ้าหน้าที่ (Staff — UC-17 ถึง UC-32) ═════════
+state "เจ้าหน้าที่ (Staff)" as Staff {
+  state "แดชบอร์ดภาพรวมระบบ\n(UC-17)" as StaffDash
+  note right of StaffDash
+    แสดง 4 องค์ประกอบ: (1) การ์ดสรุปจำนวนยืม-คืนปัจจุบัน
+    (2) กราฟแท่งสถานะการยืมทั้งหมด (3) กราฟโดนัทสัดส่วนนักศึกษา
+    ปกติ/ถูกระงับสิทธิ์ (4) รายการสิ่งของถูกยืมมากที่สุด 3 อันดับแรก
+  end note
+
+  state "คำขอยืมที่รออนุมัติ\n(UC-18)" as PendingRequests
+  note right of PendingRequests
+    แสดง: รายการคำขอรออนุมัติ เลือกได้ทีละ/หลายรายการ
+    ปุ่ม: อนุมัติ / ปฏิเสธ (บังคับระบุเหตุผลก่อนบันทึกเมื่อปฏิเสธ)
+    หมายเหตุ: รายการที่นักศึกษายกเลิกไปแล้ว (UC-07) ถูกข้ามอัตโนมัติ
+  end note
+
+  state "รับคืนครุภัณฑ์\n(UC-19)" as ReturnMgmt
+  note right of ReturnMgmt
+    แสดง: รายการครุภัณฑ์กำลังยืม + วันครบกำหนดคืน
+    ปุ่ม: ยืนยันรับคืน / ปฏิเสธ (ของไม่ครบ/ชำรุด — คงสถานะ
+    "กำลังยืม" ไว้ พร้อมแจ้งเหตุผลกลับไปยังนักศึกษา)
+  end note
+
+  state "ประวัติการยืม-คืนทั้งระบบ\n(UC-20)" as AllHistory
+  note right of AllHistory
+    ฟิลด์: ค้นหา/กรองตามชื่อนักศึกษา หรือช่วงวันที่
+    ว่าง: "ไม่พบข้อมูล"
+  end note
+
+  state "ภาพรวมสถานะคลัง\n(UC-22)" as ItemOverview
+  note right of ItemOverview
+    แสดง: ตารางวัสดุ/ครุภัณฑ์ทั้งหมด พร้อมป้ายสถานะ
+    (ว่าง/พร้อมให้ยืม, กำลังยืม, ไม่พร้อมใช้งาน) + จำนวนคงเหลือ
+    ฟิลด์: ค้นหาชื่อ + ตัวกรองสถานะ/หมวดหมู่/ประเภท
+    ว่าง: "ไม่พบข้อมูล"
+  end note
+
+  state "เพิ่ม/แก้ไขสิ่งของ\n(UC-21)" as ItemForm
+  note right of ItemForm
+    ฟิลด์: ชื่อ, รูปภาพ, หมวดหมู่, ตำแหน่งวาง,
+    จำนวนวันสูงสุดที่อนุญาตให้ยืม (เฉพาะครุภัณฑ์)
+    ผิดพลาด: กรอกข้อมูลบังคับไม่ครบ → ไม่บันทึก
+  end note
+
+  state "นำเข้าคลังแบบชุด (CSV/Excel)\n(extend UC-25)" as BulkImport
+  note right of BulkImport
+    แสดง: ปุ่มดาวน์โหลดไฟล์ต้นแบบ (template) + ช่องอัปโหลดไฟล์
+    ผิดพลาด: รูปแบบไฟล์ผิด/มีแถวข้อมูลผิดพลาด →
+    แจ้งรายการแถวที่ผิด และไม่นำเข้าแถวนั้น
+  end note
+
+  state "ลบวัสดุ\n(UC-23)" as ItemDelete
+  note right of ItemDelete
+    แสดง: เลือกรายการทีละ/หลายชิ้น + ปุ่มยืนยันการลบ
+    ผิดพลาด: วัสดุยังมีคำขอยืมค้างอยู่ (รออนุมัติ/รอรับของ)
+    → ปฏิเสธการลบรายการนั้น พร้อมเหตุผล
+  end note
+
+  state "เปลี่ยนสถานะครุภัณฑ์\n(ชำรุด/เลิกใช้/ปลดระวาง — UC-24)" as ItemStatusChange
+  note right of ItemStatusChange
+    ฟิลด์: เลือกสถานะใหม่ (ชำรุด / เลิกใช้งาน / ปลดระวาง)
+    ผิดพลาด: ครุภัณฑ์กำลังถูกยืมอยู่ → ไม่อนุญาตเปลี่ยนสถานะ
+    จนกว่าจะมีการคืน
+  end note
+
+  state "ตั้งค่าคลัง\nหมวดหมู่ / สถานะ / ตำแหน่ง (UC-26)" as WarehouseSettings
+  note right of WarehouseSettings
+    จัดการ 3 รายการ (เพิ่ม/แก้ไข/ลบ): หมวดหมู่สิ่งของ,
+    สถานะสิ่งของ, ตำแหน่งตู้/ชั้นวาง
+    ผิดพลาด: ลบรายการที่สิ่งของยังใช้งานอยู่ → ปฏิเสธ พร้อมเหตุผล
+  end note
+
+  state "รายชื่อนักศึกษา\n(UC-27)" as StudentList
+  note right of StudentList
+    ฟิลด์: ค้นหาชื่อ/รหัสนักศึกษา + เรียงลำดับตามคอลัมน์
+    ว่าง: "ไม่พบข้อมูล"
+  end note
+
+  state "จัดการสิทธิ์การยืม\nกำหนด Deadline / Block (UC-28)" as StudentPermission
+  note right of StudentPermission
+    ฟิลด์: วันครบกำหนดคืน (Deadline) ที่แก้ไขได้
+    ปุ่ม: ระงับสิทธิ์ (Block) / ปลดบล็อก
+  end note
+
+  state "พิจารณาคำเสนอแนะสิ่งของ\n(UC-29)" as SuggestionReview
+  note right of SuggestionReview
+    แสดง: รายการคำเสนอแนะรอพิจารณา + รายละเอียดที่นักศึกษาระบุ
+    ปุ่ม: อนุมัติ / ปฏิเสธ
+  end note
+
+  state "เพิ่มรายการจัดซื้อเอง\n(UC-30)" as PurchaseAdd
+  note right of PurchaseAdd
+    ฟิลด์: ชื่อสิ่งของ, รายละเอียดที่ต้องการจัดซื้อ
+    หมายเหตุ: เป็นเมนูอิสระ ไม่ผูกกับ UC-29
+  end note
+
+  state "ออกแบบฟอร์มประเมิน +\nดูผลสรุป (UC-32)" as EvaluationForm
+  note right of EvaluationForm
+    2 ส่วน: (1) สร้าง/แก้ไขคำถามในแบบฟอร์ม + ปุ่มเผยแพร่
+    (2) หน้าผลสรุปคำตอบภาพรวมที่นักศึกษาส่งเข้ามา (UC-15)
+  end note
+
+  state "ส่งออกรายงาน PDF / CSV\n(UC-31)" as ReportExport
+  note right of ReportExport
+    ฟิลด์: เลือกรูปแบบรายงาน PDF (อย่างน้อย 8 แบบ)
+    หรือส่งออกข้อมูลคลังเป็น CSV
+    ผิดพลาด: ไม่มีข้อมูลในช่วงที่เลือก → แจ้งเตือน ไม่สร้างไฟล์ว่าง
+  end note
+
+  [*] --> StaffDash
+
+  StaffDash --> PendingRequests : เมนู "คำขอรออนุมัติ"
+  PendingRequests --> StaffDash : อนุมัติ/ปฏิเสธสำเร็จ\n(ทีละรายการ/หลายรายการ) / กลับ
+
+  StaffDash --> ReturnMgmt : เมนู "รับคืนครุภัณฑ์"
+  ReturnMgmt --> StaffDash : ยืนยัน/ปฏิเสธการรับคืน / กลับ
+
+  StaffDash --> AllHistory : เมนูประวัติทั้งระบบ
+  AllHistory --> StaffDash : กลับ
+
+  StaffDash --> ItemOverview : เมนูจัดการคลัง
+  ItemOverview --> StaffDash : กลับ
+  ItemOverview --> ItemForm : เพิ่ม/แก้ไขทีละชิ้น (UC-21)
+  ItemForm --> ItemOverview : บันทึกสำเร็จ / กลับ
+  ItemForm --> BulkImport : เลือกนำเข้าแบบไฟล์แทน\n(extend UC-25)
+  BulkImport --> ItemOverview : นำเข้าสำเร็จ / กลับ
+  ItemOverview --> ItemDelete : เลือกลบทีละ/หลายชิ้น (UC-23)
+  ItemDelete --> ItemOverview : ลบสำเร็จ / กลับ
+  ItemOverview --> ItemStatusChange : เปลี่ยนสถานะครุภัณฑ์ (UC-24)
+  ItemStatusChange --> ItemOverview : บันทึกสำเร็จ / กลับ
+  StaffDash --> WarehouseSettings : เมนูตั้งค่าคลัง (UC-26)
+  WarehouseSettings --> StaffDash : กลับ
+
+  StaffDash --> StudentList : เมนูจัดการนักศึกษา
+  StudentList --> StaffDash : กลับ
+  StudentList --> StudentPermission : เลือกนักศึกษา\n(include UC-27)
+  StudentPermission --> StudentList : บันทึกสำเร็จ / กลับ
+
+  StaffDash --> SuggestionReview : เมนูคำเสนอแนะสิ่งของ (UC-29)
+  SuggestionReview --> StaffDash : อนุมัติ/ปฏิเสธสำเร็จ / กลับ
+  StaffDash --> PurchaseAdd : เมนูรายการจัดซื้อ (UC-30)
+  PurchaseAdd --> StaffDash : บันทึกสำเร็จ / กลับ
+
+  StaffDash --> EvaluationForm : เมนูแบบประเมินความพึงพอใจ (UC-32)
+  EvaluationForm --> StaffDash : กลับ
+
+  StaffDash --> ReportExport : เมนูส่งออกรายงาน (UC-31)
+  ReportExport --> StaffDash : ดาวน์โหลดสำเร็จ / กลับ
+}
+
+' ═════════ โซนผู้ดูแลระบบ (Admin — UC-33 ถึง UC-38) ═════════
+state "ผู้ดูแลระบบ (Admin)" as Admin {
+  state "รายชื่อบัญชีผู้ใช้งาน\nแยกตามบทบาท" as UserList
+  note right of UserList
+    แสดง: รายชื่อผู้ใช้งานทั้งหมด แยกตามบทบาท (นักศึกษา/เจ้าหน้าที่)
+  end note
+
+  state "รายละเอียดบัญชี\nลบ/ระงับสิทธิ์/ปลดบล็อก (UC-33)" as UserDetail
+  note right of UserDetail
+    แสดง: บทบาทปัจจุบัน + ที่มาของบทบาท (อัตโนมัติจาก Whitelist
+    หรือถูกกำหนดเฉพาะบุคคล — Role Override)
+    ปุ่ม: ลบถาวร, ระงับสิทธิ์/ปลดบล็อก
+    ยืนยันซ้ำ: หากบัญชีมีคำขอยืมค้างอยู่ก่อนลบถาวร
+  end note
+
+  state "กำหนดบทบาทรายบุคคล\n(Role Override — UC-34)" as RoleOverride
+  note right of RoleOverride
+    ฟิลด์: เลือกบทบาทใหม่ (เช่น Student → Staff) + เหตุผล (ไม่บังคับ)
+    ปุ่ม: ยกเลิก Override (กลับไปใช้บทบาทอัตโนมัติจาก Whitelist)
+  end note
+
+  state "กำหนดบทบาทแบบกลุ่มผ่านไฟล์\n(extend UC-35)" as RoleOverrideBulk
+  note right of RoleOverrideBulk
+    แสดง: ปุ่มดาวน์โหลด template + อัปโหลดไฟล์ CSV (อีเมล + บทบาท)
+    ผิดพลาด: รูปแบบผิด/มีแถวข้อมูลผิดพลาด → แจ้งรายการที่ผิด
+  end note
+
+  state "ส่งออกรายชื่อบุคลากร CSV\n(UC-36)" as PersonnelExport
+  note right of PersonnelExport
+    แสดง: ปุ่ม "ส่งออกไฟล์" เดียว → ได้ไฟล์ CSV รายชื่อบุคลากร
+    ทั้งหมดพร้อมบทบาทปัจจุบันของแต่ละคน
+  end note
+
+  state "นำเข้ารายชื่อนักศึกษา Whitelist\n(UC-37)" as ImportStudentWhitelist
+  note right of ImportStudentWhitelist
+    แสดง: ช่องอัปโหลดไฟล์ CSV รายชื่อนักศึกษาที่มีสิทธิ์
+    กฎ: Additive-only — เพิ่มเข้ารายชื่อเดิมเท่านั้น ไม่ลบของเก่า
+    ผิดพลาด: รูปแบบผิด/แถวผิดพลาด → แจ้งรายการที่ผิด /
+    อีเมลซ้ำของเดิม → ข้ามรายการนั้นไม่เพิ่มซ้ำ
+  end note
+
+  state "นำเข้ารายชื่อเจ้าหน้าที่ Whitelist\n(UC-38)" as ImportStaffWhitelist
+  note right of ImportStaffWhitelist
+    แสดง: ช่องอัปโหลดไฟล์ CSV รายชื่อเจ้าหน้าที่ที่มีสิทธิ์
+    กฎ/ผิดพลาด: เหมือน UC-37 ทุกประการ (Additive-only)
+  end note
+
+  [*] --> UserList
+
+  UserList --> UserDetail : เลือกผู้ใช้งาน
+  UserDetail --> UserList : ลบ/ระงับ/ปลดบล็อกสำเร็จ / กลับ
+  UserDetail --> RoleOverride : กำหนดบทบาทรายบุคคล\n(include UC-33)
+  RoleOverride --> UserDetail : บันทึกสำเร็จ /\nยกเลิก Override / กลับ
+  RoleOverride --> RoleOverrideBulk : เลือกกำหนดแบบกลุ่มผ่านไฟล์แทน
+  RoleOverrideBulk --> UserList : นำเข้าสำเร็จ / กลับ
+
+  UserList --> PersonnelExport : เมนู "ส่งออกรายชื่อบุคลากร" (UC-36)
+  PersonnelExport --> UserList : ดาวน์โหลดสำเร็จ / กลับ
+  UserList --> ImportStudentWhitelist : เมนู "นำเข้า Whitelist นักศึกษา" (UC-37)
+  ImportStudentWhitelist --> UserList : นำเข้าสำเร็จ / กลับ
+  UserList --> ImportStaffWhitelist : เมนู "นำเข้า Whitelist เจ้าหน้าที่" (UC-38)
+  ImportStaffWhitelist --> UserList : นำเข้าสำเร็จ / กลับ
+}
+
+' ═════════ ข้ามโซน — กำหนดบทบาทหลังเข้าสู่ระบบ (UC-16) ═════════
+Login --> StuHome : ล็อกอินสำเร็จ\nบทบาท = นักศึกษา\n(Whitelist UC-37 หรือ Role Override UC-34/35)
+Login --> StaffDash : ล็อกอินสำเร็จ\nบทบาท = เจ้าหน้าที่\n(Whitelist UC-38 หรือ Role Override UC-34/35)
+Login --> UserList : ล็อกอินสำเร็จ\nบทบาท = ผู้ดูแลระบบ
+
+StuHome --> Login : ออกจากระบบ
+StaffDash --> Login : ออกจากระบบ
+UserList --> Login : ออกจากระบบ
+
+note bottom of Student
+  ครอบคลุม UC-01 ถึง UC-15 (15 use case ของนักศึกษา)
+  แสดงเฉพาะหน้าจอหลัก — popup ยืนยัน และการแจ้งเตือน
+  (in-app + email อัตโนมัติ เช่น ผลอนุมัติ UC-18, ถึงคิว UC-11,
+  ใกล้/เกินกำหนดคืน UC-09, ผลเสนอแนะ UC-29) ไม่นับเป็น state แยก
+end note
+
+note bottom of Staff
+  ครอบคลุม UC-17 ถึง UC-32 (16 use case ของเจ้าหน้าที่)
+  Auto-expire: หากอนุมัติแล้วนักศึกษาไม่ยืนยันรับของ (UC-08)
+  ภายใน 2 วัน ระบบดึงของกลับคลังและเปลี่ยนคำขอเป็น
+  "หมดอายุ" อัตโนมัติ (background job ไม่ผ่านหน้าจอนี้)
+end note
+
+note bottom of Admin
+  ครอบคลุม UC-33 ถึง UC-38 (6 use case ของผู้ดูแลระบบ)
+  - Role Override (UC-34/35) มีผลเหนือกว่าบทบาทเริ่มต้นจาก
+    Whitelist เสมอ จนกว่าแอดมินจะยกเลิก
+  - Whitelist Import (UC-37/38) เป็น Additive-only เท่านั้น —
+    การเพิกถอนสิทธิ์ทำได้ทางเดียวคือผ่าน UC-33
+end note
+
+@enduml

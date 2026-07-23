@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · โปรไฟล์ส่วนตัว (UC-14)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">โปรไฟล์ส่วนตัว</h1>
+    <p class="text-sm text-gray-500 mb-6">แก้ไขข้อมูลติดต่อของคุณให้เป็นปัจจุบัน — ต้องกรอกเบอร์โทรศัพท์ให้ครบก่อนจึงจะส่งคำขอยืมได้</p>
+
+    <div id="notice-return" class="hidden mb-4 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl p-3 text-sm">
+      กรุณากรอกเบอร์โทรศัพท์ให้ครบก่อน เพื่อกลับไปส่งคำขอยืมต่อ
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <div>
+        <label class="text-sm font-semibold text-gray-700">รหัสนักศึกษา</label>
+        <input disabled id="f-id" class="w-full mt-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm font-mono">
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-700">ชื่อ-นามสกุล</label>
+        <input disabled id="f-name" class="w-full mt-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-700">อีเมล</label>
+        <input disabled id="f-email" class="w-full mt-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-700">เบอร์โทรศัพท์ <span class="text-red-500">*</span></label>
+        <input id="f-phone" placeholder="เช่น 0812345678" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        <p id="phone-error" class="hidden text-xs text-red-600 mt-1">กรุณากรอกเบอร์โทรศัพท์ก่อนบันทึก</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+        <div><p class="text-xs text-gray-400">เข้าสู่ระบบครั้งแรก</p><p id="f-first" class="text-sm font-mono"></p></div>
+        <div><p class="text-xs text-gray-400">เข้าสู่ระบบล่าสุด</p><p id="f-last" class="text-sm font-mono"></p></div>
+      </div>
+      <button onclick="save()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">บันทึกข้อมูล</button>
+    </div>
+  </div>
+
+  <script src="../shared.js"></script>
+  <script>
+    function init() {
+      notifyParentPage("profile");
+      const stu = currentStudent();
+      if (!stu) return;
+      document.getElementById("f-id").value = stu.id;
+      document.getElementById("f-name").value = stu.name;
+      document.getElementById("f-email").value = stu.email;
+      document.getElementById("f-phone").value = stu.phone || "";
+      document.getElementById("f-first").textContent = stu.first_login;
+      document.getElementById("f-last").textContent = stu.last_login;
+      if (qparam("return") === "cart") {
+        document.getElementById("notice-return").classList.remove("hidden");
+      }
+    }
+    function save() {
+      const phone = document.getElementById("f-phone").value.trim();
+      if (!phone) {
+        document.getElementById("phone-error").classList.remove("hidden");
+        return;
+      }
+      document.getElementById("phone-error").classList.add("hidden");
+      const students = db("students");
+      const stu = students.find(s => s.id === currentUserId());
+      stu.phone = phone;
+      dbSave("students", students);
+      toastBanner("บันทึกข้อมูลส่วนตัวสำเร็จ");
+      if (qparam("return") === "cart") {
+        setTimeout(() => location.href = "page-cart.html", 600);
+      }
+    }
+  </script>
+</body>
+</html>

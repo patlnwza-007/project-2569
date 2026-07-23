@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ออกแบบฟอร์มประเมิน + ดูผลสรุป (UC-32)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">แบบประเมินความพึงพอใจ</h1>
+    <p class="text-sm text-gray-500 mb-6">จัดการคำถามในแบบฟอร์ม เผยแพร่ให้นักศึกษาตอบ และดูผลสรุปคำตอบ</p>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-semibold text-gray-700">คำถามในแบบฟอร์ม</p>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="published" onchange="togglePublish()"> เผยแพร่ให้นักศึกษาตอบ</label>
+      </div>
+      <div id="q-rows" class="space-y-2 mb-3"></div>
+      <div class="flex gap-2">
+        <input id="new-q" placeholder="เพิ่มคำถามใหม่..." class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        <select id="new-q-type" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="rating">คะแนน 1-5</option><option value="text">ข้อความ</option></select>
+        <button onclick="addQuestion()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg px-4 py-2">เพิ่ม</button>
+      </div>
+    </div>
+
+    <h2 id="summary-heading" class="text-sm font-bold text-gray-700 mb-2">ผลสรุปคำตอบ</h2>
+    <div id="summary"></div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function init() { notifyParentPage("evaluation-form"); render(); }
+    function render() {
+      const form = db("eval_form");
+      document.getElementById("published").checked = !!form.published;
+      document.getElementById("q-rows").innerHTML = form.questions.map(q => `<div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+        <span>${q.text} <span class="text-xs text-gray-400">(${q.type === 'rating' ? 'คะแนน 1-5' : 'ข้อความ'})</span></span>
+        <button onclick="removeQuestion(${q.id})" class="text-red-500 text-xs hover:underline">ลบ</button>
+      </div>`).join("");
+
+      const responses = db("eval_responses");
+      const box = document.getElementById("summary");
+      document.getElementById("summary-heading").textContent = `ผลสรุปคำตอบ (${responses.length} คำตอบ)`;
+      if (responses.length === 0) { box.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-500">ยังไม่มีคำตอบเข้ามา</div>`; return; }
+      box.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-4">` +
+        form.questions.map(q => {
+          if (q.type === "rating") {
+            const vals = responses.map(r => r.answers[q.id]).filter(v => v != null);
+            const avg = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(2) : "-";
+            return `<div><p class="text-sm font-semibold text-gray-700">${q.text}</p><p class="text-2xl font-bold text-blue-700">${avg} <span class="text-sm text-gray-400 font-normal">/ 5 (n=${vals.length})</span></p></div>`;
+          }
+          const texts = responses.map(r => r.answers[q.id]).filter(t => t && t.trim());
+          return `<div><p class="text-sm font-semibold text-gray-700 mb-1">${q.text}</p>${texts.map(t => `<p class="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-1.5 mb-1">"${t}"</p>`).join("") || '<p class="text-xs text-gray-400">ไม่มีความคิดเห็นเพิ่มเติม</p>'}</div>`;
+        }).join("") + `</div>`;
+    }
+    function togglePublish() { const form = db("eval_form"); form.published = document.getElementById("published").checked; dbSave("eval_form", form); toastBanner(form.published ? "เผยแพร่แบบฟอร์มแล้ว" : "ยกเลิกการเผยแพร่แล้ว"); }
+    function addQuestion() {
+      const text = document.getElementById("new-q").value.trim();
+      if (!text) return;
+      const form = db("eval_form");
+      form.questions.push({ id: nextId(form.questions), text, type: document.getElementById("new-q-type").value });
+      dbSave("eval_form", form);
+      document.getElementById("new-q").value = "";
+      toastBanner("เพิ่มคำถามสำเร็จ"); render();
+    }
+    function removeQuestion(id) {
+      const form = db("eval_form");
+      form.questions = form.questions.filter(q => q.id !== id);
+      dbSave("eval_form", form);
+      toastBanner("ลบคำถามสำเร็จ"); render();
+    }
+  </script>
+</body>
+</html>

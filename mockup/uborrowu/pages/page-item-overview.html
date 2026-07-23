@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ภาพรวมสถานะคลัง (UC-22)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h1 class="text-2xl font-bold text-gray-800">ภาพรวมสถานะคลัง</h1>
+      <div class="flex gap-2">
+        <a href="page-bulk-import.html" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">นำเข้าแบบชุด (CSV)</a>
+        <a href="page-item-form.html" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">+ เพิ่มสิ่งของ</a>
+      </div>
+    </div>
+    <p class="text-sm text-gray-500 mb-4">จำนวนสิ่งของทั้งหมด <span id="count" class="font-semibold"></span> รายการ</p>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex flex-wrap gap-3">
+      <input id="q" oninput="render()" placeholder="ค้นหาชื่อ..." class="flex-1 min-w-[180px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <select id="f-cat" onchange="render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">หมวดหมู่ทั้งหมด</option></select>
+      <select id="f-type" onchange="render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">ประเภททั้งหมด</option><option value="material">วัสดุ</option><option value="equipment">ครุภัณฑ์</option></select>
+      <select id="f-status" onchange="render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">สถานะทั้งหมด</option><option value="available">พร้อมให้ยืม</option><option value="empty">กำลังยืมหมด</option><option value="unavailable">ไม่พร้อมใช้งาน</option></select>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500"><tr>
+          <th class="text-left px-4 py-2">สิ่งของ</th><th class="text-left px-4 py-2">หมวดหมู่</th><th class="text-left px-4 py-2">ประเภท</th>
+          <th class="text-left px-4 py-2">คงเหลือ</th><th class="text-left px-4 py-2">สถานะ</th><th class="text-left px-4 py-2">จัดการ</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="empty" class="hidden p-10 text-center text-gray-500">ไม่พบข้อมูล</div>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function init() {
+      notifyParentPage("item-overview");
+      document.getElementById("f-cat").innerHTML += db("categories").map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+      render();
+    }
+    function render() {
+      const q = document.getElementById("q").value.trim().toLowerCase();
+      const fCat = document.getElementById("f-cat").value, fType = document.getElementById("f-type").value, fStatus = document.getElementById("f-status").value;
+      let items = db("items");
+      document.getElementById("count").textContent = items.length;
+      if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
+      if (fCat) items = items.filter(i => i.category_id === Number(fCat));
+      if (fType) items = items.filter(i => i.type === fType);
+      if (fStatus === "available") items = items.filter(i => i.base_status === "พร้อมให้ยืม" && i.qty_available > 0);
+      if (fStatus === "empty") items = items.filter(i => i.base_status === "พร้อมให้ยืม" && i.qty_available === 0);
+      if (fStatus === "unavailable") items = items.filter(i => i.base_status !== "พร้อมให้ยืม");
+      document.getElementById("empty").classList.toggle("hidden", items.length !== 0);
+      document.getElementById("rows").innerHTML = items.map(i => {
+        const cat = categoryById(i.category_id);
+        const unavailable = i.base_status !== "พร้อมให้ยืม";
+        const empty = !unavailable && i.qty_available === 0;
+        const statusBadge = unavailable ? `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-200 text-gray-600">ไม่พร้อมใช้งาน</span>`
+          : empty ? `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700">กำลังยืมหมด</span>`
+          : `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700">พร้อมให้ยืม</span>`;
+        return `<tr class="hover:bg-gray-50 border-t border-gray-100">
+          <td class="px-4 py-2">${i.image} ${i.name}</td>
+          <td class="px-4 py-2 text-xs text-gray-500">${cat?cat.name:""}</td>
+          <td class="px-4 py-2 text-xs">${i.type==='equipment'?'ครุภัณฑ์':'วัสดุ'}</td>
+          <td class="px-4 py-2 font-mono text-xs">${i.qty_available}/${i.qty_total}</td>
+          <td class="px-4 py-2">${statusBadge}</td>
+          <td class="px-4 py-2">
+            <a href="page-item-form.html?id=${i.id}" class="text-blue-600 text-xs hover:underline mr-2">แก้ไข</a>
+            ${i.type==='equipment' ? `<a href="page-item-status-change.html?id=${i.id}" class="text-yellow-600 text-xs hover:underline mr-2">เปลี่ยนสถานะ</a>` : `<a href="page-item-delete.html?id=${i.id}" class="text-red-600 text-xs hover:underline">ลบ</a>`}
+          </td>
+        </tr>`;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

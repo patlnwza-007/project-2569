@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ระบบยืม-คืนพัสดุออนไลน์</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Noto Sans Thai', sans-serif; }
+  .nav-link.active { background-color: #eff6ff; color: #1d4ed8; font-weight: 600; }
+  .nav-link.hidden-role { display: none !important; }
+</style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden">
+
+<div id="app" class="h-screen flex flex-col">
+  <!-- Top bar -->
+  <header class="h-14 shrink-0 bg-blue-700 text-white flex items-center justify-between px-4 shadow-sm z-10">
+    <div class="flex items-center gap-2">
+      <span class="text-xl">📦</span>
+      <span class="font-bold tracking-tight">UBORROWU</span>
+      <span class="hidden md:inline text-blue-200 text-xs font-normal">ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี</span>
+    </div>
+    <div id="topbar-right" class="flex items-center gap-3 text-sm"></div>
+  </header>
+
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="w-60 shrink-0 bg-white border-r border-gray-200 overflow-y-auto hidden md:block"></nav>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-hidden bg-gray-50">
+      <iframe id="main-frame" name="main-frame" src="pages/page-welcome.html" class="w-full h-full border-0"></iframe>
+    </main>
+  </div>
+
+  <!-- footer reset -->
+  <footer class="shrink-0 bg-white border-t border-gray-200 px-4 py-1.5 flex justify-between items-center">
+    <span class="text-xs text-gray-400">Standalone Mockup — ไม่เชื่อมต่อฐานข้อมูล/เซิร์ฟเวอร์จริง</span>
+    <button onclick="if(confirm('รีเซ็ตข้อมูลตัวอย่างทั้งหมดกลับสู่ค่าเริ่มต้น?')) resetAllData()" class="text-xs text-gray-400 hover:text-red-600 underline">↺ รีเซ็ตข้อมูลตัวอย่าง</button>
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+const MENU = {
+  student: [
+    { key: "student-home", label: "หน้าหลัก", icon: "🏠", href: "pages/page-student-home.html" },
+    { key: "profile", label: "โปรไฟล์ส่วนตัว", icon: "👤", href: "pages/page-profile.html" },
+    { key: "item-list", label: "รายการวัสดุ/ครุภัณฑ์", icon: "📋", href: "pages/page-item-list.html" },
+    { key: "position-map", label: "แผนผังตำแหน่งชั้นวาง", icon: "🗺️", href: "pages/page-position-map.html" },
+    { key: "cart", label: "ตะกร้า", icon: "🛒", href: "pages/page-cart.html" },
+    { key: "queue-list", label: "คิวของฉัน", icon: "⏳", href: "pages/page-queue-list.html" },
+    { key: "history", label: "ประวัติการยืม", icon: "📜", href: "pages/page-history.html" },
+    { key: "suggestion", label: "เสนอแนะสิ่งของ", icon: "💡", href: "pages/page-suggestion.html" },
+  ],
+  staff: [
+    { key: "staff-dashboard", label: "แดชบอร์ด", icon: "📊", href: "pages/page-staff-dashboard.html" },
+    { key: "pending-requests", label: "คำขอรออนุมัติ", icon: "✅", href: "pages/page-pending-requests.html" },
+    { key: "return-mgmt", label: "รับคืนครุภัณฑ์", icon: "↩️", href: "pages/page-return-mgmt.html" },
+    { key: "all-history", label: "ประวัติทั้งระบบ", icon: "📜", href: "pages/page-all-history.html" },
+    { key: "item-overview", label: "จัดการคลังสิ่งของ", icon: "📦", href: "pages/page-item-overview.html" },
+    { key: "warehouse-settings", label: "ตั้งค่าคลัง", icon: "⚙️", href: "pages/page-warehouse-settings.html" },
+    { key: "student-list", label: "จัดการนักศึกษา", icon: "🎓", href: "pages/page-student-list.html" },
+    { key: "suggestion-review", label: "คำเสนอแนะสิ่งของ", icon: "💡", href: "pages/page-suggestion-review.html" },
+    { key: "purchase-add", label: "รายการจัดซื้อ", icon: "🧾", href: "pages/page-purchase-add.html" },
+    { key: "evaluation-form", label: "แบบประเมินความพึงพอใจ", icon: "⭐", href: "pages/page-evaluation-form.html" },
+    { key: "report-export", label: "ส่งออกรายงาน", icon: "📤", href: "pages/page-report-export.html" },
+  ],
+  admin: [
+    { key: "user-list", label: "รายชื่อบัญชีผู้ใช้งาน", icon: "👥", href: "pages/page-user-list.html" },
+    { key: "personnel-export", label: "ส่งออกรายชื่อบุคลากร", icon: "📤", href: "pages/page-personnel-export.html" },
+    { key: "import-student-whitelist", label: "นำเข้า Whitelist นักศึกษา", icon: "📥", href: "pages/page-import-student-whitelist.html" },
+    { key: "import-staff-whitelist", label: "นำเข้า Whitelist เจ้าหน้าที่", icon: "📥", href: "pages/page-import-staff-whitelist.html" },
+  ],
+};
+const ROLE_LABEL = { student: "นักศึกษา", staff: "เจ้าหน้าที่", admin: "ผู้ดูแลระบบ" };
+const HOME_PAGE = { student: "page-student-home.html", staff: "page-staff-dashboard.html", admin: "page-user-list.html" };
+
+function render() {
+  const role = getRole();
+  const topbarRight = document.getElementById("topbar-right");
+  const sidebar = document.getElementById("sidebar");
+  const iframe = document.getElementById("main-frame");
+
+  if (!role) {
+    topbarRight.innerHTML = "";
+    sidebar.innerHTML = "";
+    sidebar.classList.add("hidden");
+    if (!iframe.src.includes("page-welcome") && !iframe.src.includes("page-login")) {
+      iframe.src = "pages/page-welcome.html";
+    }
+    return;
+  }
+
+  sidebar.classList.remove("hidden");
+  const userName = role === "student" ? currentStudent()?.name : (role === "staff" ? currentStaff().name : SEED_ADMINS[0].name);
+  topbarRight.innerHTML = `
+    <span class="hidden sm:inline bg-yellow-400 text-blue-900 text-xs font-bold px-2 py-1 rounded-full">${ROLE_LABEL[role]}</span>
+    <span class="hidden sm:inline">${userName}</span>
+    <div class="relative">
+      <button onclick="document.getElementById('role-switch-menu').classList.toggle('hidden')" class="bg-blue-600 hover:bg-blue-800 rounded-lg px-2 py-1 text-xs">สลับบทบาท ▾</button>
+      <div id="role-switch-menu" class="hidden absolute right-0 mt-1 w-40 bg-white text-gray-700 rounded-lg shadow-lg border border-gray-200 text-sm overflow-hidden">
+        <button onclick="switchRole('student')" class="w-full text-left px-3 py-2 hover:bg-blue-50">🎓 นักศึกษา</button>
+        <button onclick="switchRole('staff')" class="w-full text-left px-3 py-2 hover:bg-blue-50">👷 เจ้าหน้าที่</button>
+        <button onclick="switchRole('admin')" class="w-full text-left px-3 py-2 hover:bg-blue-50">👑 ผู้ดูแลระบบ</button>
+      </div>
+    </div>
+    <button onclick="logout()" class="bg-white/10 hover:bg-white/20 rounded-lg px-2 py-1 text-xs">ออกจากระบบ</button>
+  `;
+
+  sidebar.innerHTML = `<div class="py-3">` + MENU[role].map(m =>
+    `<a data-key="${m.key}" href="${m.href}" target="main-frame" class="nav-link flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 border-l-4 border-transparent">
+      <span>${m.icon}</span><span>${m.label}</span>
+    </a>`
+  ).join("") + `</div>`;
+
+  if (!role) return;
+  // ถ้า iframe ยังอยู่หน้า welcome/login ให้พาไปหน้าแรกของ role
+  if (iframe.src.includes("page-welcome") || iframe.src.includes("page-login") || iframe.src.endsWith("uborrowu/") ) {
+    iframe.src = "pages/" + HOME_PAGE[role];
+  }
+  setActiveMenu(qparamFromSrc(iframe.src));
+}
+
+function qparamFromSrc(src) {
+  const m = src.match(/page-([a-z0-9-]+)\.html/);
+  return m ? m[1] : "";
+}
+
+function setActiveMenu(key) {
+  document.querySelectorAll(".nav-link").forEach(a => {
+    a.classList.toggle("active", a.dataset.key === key);
+  });
+}
+
+function switchRole(role) {
+  setRole(role);
+  document.getElementById("role-switch-menu").classList.add("hidden");
+  document.getElementById("main-frame").src = "pages/" + HOME_PAGE[role];
+  render();
+}
+
+window.addEventListener("message", (ev) => {
+  if (ev.data && ev.data.type === "uborrowu-page") {
+    setActiveMenu(ev.data.page);
+  }
+  if (ev.data && ev.data.type === "uborrowu-login") {
+    render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>

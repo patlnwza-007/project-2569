@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ส่งคำขอยืม (UC-06)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">ยืนยันส่งคำขอยืม</h1>
+    <p class="text-sm text-gray-500 mb-6">กรอกเหตุผลการยืม และวันที่ต้องการใช้งาน (บังคับเฉพาะเมื่อมีครุภัณฑ์)</p>
+
+    <div id="blocked-notice" class="hidden mb-4 bg-red-50 border border-red-300 text-red-700 rounded-xl p-4 text-sm"></div>
+
+    <div id="form-box" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <div>
+        <p class="text-sm font-semibold text-gray-700 mb-2">รายการที่จะยืม</p>
+        <div id="summary" class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 space-y-1"></div>
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-700">เหตุผลการยืม <span class="text-red-500">*</span></label>
+        <textarea id="f-reason" rows="2" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"></textarea>
+        <p id="err-reason" class="hidden text-xs text-red-600 mt-1">กรุณาระบุเหตุผลการยืม</p>
+      </div>
+      <div id="date-field">
+        <label class="text-sm font-semibold text-gray-700">วันที่ต้องการใช้งาน <span class="text-red-500">*</span> <span class="text-xs text-gray-400 font-normal">(บังคับเฉพาะครุภัณฑ์)</span></label>
+        <input id="f-date" type="date" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        <p id="err-date" class="hidden text-xs text-red-600 mt-1">กรุณาระบุวันที่ต้องการใช้งานสำหรับครุภัณฑ์</p>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <a href="page-cart.html" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">← แก้ไขตะกร้า</a>
+        <button onclick="submitRequest()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2">ยืนยันส่งคำขอ</button>
+      </div>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    let hasEquipment = false;
+    function init() {
+      notifyParentPage("request-form");
+      const cart = db("cart");
+      if (cart.length === 0) { location.href = "page-cart.html"; return; }
+      const stu = currentStudent();
+
+      if (stu && !stu.phone) {
+        location.href = "page-profile.html?return=cart";
+        return;
+      }
+      if (stu && stu.blocked) {
+        document.getElementById("form-box").classList.add("hidden");
+        const box = document.getElementById("blocked-notice");
+        box.classList.remove("hidden");
+        box.innerHTML = `ไม่สามารถส่งคำขอยืมได้ เนื่องจากบัญชีของคุณถูกระงับสิทธิ์การยืม (Block)<br><span class="text-xs">เหตุผล: ${stu.block_reason}</span>`;
+        return;
+      }
+      hasEquipment = cart.some(c => itemById(c.item_id)?.type === "equipment");
+      document.getElementById("date-field").classList.toggle("hidden", !hasEquipment);
+
+      document.getElementById("summary").innerHTML = cart.map(c => {
+        const i = itemById(c.item_id);
+        return `<div>${i.image} ${i.name} × ${c.qty} <span class="text-xs text-gray-400">(${i.type === 'equipment' ? 'ครุภัณฑ์' : 'วัสดุ'})</span></div>`;
+      }).join("");
+    }
+
+    function submitRequest() {
+      const reason = document.getElementById("f-reason").value.trim();
+      const date = document.getElementById("f-date").value;
+      let ok = true;
+      if (!reason) { document.getElementById("err-reason").classList.remove("hidden"); ok = false; }
+      else document.getElementById("err-reason").classList.add("hidden");
+      if (hasEquipment && !date) { document.getElementById("err-date").classList.remove("hidden"); ok = false; }
+      else document.getElementById("err-date").classList.add("hidden");
+      if (!ok) return;
+
+      const cart = db("cart");
+      const reqs = db("requests");
+      reqs.push({
+        id: nextId(reqs), student_id: currentUserId(),
+        items: cart.map(c => ({ item_id: c.item_id, qty: c.qty })),
+        reason, use_date: hasEquipment ? date : null,
+        status: "PENDING", created_at: "2026-07-23 " + new Date().toTimeString().slice(0,5),
+        approved_at: null, reject_reason: "",
+      });
+      dbSave("requests", reqs);
+      dbSave("cart", []);
+      toastBanner("ส่งคำขอยืมสำเร็จ สถานะ: รออนุมัติ");
+      setTimeout(() => location.href = "page-student-home.html", 700);
+    }
+  </script>
+</body>
+</html>

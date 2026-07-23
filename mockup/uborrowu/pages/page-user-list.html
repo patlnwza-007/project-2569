@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU (Admin) · รายชื่อบัญชีผู้ใช้งาน (UC-33)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:sans-serif;}</style>
+</head>
+<body class="bg-white min-h-screen p-4" onload="init()">
+  <h1 class="text-xl font-bold mb-1">รายชื่อบัญชีผู้ใช้งานทั้งหมด</h1>
+  <p class="text-xs text-gray-500 mb-3">แยกตามบทบาท — บทบาทมาจาก Whitelist โดยอัตโนมัติ เว้นแต่มี Role Override กำหนดทับ</p>
+  <div class="flex gap-2 mb-3 text-sm">
+    <select id="f-role" onchange="render()" class="border px-2 py-1"><option value="">บทบาททั้งหมด</option><option value="student">นักศึกษา</option><option value="staff">เจ้าหน้าที่</option></select>
+    <input id="q" oninput="render()" placeholder="ค้นหาอีเมล..." class="border px-2 py-1 flex-1">
+  </div>
+  <table class="w-full text-sm border-collapse">
+    <thead><tr class="bg-gray-100 text-left">
+      <th class="border px-2 py-1">อีเมล</th><th class="border px-2 py-1">ชื่อ</th><th class="border px-2 py-1">บทบาท</th>
+      <th class="border px-2 py-1">ที่มา</th><th class="border px-2 py-1">สถานะ</th><th class="border px-2 py-1">จัดการ</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div id="empty" class="hidden text-center text-gray-500 p-6 text-sm">ไม่พบข้อมูล</div>
+
+  <script src="../shared.js"></script>
+  <script>
+    function allUsers() {
+      const overrides = db("role_overrides").filter(o => o.active);
+      const overrideMap = {}; overrides.forEach(o => overrideMap[o.email] = o);
+      const users = [];
+      db("whitelist_student").forEach(email => {
+        const stu = db("students").find(s => s.email === email);
+        const ov = overrideMap[email];
+        users.push({ email, name: stu ? stu.name : "(ยังไม่เคยเข้าสู่ระบบ)", defaultRole: "student", effectiveRole: ov ? ov.role : "student", source: ov ? "Role Override" : "Whitelist", blocked: stu ? stu.blocked : false, studentId: stu ? stu.id : null });
+      });
+      db("whitelist_staff").forEach(email => {
+        const st = db("staffs").find(s => s.email === email);
+        const ov = overrideMap[email];
+        users.push({ email, name: st ? st.name : "(ยังไม่เคยเข้าสู่ระบบ)", defaultRole: "staff", effectiveRole: ov ? ov.role : "staff", source: ov ? "Role Override" : "Whitelist", blocked: false, studentId: null });
+      });
+      // อีเมลที่มี override แต่ไม่อยู่ใน whitelist ใด ๆ (กรณีพิเศษ เช่น s004)
+      overrides.forEach(o => {
+        if (!users.some(u => u.email === o.email)) {
+          users.push({ email: o.email, name: "(นอก Whitelist เดิม)", defaultRole: "student", effectiveRole: o.role, source: "Role Override", blocked: false, studentId: null });
+        }
+      });
+      return users;
+    }
+    function init() { notifyParentPage("user-list"); render(); }
+    function render() {
+      const role = document.getElementById("f-role").value;
+      const q = document.getElementById("q").value.trim().toLowerCase();
+      let users = allUsers();
+      if (role) users = users.filter(u => u.effectiveRole === role);
+      if (q) users = users.filter(u => u.email.toLowerCase().includes(q));
+      document.getElementById("empty").classList.toggle("hidden", users.length !== 0);
+      document.getElementById("rows").innerHTML = users.map(u => `<tr>
+        <td class="border px-2 py-1 font-mono text-xs">${u.email}</td>
+        <td class="border px-2 py-1">${u.name}</td>
+        <td class="border px-2 py-1">${u.effectiveRole === 'student' ? 'นักศึกษา' : 'เจ้าหน้าที่'}</td>
+        <td class="border px-2 py-1 text-xs">${u.source}</td>
+        <td class="border px-2 py-1 text-xs">${u.blocked ? '🔴 ระงับสิทธิ์' : '🟢 ปกติ'}</td>
+        <td class="border px-2 py-1"><a href="page-user-detail.html?email=${encodeURIComponent(u.email)}" class="text-blue-600 underline text-xs">ดูรายละเอียด</a></td>
+      </tr>`).join("");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ลบวัสดุ (UC-23)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-3xl mx-auto">
+    <a href="page-item-overview.html" class="text-sm text-blue-600 hover:underline">← กลับภาพรวมคลัง</a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-1">ลบวัสดุออกจากระบบ</h1>
+    <p class="text-sm text-gray-500 mb-6">เลือกได้ทีละรายการหรือหลายรายการ — วัสดุที่มีคำขอยืมค้างอยู่จะไม่สามารถลบได้</p>
+    <div id="rows" class="space-y-2 mb-4"></div>
+    <button onclick="deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-5 py-2">ลบรายการที่เลือก</button>
+    <div id="result" class="mt-3"></div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function init() { notifyParentPage("item-delete"); render(); }
+    function render() {
+      const materials = db("items").filter(i => i.type === "material");
+      const host = document.getElementById("rows");
+      if (materials.length === 0) { host.innerHTML = `<p class="text-xs text-gray-400">ไม่มีวัสดุในระบบ</p>`; return; }
+      host.innerHTML = materials.map(i => `<label class="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3 text-sm cursor-pointer hover:bg-gray-50">
+        <input type="checkbox" class="sel" value="${i.id}"><span>${i.image}</span><span>${i.name}</span><span class="text-xs text-gray-400 ml-auto">คงเหลือ ${i.qty_available}/${i.qty_total}</span>
+      </label>`).join("");
+    }
+    function hasPendingRequest(itemId) {
+      return db("requests").some(r => ["PENDING","APPROVED_WAIT_PICKUP"].includes(r.status) && r.items.some(it => it.item_id === itemId));
+    }
+    function deleteSelected() {
+      const ids = [...document.querySelectorAll(".sel:checked")].map(c => Number(c.value));
+      if (ids.length === 0) { toastBanner("กรุณาเลือกรายการก่อน", "error"); return; }
+      if (!confirm(`ยืนยันการลบ ${ids.length} รายการ?`)) return;
+      let items = db("items");
+      const blocked = [], deleted = [];
+      ids.forEach(id => {
+        if (hasPendingRequest(id)) blocked.push(itemById(id).name);
+        else deleted.push(id);
+      });
+      items = items.filter(i => !deleted.includes(i.id));
+      dbSave("items", items);
+      document.getElementById("result").innerHTML = `
+        ${deleted.length ? `<p class="text-green-700 text-sm">ลบสำเร็จ ${deleted.length} รายการ</p>` : ""}
+        ${blocked.length ? `<p class="text-red-600 text-sm mt-1">ไม่สามารถลบได้ (มีคำขอยืมค้างอยู่): ${blocked.join(", ")}</p>` : ""}`;
+      toastBanner(`ลบสำเร็จ ${deleted.length} รายการ${blocked.length ? `, ข้าม ${blocked.length} รายการ` : ""}`);
+      render();
+    }
+  </script>
+</body>
+</html>

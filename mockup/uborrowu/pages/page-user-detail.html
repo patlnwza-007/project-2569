@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU (Admin) · รายละเอียดบัญชี (UC-33)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:sans-serif;}</style>
+</head>
+<body class="bg-white min-h-screen p-4" onload="init()">
+  <a href="page-user-list.html" class="text-sm text-blue-600 underline">← กลับรายชื่อผู้ใช้งาน</a>
+  <div id="content" class="mt-3"></div>
+  <script src="../shared.js"></script>
+  <script>
+    function getUser(email) {
+      const overrides = db("role_overrides");
+      const ov = overrides.find(o => o.email === email && o.active);
+      const isWlStudent = db("whitelist_student").includes(email);
+      const isWlStaff = db("whitelist_staff").includes(email);
+      const stu = db("students").find(s => s.email === email);
+      const staff = db("staffs").find(s => s.email === email);
+      const defaultRole = isWlStudent ? "student" : (isWlStaff ? "staff" : null);
+      return { email, ov, defaultRole, effectiveRole: ov ? ov.role : defaultRole, stu, staff,
+        blocked: db("admin_blocked").includes(email) };
+    }
+    function init() {
+      notifyParentPage("user-detail");
+      const email = qparam("email");
+      const u = getUser(email);
+      const host = document.getElementById("content");
+      const pendingCount = u.stu ? db("requests").filter(r => r.student_id === u.stu.id && ["PENDING","APPROVED_WAIT_PICKUP"].includes(r.status)).length : 0;
+      host.innerHTML = `<table class="text-sm border-collapse mb-4">
+        <tr><td class="border px-2 py-1 font-semibold bg-gray-50">อีเมล</td><td class="border px-2 py-1 font-mono">${u.email}</td></tr>
+        <tr><td class="border px-2 py-1 font-semibold bg-gray-50">ชื่อ</td><td class="border px-2 py-1">${u.stu ? u.stu.name : (u.staff ? u.staff.name : "(ยังไม่เคยเข้าสู่ระบบ)")}</td></tr>
+        <tr><td class="border px-2 py-1 font-semibold bg-gray-50">บทบาทเริ่มต้น (Whitelist)</td><td class="border px-2 py-1">${u.defaultRole === 'student' ? 'นักศึกษา' : u.defaultRole === 'staff' ? 'เจ้าหน้าที่' : '-'}</td></tr>
+        <tr><td class="border px-2 py-1 font-semibold bg-gray-50">บทบาทปัจจุบัน</td><td class="border px-2 py-1">${u.effectiveRole === 'student' ? 'นักศึกษา' : 'เจ้าหน้าที่'} ${u.ov ? '<span class="text-xs text-purple-600">(Role Override)</span>' : ''}</td></tr>
+        <tr><td class="border px-2 py-1 font-semibold bg-gray-50">สถานะบัญชี</td><td class="border px-2 py-1">${u.blocked ? '🔴 ระงับสิทธิ์การเข้าสู่ระบบ' : '🟢 ปกติ'}</td></tr>
+      </table>
+      <div class="flex flex-wrap gap-2">
+        <a href="page-role-override.html?email=${encodeURIComponent(email)}" class="bg-purple-600 text-white text-xs font-semibold px-3 py-1.5 rounded">กำหนดบทบาทรายบุคคล (Role Override)</a>
+        ${u.blocked ? `<button onclick="unblockUser('${email}')" class="bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded">ปลดบล็อก</button>`
+          : `<button onclick="blockUser('${email}')" class="bg-orange-600 text-white text-xs font-semibold px-3 py-1.5 rounded">ระงับสิทธิ์เข้าสู่ระบบ</button>`}
+        <button onclick="deleteUser('${email}', ${pendingCount})" class="bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded">ลบบัญชีถาวร</button>
+      </div>`;
+    }
+    function blockUser(email) {
+      const list = db("admin_blocked"); if (!list.includes(email)) list.push(email); dbSave("admin_blocked", list);
+      toastBanner("ระงับสิทธิ์เข้าสู่ระบบสำเร็จ"); init();
+    }
+    function unblockUser(email) {
+      let list = db("admin_blocked"); list = list.filter(e => e !== email); dbSave("admin_blocked", list);
+      toastBanner("ปลดบล็อกสำเร็จ"); init();
+    }
+    function deleteUser(email, pendingCount) {
+      let msg = "ยืนยันการลบบัญชีนี้ออกจากระบบอย่างถาวร?";
+      if (pendingCount > 0) msg = `บัญชีนี้มีคำขอยืมค้างอยู่ ${pendingCount} รายการ — ${msg}`;
+      if (!confirm(msg)) return;
+      if (pendingCount > 0 && !confirm("ยืนยันอีกครั้ง: ต้องการลบทั้งที่มีคำขอค้างอยู่จริงหรือไม่?")) return;
+      let wlS = db("whitelist_student").filter(e => e !== email); dbSave("whitelist_student", wlS);
+      let wlT = db("whitelist_staff").filter(e => e !== email); dbSave("whitelist_staff", wlT);
+      toastBanner("ลบบัญชีสำเร็จ");
+      setTimeout(() => location.href = "page-user-list.html", 600);
+    }
+  </script>
+</body>
+</html>

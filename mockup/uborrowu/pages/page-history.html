@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ประวัติการยืม (UC-12)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">ประวัติการยืม</h1>
+    <p class="text-sm text-gray-500 mb-6">รายการยืม-คืนทั้งหมดของคุณ เรียงตามวันที่ล่าสุด</p>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+          <tr><th class="text-left px-4 py-2">#</th><th class="text-left px-4 py-2">รายการ</th><th class="text-left px-4 py-2">วันที่ส่งคำขอ</th><th class="text-left px-4 py-2">สถานะ</th><th class="text-left px-4 py-2">ประเมิน</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="empty" class="hidden p-10 text-center text-gray-500"><div class="text-4xl mb-2">📜</div>ยังไม่มีประวัติการยืม</div>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function init() {
+      notifyParentPage("history");
+      const stu = currentUserId();
+      const reqs = db("requests").filter(r => r.student_id === stu).sort((a,b)=> (b.created_at||"").localeCompare(a.created_at||""));
+      const evals = db("eval_responses");
+      const host = document.getElementById("rows");
+      if (reqs.length === 0) { document.getElementById("empty").classList.remove("hidden"); return; }
+      host.innerHTML = reqs.map(r => {
+        const names = r.items.map(it => itemById(it.item_id)?.name).join(", ");
+        const evaluated = evals.some(e => e.request_id === r.id);
+        let evalCell = "-";
+        if (r.status === "RETURNED") {
+          evalCell = evaluated ? `<span class="text-green-600 text-xs">ประเมินแล้ว</span>` : `<a href="page-evaluation.html?rid=${r.id}" class="text-blue-600 text-xs hover:underline">ประเมินเลย</a>`;
+        }
+        return `<tr class="hover:bg-gray-50 border-t border-gray-100">
+          <td class="px-4 py-2 font-mono text-xs">#${r.id}</td>
+          <td class="px-4 py-2">${names}</td>
+          <td class="px-4 py-2 text-xs text-gray-500">${r.created_at}</td>
+          <td class="px-4 py-2">${badgeHtml(r.status)}</td>
+          <td class="px-4 py-2">${evalCell}</td>
+        </tr>`;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

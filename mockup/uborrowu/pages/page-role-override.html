@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU (Admin) · กำหนดบทบาทรายบุคคล (UC-34)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:sans-serif;}</style>
+</head>
+<body class="bg-white min-h-screen p-4" onload="init()">
+  <a id="back-link" href="page-user-list.html" class="text-sm text-blue-600 underline">← กลับ</a>
+  <div id="content" class="mt-3"></div>
+  <p class="text-xs text-gray-400 mt-4">หรือ <a href="page-role-override-bulk.html" class="text-blue-600 underline">กำหนดบทบาทแบบกลุ่มผ่านไฟล์ CSV แทน</a></p>
+  <script src="../shared.js"></script>
+  <script>
+    function init() {
+      notifyParentPage("role-override");
+      const email = qparam("email");
+      document.getElementById("back-link").href = "page-user-detail.html?email=" + encodeURIComponent(email);
+      const overrides = db("role_overrides");
+      const ov = overrides.find(o => o.email === email && o.active);
+      document.getElementById("content").innerHTML = `<p class="text-sm mb-2 font-mono">${email}</p>
+        <label class="text-sm font-semibold block mb-1">บทบาทที่ต้องการกำหนด</label>
+        <select id="f-role" class="border px-2 py-1 mb-2"><option value="student">นักศึกษา</option><option value="staff">เจ้าหน้าที่</option></select><br>
+        <label class="text-sm font-semibold block mb-1">เหตุผล (ไม่บังคับ)</label>
+        <input id="f-reason" class="border px-2 py-1 w-80 mb-3" value="${ov ? ov.reason : ''}"><br>
+        <button onclick="save('${email}')" class="bg-purple-600 text-white text-sm px-3 py-1.5 rounded mr-2">บันทึก</button>
+        ${ov ? `<button onclick="cancelOverride('${email}')" class="bg-white border text-sm px-3 py-1.5 rounded">ยกเลิก Override (กลับไปใช้ Whitelist)</button>` : ""}`;
+      if (ov) document.getElementById("f-role").value = ov.role;
+    }
+    function save(email) {
+      const role = document.getElementById("f-role").value;
+      const reason = document.getElementById("f-reason").value.trim();
+      const overrides = db("role_overrides");
+      let ov = overrides.find(o => o.email === email);
+      if (ov) { ov.role = role; ov.reason = reason; ov.active = true; }
+      else overrides.push({ email, role, reason, active: true });
+      dbSave("role_overrides", overrides);
+      toastBanner("บันทึกบทบาท Role Override สำเร็จ มีผลตั้งแต่การเข้าสู่ระบบครั้งถัดไป");
+      setTimeout(() => location.href = "page-user-detail.html?email=" + encodeURIComponent(email), 700);
+    }
+    function cancelOverride(email) {
+      const overrides = db("role_overrides");
+      const ov = overrides.find(o => o.email === email);
+      if (ov) ov.active = false;
+      dbSave("role_overrides", overrides);
+      toastBanner("ยกเลิก Override แล้ว กลับไปใช้บทบาทอัตโนมัติจาก Whitelist");
+      setTimeout(() => location.href = "page-user-detail.html?email=" + encodeURIComponent(email), 700);
+    }
+  </script>
+</body>
+</html>

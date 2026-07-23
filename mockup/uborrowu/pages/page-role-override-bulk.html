@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU (Admin) · กำหนดบทบาทแบบกลุ่ม (UC-35)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:sans-serif;}</style>
+</head>
+<body class="bg-white min-h-screen p-4" onload="notifyParentPage('role-override-bulk')">
+  <a href="page-user-list.html" class="text-sm text-blue-600 underline">← กลับรายชื่อผู้ใช้งาน</a>
+  <h1 class="text-xl font-bold mt-2 mb-1">กำหนดบทบาทแบบกลุ่มผ่านไฟล์ CSV</h1>
+  <p class="text-xs text-gray-500 mb-3">รูปแบบไฟล์: email,role (role = student หรือ staff)</p>
+  <button onclick="downloadTemplate()" class="border px-3 py-1.5 text-sm mb-3">ดาวน์โหลด template.csv</button><br>
+  <input id="file" type="file" accept=".csv" class="border px-2 py-1 text-sm mb-3">
+  <button onclick="doImport()" class="bg-purple-600 text-white text-sm px-3 py-1.5 rounded">นำเข้า</button>
+  <div id="result" class="mt-3 text-sm"></div>
+  <script src="../shared.js"></script>
+  <script>
+    function downloadTemplate() {
+      const csv = "email,role\ns005@ubu.ac.th,staff\ns006@ubu.ac.th,student\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "template_role_override.csv"; a.click();
+    }
+    function doImport() {
+      const f = document.getElementById("file");
+      if (!f.files.length) { toastBanner("กรุณาเลือกไฟล์ก่อน", "error"); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "");
+        lines.shift();
+        const overrides = db("role_overrides");
+        const errors = []; let ok = 0;
+        lines.forEach((line, idx) => {
+          const [email, role] = line.split(",").map(s => (s||"").trim());
+          if (!email || !["student","staff"].includes(role)) { errors.push(`แถวที่ ${idx+2}: รูปแบบไม่ถูกต้อง (${line})`); return; }
+          let ov = overrides.find(o => o.email === email);
+          if (ov) { ov.role = role; ov.active = true; } else overrides.push({ email, role, reason: "นำเข้าแบบกลุ่ม", active: true });
+          ok++;
+        });
+        dbSave("role_overrides", overrides);
+        document.getElementById("result").innerHTML = `<p class="text-green-700">นำเข้าสำเร็จ ${ok} รายการ</p>` +
+          (errors.length ? `<p class="text-red-600 mt-1">ผิดพลาด ${errors.length} แถว:</p><ul class="list-disc list-inside text-xs text-red-500">${errors.map(x=>`<li>${x}</li>`).join("")}</ul>` : "");
+        toastBanner(`นำเข้าสำเร็จ ${ok} รายการ`);
+      };
+      reader.readAsText(f.files[0]);
+    }
+  </script>
+</body>
+</html>

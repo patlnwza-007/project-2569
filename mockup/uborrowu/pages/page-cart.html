@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ตะกร้า (UC-05)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">ตะกร้าของฉัน</h1>
+    <p class="text-sm text-gray-500 mb-6">ตรวจสอบรายการและจำนวนก่อนส่งคำขอยืม</p>
+    <div id="rows" class="space-y-3 mb-5"></div>
+    <div class="flex justify-between">
+      <a href="page-item-list.html" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">← เลือกสิ่งของเพิ่ม</a>
+      <button id="submit-btn" onclick="goRequestForm()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2">ยืนยันส่งคำขอยืม →</button>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function init() { notifyParentPage("cart"); render(); }
+
+    function render() {
+      const cart = db("cart");
+      const host = document.getElementById("rows");
+      document.getElementById("submit-btn").disabled = cart.length === 0;
+      document.getElementById("submit-btn").classList.toggle("opacity-40", cart.length === 0);
+      document.getElementById("submit-btn").classList.toggle("cursor-not-allowed", cart.length === 0);
+
+      if (cart.length === 0) {
+        host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+          <div class="text-4xl mb-2">🛒</div><p class="text-gray-600 font-semibold">ตะกร้าว่างเปล่า</p>
+          <p class="text-xs text-gray-400 mt-1">เลือกสิ่งของจากรายการเพื่อเพิ่มลงตะกร้า</p></div>`;
+        return;
+      }
+      host.innerHTML = cart.map(c => {
+        const item = itemById(c.item_id);
+        if (!item) return "";
+        return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center gap-4">
+          <div class="text-3xl">${item.image}</div>
+          <div class="flex-1">
+            <p class="font-semibold text-sm text-gray-800">${item.name}</p>
+            <p class="text-xs text-gray-400">${item.type === 'equipment' ? 'ครุภัณฑ์' : 'วัสดุ'} · คงเหลือในคลัง ${item.qty_available}</p>
+            <p id="err-${item.id}" class="hidden text-xs text-red-600 mt-1">จำนวนที่ต้องการเกินจำนวนคงเหลือจริง (สูงสุด ${item.qty_available})</p>
+          </div>
+          <input type="number" min="1" value="${c.qty}" onchange="updateQty(${item.id}, this.value)" class="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-center">
+          <button onclick="removeItem(${item.id})" title="ลบรายการ" class="text-red-500 hover:bg-red-50 rounded-lg px-2 py-1.5 text-sm">🗑️</button>
+        </div>`;
+      }).join("");
+    }
+
+    function updateQty(id, val) {
+      const qty = Math.max(1, parseInt(val) || 1);
+      const item = itemById(id);
+      const errEl = document.getElementById("err-" + id);
+      const cart = db("cart");
+      const c = cart.find(x => x.item_id === id);
+      if (qty > item.qty_available) {
+        errEl.classList.remove("hidden");
+        c.qty = item.qty_available;
+      } else {
+        errEl.classList.add("hidden");
+        c.qty = qty;
+      }
+      dbSave("cart", cart);
+      render();
+    }
+    function removeItem(id) {
+      let cart = db("cart");
+      cart = cart.filter(c => c.item_id !== id);
+      dbSave("cart", cart);
+      toastBanner("ลบรายการออกจากตะกร้าแล้ว");
+      render();
+    }
+    function goRequestForm() {
+      if (db("cart").length === 0) return;
+      location.href = "page-request-form.html";
+    }
+  </script>
+</body>
+</html>

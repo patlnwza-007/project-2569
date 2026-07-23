@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · รับคืนครุภัณฑ์ (UC-19)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">รับคืนครุภัณฑ์</h1>
+    <p class="text-sm text-gray-500 mb-6">ตรวจสอบสภาพสิ่งของจริงก่อนกดยืนยันรับคืน หรือปฏิเสธหากของไม่ครบ/ชำรุด</p>
+
+    <h2 class="text-sm font-bold text-gray-700 mb-2">🟡 รอตรวจรับคืน</h2>
+    <div id="pending-rows" class="space-y-3 mb-8"></div>
+
+    <h2 class="text-sm font-bold text-gray-700 mb-2">📦 กำลังยืมอยู่ (ยังไม่แจ้งคืน)</h2>
+    <div id="borrowing-rows" class="space-y-2"></div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function init() { notifyParentPage("return-mgmt"); render(); }
+    function render() {
+      const reqs = db("requests");
+      const pend = reqs.filter(r => r.status === "RETURN_PENDING");
+      const borrowing = reqs.filter(r => r.status === "BORROWING");
+
+      const p = document.getElementById("pending-rows");
+      p.innerHTML = pend.length === 0 ? `<p class="text-xs text-gray-400">ไม่มีรายการรอตรวจรับคืน</p>` : pend.map(r => {
+        const stu = studentById(r.student_id);
+        return `<div class="bg-white rounded-2xl border border-amber-200 shadow-sm p-4 flex items-center justify-between gap-4">
+          <div>
+            <p class="text-xs text-gray-400 font-mono">คำขอ #${r.id} · ${stu ? stu.name : r.student_id}</p>
+            <div class="text-sm text-gray-800">${r.items.map(it => { const i = itemById(it.item_id); return `${i.image} ${i.name} × ${it.qty}`; }).join(", ")}</div>
+            <p class="text-xs text-gray-400">แจ้งคืนเมื่อ ${r.return_notified_at || "-"} · กำหนดคืน ${r.due_date}</p>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button onclick="confirmReturn(${r.id})" class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg px-3 py-1.5">ยืนยันรับคืน</button>
+            <button onclick="rejectReturn(${r.id})" class="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-lg px-3 py-1.5">ปฏิเสธ</button>
+          </div>
+        </div>`;
+      }).join("");
+
+      const b = document.getElementById("borrowing-rows");
+      b.innerHTML = borrowing.length === 0 ? `<p class="text-xs text-gray-400">ไม่มีครุภัณฑ์ที่กำลังถูกยืมอยู่</p>` : borrowing.map(r => {
+        const stu = studentById(r.student_id);
+        const dleft = daysLeft(r.due_date);
+        return `<div class="bg-white rounded-xl border border-gray-200 p-3 flex items-center justify-between text-sm">
+          <div>#${r.id} · ${stu ? stu.name : r.student_id} — ${r.items.map(it => itemById(it.item_id)?.name).join(", ")}</div>
+          <span class="${dleft < 0 ? 'text-red-600 font-semibold' : 'text-gray-500'} text-xs">กำหนดคืน ${r.due_date} ${dleft < 0 ? `(เกิน ${Math.abs(dleft)} วัน)` : `(อีก ${dleft} วัน)`}</span>
+        </div>`;
+      }).join("");
+    }
+    function confirmReturn(id) {
+      const reqs = db("requests"); const items = db("items");
+      const r = reqs.find(x => x.id === id);
+      r.items.forEach(it => { const item = items.find(i => i.id === it.item_id); if (item) item.qty_available = Math.min(item.qty_total, item.qty_available + it.qty); });
+      r.status = "RETURNED"; r.returned_at = "2026-07-23 " + new Date().toTimeString().slice(0,5);
+      dbSave("requests", reqs); dbSave("items", items);
+      toastBanner("ยืนยันรับคืนสำเร็จ สิ่งของกลับเข้าคลังแล้ว");
+      render();
+    }
+    function rejectReturn(id) {
+      const reason = prompt("เหตุผลที่ปฏิเสธการรับคืน (เช่น ของไม่ครบ/ชำรุด)");
+      if (reason === null) return;
+      if (!reason.trim()) { toastBanner("ต้องระบุเหตุผล", "error"); return; }
+      const reqs = db("requests");
+      const r = reqs.find(x => x.id === id);
+      r.status = "BORROWING"; r.return_reject_reason = reason.trim();
+      dbSave("requests", reqs);
+      toastBanner("ปฏิเสธการรับคืน แจ้งเหตุผลกลับไปยังนักศึกษาแล้ว");
+      render();
+    }
+  </script>
+</body>
+</html>

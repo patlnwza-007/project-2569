@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · นำเข้าคลังแบบชุด (UC-25)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="notifyParentPage('bulk-import')">
+  <div class="max-w-xl mx-auto">
+    <a href="page-item-overview.html" class="text-sm text-blue-600 hover:underline">← กลับภาพรวมคลัง</a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-1">นำเข้าคลังแบบชุด (CSV)</h1>
+    <p class="text-sm text-gray-500 mb-6">รูปแบบไฟล์: name,type(material/equipment),category_id,qty_total,max_borrow_days</p>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <button onclick="downloadTemplate()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">📥 ดาวน์โหลดไฟล์ต้นแบบ (template.csv)</button>
+      <div>
+        <label class="text-sm font-semibold text-gray-700">อัปโหลดไฟล์ CSV</label>
+        <input id="file" type="file" accept=".csv" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+      </div>
+      <button onclick="doImport()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2">นำเข้าข้อมูล</button>
+      <div id="result"></div>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function downloadTemplate() {
+      const csv = "name,type,category_id,qty_total,max_borrow_days\nตัวอย่าง จอมอนิเตอร์ 24 นิ้ว,equipment,1,5,7\nตัวอย่าง สมุดบันทึก,material,3,30,\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "template_import_item.csv"; a.click();
+    }
+    function doImport() {
+      const fileInput = document.getElementById("file");
+      const resultBox = document.getElementById("result");
+      if (!fileInput.files.length) { toastBanner("กรุณาเลือกไฟล์ก่อน", "error"); return; }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+        const header = lines.shift();
+        const items = db("items");
+        const errors = []; let ok = 0;
+        lines.forEach((line, idx) => {
+          const [name, type, catId, qty, days] = line.split(",").map(s => (s||"").trim());
+          const rowNum = idx + 2;
+          if (!name || !["material","equipment"].includes(type) || !catId || isNaN(Number(qty))) {
+            errors.push(`แถวที่ ${rowNum}: รูปแบบไม่ถูกต้อง (${line})`); return;
+          }
+          items.push({ id: nextId(items), name, type, category_id: Number(catId), position_id: 1, qty_total: Number(qty), qty_available: Number(qty), max_borrow_days: type === "equipment" ? (Number(days)||7) : null, base_status: "พร้อมให้ยืม", image: "📦" });
+          ok++;
+        });
+        dbSave("items", items);
+        resultBox.innerHTML = `<div class="mt-2 text-sm">
+          <p class="text-green-700 font-semibold">นำเข้าสำเร็จ ${ok} รายการ</p>
+          ${errors.length ? `<p class="text-red-600 font-semibold mt-2">พบข้อผิดพลาด ${errors.length} แถว (ไม่ถูกนำเข้า):</p><ul class="list-disc list-inside text-xs text-red-500">${errors.map(e=>`<li>${e}</li>`).join("")}</ul>` : ""}
+        </div>`;
+        toastBanner(`นำเข้าสำเร็จ ${ok} รายการ`);
+      };
+      reader.readAsText(fileInput.files[0]);
+    }
+  </script>
+</body>
+</html>

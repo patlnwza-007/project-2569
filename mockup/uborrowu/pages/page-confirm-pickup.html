@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ยืนยันรับของ (UC-08)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-xl mx-auto">
+    <a href="page-student-home.html" class="text-sm text-blue-600 hover:underline">← กลับหน้าหลัก</a>
+    <div id="content" class="mt-3"></div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    function init() {
+      notifyParentPage("confirm-pickup");
+      const rid = Number(qparam("rid"));
+      const reqs = db("requests");
+      const r = reqs.find(x => x.id === rid);
+      const host = document.getElementById("content");
+      if (!r || r.status !== "APPROVED_WAIT_PICKUP") {
+        host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-3">ไม่พบคำขอที่รอรับของนี้ (อาจหมดอายุหรือดำเนินการไปแล้ว)</div>`;
+        return;
+      }
+      host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mt-3">
+        <h1 class="text-lg font-bold text-gray-800 mb-1">คำขอ #${r.id} — อนุมัติแล้ว/รอรับของ</h1>
+        <p class="text-sm text-gray-500 mb-4">กรุณาไปรับสิ่งของจากเจ้าหน้าที่ตามที่นัดหมาย แล้วกดยืนยันรับของในระบบ</p>
+        <div class="bg-gray-50 rounded-lg p-3 text-sm space-y-1 mb-4">
+          ${r.items.map(it => { const i = itemById(it.item_id); return `<div>${i.image} ${i.name} × ${it.qty} <span class="text-xs text-gray-400">(${i.type==='equipment'?'ครุภัณฑ์':'วัสดุ'})</span></div>`; }).join("")}
+        </div>
+        <p class="text-xs text-amber-600 mb-4">⏰ อนุมัติเมื่อ ${r.approved_at} — ต้องยืนยันรับของภายใน 2 วัน มิฉะนั้นระบบจะดึงของกลับคลังและเปลี่ยนสถานะเป็น "หมดอายุ" อัตโนมัติ</p>
+        <button onclick="confirmPickup(${r.id})" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2">✓ ยืนยันรับของแล้ว</button>
+      </div>`;
+    }
+    function confirmPickup(rid) {
+      const reqs = db("requests");
+      const r = reqs.find(x => x.id === rid);
+      const items = db("items");
+      let allMaterial = true;
+      r.items.forEach(it => {
+        const item = items.find(i => i.id === it.item_id);
+        if (item.type === "equipment") allMaterial = false;
+      });
+      r.picked_up_at = "2026-07-23 " + new Date().toTimeString().slice(0,5);
+      if (allMaterial) {
+        r.status = "ISSUED";
+      } else {
+        r.status = "BORROWING";
+        const maxDays = Math.max(...r.items.map(it => items.find(i => i.id === it.item_id).max_borrow_days || 7));
+        const due = new Date("2026-07-23T00:00:00"); due.setDate(due.getDate() + maxDays);
+        r.due_date = due.toISOString().slice(0,10);
+      }
+      dbSave("requests", reqs);
+      dbSave("items", items);
+      toastBanner("ยืนยันรับของสำเร็จ");
+      setTimeout(() => location.href = "page-student-home.html", 700);
+    }
+  </script>
+</body>
+</html>

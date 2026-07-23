@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · ตั้งค่าคลัง (UC-26)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;} .tab.active{border-bottom:2px solid #2563eb;color:#2563eb;font-weight:600;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">ตั้งค่าคลัง</h1>
+    <p class="text-sm text-gray-500 mb-4">จัดการหมวดหมู่สิ่งของ สถานะสิ่งของ และตำแหน่งตู้/ชั้นวาง</p>
+    <div class="flex gap-4 border-b border-gray-200 mb-4 text-sm">
+      <button class="tab active pb-2" data-t="categories" onclick="switchTab('categories')">หมวดหมู่</button>
+      <button class="tab pb-2" data-t="item_statuses" onclick="switchTab('item_statuses')">สถานะสิ่งของ</button>
+      <button class="tab pb-2" data-t="positions" onclick="switchTab('positions')">ตำแหน่ง</button>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+      <div class="flex gap-2 mb-4">
+        <input id="new-name" placeholder="เพิ่มรายการใหม่..." class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        <button onclick="addItem()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg px-4 py-2">เพิ่ม</button>
+      </div>
+      <div id="rows" class="space-y-2"></div>
+    </div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    let tab = "categories";
+    const LABEL_FIELD = { categories: "name", item_statuses: null, positions: "name" };
+    function init() { notifyParentPage("warehouse-settings"); render(); }
+    function switchTab(t) {
+      tab = t;
+      document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.t === t));
+      render();
+    }
+    function usageCount(t, val) {
+      if (t === "categories") return db("items").filter(i => i.category_id === val).length;
+      if (t === "positions") return db("items").filter(i => i.position_id === val).length;
+      if (t === "item_statuses") return db("items").filter(i => i.base_status === val).length;
+    }
+    function render() {
+      const host = document.getElementById("rows");
+      if (tab === "item_statuses") {
+        const list = db("item_statuses");
+        host.innerHTML = list.map((s, idx) => `<div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+          <span>${s}</span>
+          <div class="flex items-center gap-2 text-xs text-gray-400"><span>ใช้งานอยู่ ${usageCount('item_statuses', s)} ชิ้น</span>
+          <button onclick="removeStatus(${idx})" class="text-red-500 hover:underline">ลบ</button></div>
+        </div>`).join("");
+      } else {
+        const list = db(tab);
+        host.innerHTML = list.map(x => `<div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+          <span>${x.name}</span>
+          <div class="flex items-center gap-2 text-xs text-gray-400"><span>ใช้งานอยู่ ${usageCount(tab, x.id)} ชิ้น</span>
+          <button onclick="removeEntity(${x.id})" class="text-red-500 hover:underline">ลบ</button></div>
+        </div>`).join("");
+      }
+    }
+    function addItem() {
+      const val = document.getElementById("new-name").value.trim();
+      if (!val) return;
+      if (tab === "item_statuses") {
+        const list = db("item_statuses"); list.push(val); dbSave("item_statuses", list);
+      } else {
+        const list = db(tab); list.push({ id: nextId(list), name: val }); dbSave(tab, list);
+      }
+      document.getElementById("new-name").value = "";
+      toastBanner("เพิ่มรายการสำเร็จ");
+      render();
+    }
+    function removeEntity(id) {
+      const count = usageCount(tab, id);
+      if (count > 0) { toastBanner(`ไม่สามารถลบได้ เนื่องจากมีสิ่งของ ${count} ชิ้นใช้งานอยู่`, "error"); return; }
+      let list = db(tab); list = list.filter(x => x.id !== id); dbSave(tab, list);
+      toastBanner("ลบสำเร็จ"); render();
+    }
+    function removeStatus(idx) {
+      const list = db("item_statuses");
+      const val = list[idx];
+      const count = usageCount("item_statuses", val);
+      if (count > 0) { toastBanner(`ไม่สามารถลบได้ เนื่องจากมีสิ่งของ ${count} ชิ้นใช้งานอยู่`, "error"); return; }
+      list.splice(idx, 1); dbSave("item_statuses", list);
+      toastBanner("ลบสำเร็จ"); render();
+    }
+  </script>
+</body>
+</html>

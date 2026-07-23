@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UBORROWU · แบบประเมินความพึงพอใจ (UC-15)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Thai',sans-serif;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6" onload="init()">
+  <div class="max-w-xl mx-auto">
+    <a href="page-history.html" class="text-sm text-blue-600 hover:underline">← กลับประวัติการยืม</a>
+    <div id="content" class="mt-3"></div>
+  </div>
+  <script src="../shared.js"></script>
+  <script>
+    let questions = [];
+    function init() {
+      notifyParentPage("evaluation");
+      const rid = Number(qparam("rid"));
+      const r = db("requests").find(x => x.id === rid);
+      const form = db("eval_form");
+      const host = document.getElementById("content");
+      const already = db("eval_responses").some(e => e.request_id === rid);
+
+      if (!form.published) {
+        host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-3">ยังไม่มีแบบฟอร์มประเมินความพึงพอใจที่เผยแพร่ในขณะนี้</div>`; return;
+      }
+      if (already) {
+        host.innerHTML = `<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-2xl p-8 text-center mt-3">คุณเคยประเมินรายการนี้ไปแล้ว ไม่สามารถส่งซ้ำได้</div>`; return;
+      }
+      if (!r) { host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-3">ไม่พบรายการยืมนี้</div>`; return; }
+
+      questions = form.questions;
+      host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mt-3">
+        <h1 class="text-lg font-bold text-gray-800 mb-1">ประเมินความพึงพอใจ — คำขอ #${r.id}</h1>
+        <p class="text-sm text-gray-500 mb-4">${r.items.map(it=>itemById(it.item_id)?.name).join(", ")}</p>
+        <div id="q-host" class="space-y-4"></div>
+        <button onclick="submitEval(${rid})" class="mt-5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2">ส่งแบบประเมิน</button>
+      </div>`;
+      document.getElementById("q-host").innerHTML = questions.map(q => {
+        if (q.type === "rating") {
+          return `<div><label class="text-sm font-semibold text-gray-700">${q.text}</label>
+            <div class="flex gap-1 mt-1" id="rating-${q.id}">
+              ${[1,2,3,4,5].map(n => `<button type="button" onclick="setRating(${q.id},${n})" data-n="${n}" class="star text-2xl text-gray-300">★</button>`).join("")}
+            </div></div>`;
+        }
+        return `<div><label class="text-sm font-semibold text-gray-700">${q.text}</label>
+          <textarea id="text-${q.id}" rows="2" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea></div>`;
+      }).join("");
+    }
+    const ratings = {};
+    function setRating(qid, n) {
+      ratings[qid] = n;
+      document.querySelectorAll(`#rating-${qid} .star`).forEach(s => {
+        s.classList.toggle("text-yellow-400", Number(s.dataset.n) <= n);
+        s.classList.toggle("text-gray-300", Number(s.dataset.n) > n);
+      });
+    }
+    function submitEval(rid) {
+      const answers = {};
+      let missing = false;
+      questions.forEach(q => {
+        if (q.type === "rating") { if (!ratings[q.id]) missing = true; answers[q.id] = ratings[q.id] || null; }
+        else { answers[q.id] = document.getElementById("text-" + q.id).value.trim(); }
+      });
+      if (missing) { toastBanner("กรุณาให้คะแนนทุกข้อก่อนส่ง", "error"); return; }
+      const evals = db("eval_responses");
+      evals.push({ id: nextId(evals), request_id: rid, student_id: currentUserId(), answers, created_at: "2026-07-23" });
+      dbSave("eval_responses", evals);
+      toastBanner("ส่งแบบประเมินสำเร็จ ขอบคุณค่ะ/ครับ");
+      setTimeout(() => location.href = "page-history.html", 700);
+    }
+  </script>
+</body>
+</html>
