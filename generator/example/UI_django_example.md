@@ -50,7 +50,7 @@ APPS = [
     {"url": "borrow:my_requests", "label": "การยืมของฉัน",     "desc": "คำขอ / สถานะ / คืน",       "icon": "clipboard","style": "borrow",   "perm": None},
     {"url": "borrow:approvals",   "label": "อนุมัติคำขอ",       "desc": "รายการรออนุมัติ",         "icon": "check",    "style": "borrow",   "perm": "borrow.change_borrowrequest"},
     {"url": "reports:dashboard",  "label": "รายงาน",            "desc": "สรุป / กราฟ / ส่งออก",     "icon": "chart",    "style": "reports",  "perm": "borrow.view_borrowrequest"},
-    {"url": "admin_console:users","label": "จัดการผู้ใช้งาน",   "desc": "บัญชี / Whitelist / สิทธิ์","icon": "settings", "style": "admin",    "perm": "auth.view_user"},
+    {"url": "admin_console:users","label": "จัดการผู้ใช้งาน",   "desc": "บัญชี / UBU SSO / สิทธิ์","icon": "settings", "style": "admin",    "perm": "auth.view_user"},
 ]
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -136,7 +136,7 @@ from core.views import DashboardView
 
 urlpatterns = [
     path("", DashboardView.as_view(), name="dashboard"),         # state Dashboard
-    path("accounts/", include("allauth.urls")),                   # allauth: Google OAuth login/logout
+    path("accounts/", include("allauth.urls")),                   # allauth: UBU Single Sign-On (@ubu.ac.th) login/logout
     path("catalog/", include("catalog.urls")),
     path("borrow/", include("borrow.urls")),
     # เพิ่ม include ของแต่ละ app ตามตาราง mapping ใน UI_django_template.md §1

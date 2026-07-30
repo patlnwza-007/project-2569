@@ -218,7 +218,7 @@
 - **Backend/Framework:** {{เช่น Django (MVT)}}
 - **Frontend:** {{เช่น Django Template + htmx + Alpine.js + Tailwind CSS}}
 - **ฐานข้อมูล:** {{เช่น PostgreSQL}}
-- **Auth / เครื่องมือพัฒนา:** {{เช่น django-allauth (Google OAuth), VS Code, Git ฯลฯ}}
+- **Auth / เครื่องมือพัฒนา:** {{เช่น django-allauth (UBU Single Sign-On (@ubu.ac.th)), VS Code, Git ฯลฯ}}
 
 **Script พูด (~30 วิ):** พูดรวบ — เหตุผลที่เลือกแต่ละตัวเก็บไว้ตอบตอนถูกถามเท่านั้น
 
@@ -240,7 +240,7 @@
 - แผนภาพสถาปัตยกรรม 1 ภาพ ระบุกล่องกลาง = ระบบ Django (monolith) ล้อมด้วยส่วนที่เชื่อมต่อ
 - จุดเชื่อมต่อหลัก (ไม่เกิน 3-4 จุด) พร้อม label สั้นๆ กำกับว่าส่ง/รับข้อมูลอะไร เช่น:
   - **Browser (ผู้ใช้)** → request/response (server-rendered HTML + htmx)
-  - **Google OAuth (allauth)** ← ยืนยันตัวตน (login) · **PostgreSQL** ← จัดเก็บข้อมูล
+  - **UBU Single Sign-On (@ubu.ac.th) (allauth)** ← ยืนยันตัวตน (login) · **PostgreSQL** ← จัดเก็บข้อมูล
   - **{{บริการภายนอกอื่น ถ้ามี เช่น อีเมล SMTP}}** ← {{สิ่งที่เชื่อม}}
 
 **Script พูด (~75 วิ):** อธิบายตาม flow ทิศทางเดียว ใช้นิ้ว/pointer ชี้ตามภาพ ห้ามพูดลอยๆ โดยไม่ชี้

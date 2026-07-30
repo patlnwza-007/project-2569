@@ -54,7 +54,7 @@ if (ต้องการทำอะไร?) then (กำหนด/เปลี
   note right
     Business rule: Role Override
     มีผลเหนือกว่าบทบาทเริ่มต้นจาก
-    Whitelist เสมอ จนกว่าจะถูกยกเลิก
+    UBU SSO เสมอ จนกว่าจะถูกยกเลิก
   end note
 else (ยกเลิก Override เดิม)
   |ผู้ดูแลระบบ|
@@ -62,7 +62,7 @@ else (ยกเลิก Override เดิม)
 
   |ระบบ UBORROWU|
   :ลบ Role Override ออกจากบัญชี (write);
-  :บัญชีกลับไปใช้บทบาทอัตโนมัติจาก Whitelist ตามปกติ;
+  :บัญชีกลับไปใช้บทบาทอัตโนมัติจาก UBU SSO ตามปกติ;
 endif
 
 fork

@@ -257,16 +257,16 @@ class {{Entity}}ListView(LoginRequiredMixin, ListView):
 ## 6. หมายเหตุ Auth (django-allauth)
 
 ```python
-# config/settings.py (ย่อ) — ล็อกอิน Google OAuth + Whitelist
+# config/settings.py (ย่อ) — ล็อกอิน UBU Single Sign-On (@ubu.ac.th) + UBU SSO
 INSTALLED_APPS += ["allauth", "allauth.account", "allauth.socialaccount", "allauth.socialaccount.providers.google"]
 AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend", "allauth.account.auth_backends.AuthenticationBackend"]
 LOGIN_REDIRECT_URL = "/"
-# ตรวจ Whitelist: ผูก signal `allauth.account.signals.user_signed_up` หรือ custom adapter
+# ตรวจ UBU SSO: ผูก signal `allauth.account.signals.user_signed_up` หรือ custom adapter
 #   → เช็คว่า email อยู่ในรายชื่อที่อนุญาต ก่อนอนุญาต active
 ```
 
-- **Authentication** (คุณคือใคร) = allauth + Google + Whitelist · **Authorization** (ทำอะไรได้) = Django permission/group บังคับที่ view — แยกคนละชั้น (§8 ใน guide)
-- dev ไม่ต้องตั้ง Google OAuth ก็ได้ ใช้ `createsuperuser` + login ปกติทดสอบก่อน
+- **Authentication** (คุณคือใคร) = allauth + Google + UBU SSO · **Authorization** (ทำอะไรได้) = Django permission/group บังคับที่ view — แยกคนละชั้น (§8 ใน guide)
+- dev ไม่ต้องตั้ง UBU Single Sign-On (@ubu.ac.th) ก็ได้ ใช้ `createsuperuser` + login ปกติทดสอบก่อน
 
 ---
 

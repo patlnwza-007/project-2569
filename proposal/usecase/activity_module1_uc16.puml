@@ -37,31 +37,24 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-16 · เข้าสู่ระบบด้วย Google OAuth — Activity Diagram\nflow เดียวที่วาดขั้นตอน Google OAuth (external) + ตรวจ Whitelist + Role Override
+title UC-16 · เข้าสู่ระบบด้วย UBU Single Sign-On — Activity Diagram\nflow เดียวที่วาดขั้นตอน UBU SSO (external) + Role Override
 
 ' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
 ' ผู้ใช้ทั้ง 3 บทบาท (นักศึกษา/เจ้าหน้าที่/ผู้ดูแลระบบ) ใช้ flow เดียวกันนี้ในการเข้าสู่ระบบ
 |ผู้ใช้ (นักศึกษา / เจ้าหน้าที่ / ผู้ดูแลระบบ)|
 start
-:กดปุ่มเข้าสู่ระบบด้วย Google;
+:กดปุ่มเข้าสู่ระบบด้วย UBU Single Sign-On;
 
-' ===== บริการภายนอกจริง — Google OAuth 2.0 (นอกขอบเขต Django) =====
-|Google OAuth (allauth) (external)|
-:ยืนยันตัวตนกับ Google OAuth 2.0;
-:ผู้ใช้อนุญาต (consent) และคืนอีเมลที่ยืนยันแล้ว;
+' ===== บริการภายนอกจริง — UBU SSO (นอกขอบเขต Django) =====
+|UBU Single Sign-On (@ubu.ac.th) (external)|
+:ยืนยันตัวตนกับบริการ UBU Single Sign-On;
+:ผู้ใช้อนุญาต (consent) และคืนข้อมูลผู้ใช้พร้อมสิทธิ์บุคลากร;
 
-' ===== ระบบ Django ประมวลผล (django-allauth) =====
+' ===== ระบบ Django ประมวลผล =====
 |ระบบ UBORROWU|
-:รับอีเมลที่ยืนยันแล้วจาก Google;
-:ตรวจสอบอีเมลกับรายชื่อ Whitelist (นักศึกษา/เจ้าหน้าที่ — UC-37/UC-38);
+:รับข้อมูลการยืนยันตัวตนจาก UBU SSO;
+:กำหนดบทบาทเริ่มต้น (Student/Staff) ตามข้อมูล SSO โดยอัตโนมัติ;
 
-if (พบอีเมลใน Whitelist หรือไม่?) then (ไม่พบ)
-  :ปฏิเสธการเข้าสู่ระบบ + แจ้งเหตุผล (ไม่อยู่ใน Whitelist);
-  stop
-else (พบ)
-endif
-
-:กำหนดบทบาทเริ่มต้น (Student/Staff) ตามประเภท Whitelist ที่พบ;
 :ตรวจสอบว่าบัญชีถูกระงับสิทธิ์ (Block) โดยแอดมินหรือไม่;
 
 if (บัญชีถูกระงับสิทธิ์ (Block) หรือไม่?) then (ถูกระงับ)
@@ -72,9 +65,9 @@ endif
 
 :ตรวจสอบ Role Override เฉพาะบุคคล (UC-34/UC-35);
 if (มีการกำหนด Role Override หรือไม่?) then (มี)
-  :ใช้บทบาทที่ถูกกำหนด (Role Override) แทนบทบาทเริ่มต้นจาก Whitelist;
+  :ใช้บทบาทที่ถูกกำหนด (Role Override) แทนบทบาทเริ่มต้นจาก UBU SSO;
 else (ไม่มี)
-  :ใช้บทบาทเริ่มต้นจาก Whitelist ตามที่กำหนดไว้;
+  :ใช้บทบาทเริ่มต้นจาก UBU SSO ตามที่กำหนดไว้;
 endif
 
 :สร้างเซสชันผู้ใช้ตามบทบาทที่ได้ (session cookie);
@@ -89,10 +82,10 @@ stop
 
 legend right
   |<back:white>    </back>| Actor ภายนอก (นักศึกษา/เจ้าหน้าที่/ผู้ดูแลระบบ) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith, django-allauth) — เส้นขอบทึบ |
-  |<back:#F5F5F5>    </back>| บริการภายนอก (Google OAuth 2.0) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
-  หมายเหตุ: มีเพียง UC-16 นี้เท่านั้นที่วาดขั้นตอนติดต่อ Google OAuth — flow อื่นทั้งหมดถือว่า login แล้ว (session) เริ่มที่ actor ได้เลย
-  หมายเหตุ: ลำดับตรวจต้อง Whitelist ก่อน แล้วจึงเช็ค Role Override ทับเสมอ (ไม่ตรวจพร้อมกัน) ตาม Business Rule ของ UC-16
+  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:#F5F5F5>    </back>| บริการภายนอก (UBU Single Sign-On) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: มีเพียง UC-16 นี้เท่านั้นที่วาดขั้นตอนติดต่อ UBU SSO — flow อื่นทั้งหมดถือว่า login แล้ว (session) เริ่มที่ actor ได้เลย
+  หมายเหตุ: ลำดับตรวจรับข้อมูลบทบาทเริ่มต้นจาก UBU SSO ก่อน แล้วจึงเช็ค Role Override ทับเสมอ ตาม Business Rule ของ UC-16
 endlegend
 
 @enduml

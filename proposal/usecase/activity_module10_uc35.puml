@@ -60,7 +60,7 @@ endif
 :บันทึกบทบาทที่กำหนด (Role Override) ให้ทุกบัญชีในไฟล์ที่ผ่าน validation (write);
 note right
   Business rule: ใช้กฎเดียวกับ UC-34
-  Role Override มีผลเหนือกว่า Whitelist
+  Role Override มีผลเหนือกว่า UBU SSO
   เสมอ กับทุกบัญชีในไฟล์
 end note
 

@@ -1,7 +1,7 @@
 @startuml ui_state_diagram
 ' ══════════════════════════════════════════════════════════════════
 ' UBORROWU · ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี
-' UI State Transition Diagram — สร้างจาก use case ทั้งหมด (UC-01–UC-38)
+' UI State Transition Diagram — สร้างจาก use case ทั้งหมด (UC-01–UC-36)
 ' อ้างอิง: proposal/usecase/use_case_description.md,
 '          proposal/usecase/usecase_overview.puml + usecase_module1–10.puml,
 '          proposal/usecase/activity_module*_uc*.puml
@@ -14,7 +14,7 @@
 '
 ' แนวคิดการออกแบบ:
 '   - แบ่งเป็น 4 โซนตามบทบาท: ก่อนเข้าสู่ระบบ / นักศึกษา / เจ้าหน้าที่ / ผู้ดูแลระบบ
-'     (บทบาทถูกกำหนดตอนเข้าสู่ระบบ UC-16 จาก Whitelist หรือ Role Override)
+'     (บทบาทถูกกำหนดตอนเข้าสู่ระบบ UC-16 จาก UBU SSO หรือ Role Override)
 '   - แสดงเฉพาะ "หน้าจอหลัก" ของแต่ละ use case ไม่แยก dialog ยืนยัน/toast แจ้งเตือนเป็น state
 '   - use case ที่เป็น <<extend>> ของอีก use case หนึ่ง (เช่น ค้นหา/กรอง, นำเข้าแบบไฟล์)
 '     ไม่แยกเป็น state ใหม่ แต่ระบุเป็นความสามารถในหน้าเดียวกัน หรือ transition ย่อย
@@ -53,21 +53,21 @@ title UBORROWU — UI State Transition Diagram (การนำทางระ�
 state "ยังไม่เข้าสู่ระบบ" as PreAuth {
   state "หน้าแรก (Welcome)" as Welcome
   note right of Welcome
-    แสดง: โลโก้ระบบ + ปุ่ม "เข้าสู่ระบบด้วย Google" เท่านั้น
+    แสดง: โลโก้ระบบ + ปุ่ม "เข้าสู่ระบบด้วย UBU Single Sign-On" เท่านั้น
     ไม่มีฟอร์ม ไม่มีข้อมูลอื่นก่อนล็อกอิน
   end note
 
-  state "เข้าสู่ระบบด้วย Google\n(UC-16)" as Login
+  state "เข้าสู่ระบบด้วย UBU SSO\n(UC-16)" as Login
   note right of Login
-    แสดง: redirect ไปหน้า Google OAuth 2.0 (ไม่มี UI ฟอร์มของระบบเอง)
-    ผิดพลาด: อีเมลไม่อยู่ใน Whitelist → ข้อความปฏิเสธ + เหตุผล /
+    แสดง: redirect ไปหน้า UBU Single Sign-On (@ubu.ac.th) (ไม่มี UI ฟอร์มของระบบเอง)
+    ผิดพลาด: การยืนยันตัวตนไม่สำเร็จ → ข้อความแจ้งเตือน /
     บัญชีถูกระงับสิทธิ์ (Block) → ข้อความปฏิเสธการเข้าสู่ระบบ
-    กฎ: ตรวจ Whitelist ก่อนเสมอ แล้วจึงเช็ค Role Override ทับ (UC-34/35)
+    กฎ: รับข้อมูลบทบาทเริ่มต้นจาก SSO ก่อนเสมอ แล้วจึงเช็ค Role Override ทับ (UC-34/35)
   end note
 
   [*] --> Welcome
-  Welcome --> Login : กด "เข้าสู่ระบบด้วย Google"
-  Login --> Login : อีเมลไม่อยู่ใน Whitelist /\nบัญชีถูกระงับสิทธิ์ (Block)\n→ ปฏิเสธการเข้าสู่ระบบ
+  Welcome --> Login : กด "เข้าสู่ระบบด้วย UBU Single Sign-On"
+  Login --> Login : ยืนยันตัวตนไม่สำเร็จ /\nบัญชีถูกระงับสิทธิ์ (Block)\n→ ปฏิเสธการเข้าสู่ระบบ
 }
 
 ' ═════════ โซนนักศึกษา (Student — UC-01 ถึง UC-15) ═════════
@@ -306,7 +306,7 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
 
   state "ส่งออกรายงาน PDF / CSV\n(UC-31)" as ReportExport
   note right of ReportExport
-    ฟิลด์: เลือกรูปแบบรายงาน PDF (อย่างน้อย 8 แบบ)
+    ฟิลด์: เลือกรูปแบบรายงาน PDF (4 แบบ: สรุปสถานะการยืม-คืนรายเดือน, ของชำรุด, รายงานคนค้างส่ง, คำเสนอแนะสิ่งของ)
     หรือส่งออกข้อมูลคลังเป็น CSV
     ผิดพลาด: ไม่มีข้อมูลในช่วงที่เลือก → แจ้งเตือน ไม่สร้างไฟล์ว่าง
   end note
@@ -352,7 +352,7 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
   ReportExport --> StaffDash : ดาวน์โหลดสำเร็จ / กลับ
 }
 
-' ═════════ โซนผู้ดูแลระบบ (Admin — UC-33 ถึง UC-38) ═════════
+' ═════════ โซนผู้ดูแลระบบ (Admin — UC-33 ถึง UC-36) ═════════
 state "ผู้ดูแลระบบ (Admin)" as Admin {
   state "รายชื่อบัญชีผู้ใช้งาน\nแยกตามบทบาท" as UserList
   note right of UserList
@@ -361,7 +361,7 @@ state "ผู้ดูแลระบบ (Admin)" as Admin {
 
   state "รายละเอียดบัญชี\nลบ/ระงับสิทธิ์/ปลดบล็อก (UC-33)" as UserDetail
   note right of UserDetail
-    แสดง: บทบาทปัจจุบัน + ที่มาของบทบาท (อัตโนมัติจาก Whitelist
+    แสดง: บทบาทปัจจุบัน + ที่มาของบทบาท (อัตโนมัติจาก UBU SSO
     หรือถูกกำหนดเฉพาะบุคคล — Role Override)
     ปุ่ม: ลบถาวร, ระงับสิทธิ์/ปลดบล็อก
     ยืนยันซ้ำ: หากบัญชีมีคำขอยืมค้างอยู่ก่อนลบถาวร
@@ -370,7 +370,7 @@ state "ผู้ดูแลระบบ (Admin)" as Admin {
   state "กำหนดบทบาทรายบุคคล\n(Role Override — UC-34)" as RoleOverride
   note right of RoleOverride
     ฟิลด์: เลือกบทบาทใหม่ (เช่น Student → Staff) + เหตุผล (ไม่บังคับ)
-    ปุ่ม: ยกเลิก Override (กลับไปใช้บทบาทอัตโนมัติจาก Whitelist)
+    ปุ่ม: ยกเลิก Override (กลับไปใช้บทบาทอัตโนมัติจาก UBU SSO)
   end note
 
   state "กำหนดบทบาทแบบกลุ่มผ่านไฟล์\n(extend UC-35)" as RoleOverrideBulk
@@ -385,40 +385,13 @@ state "ผู้ดูแลระบบ (Admin)" as Admin {
     ทั้งหมดพร้อมบทบาทปัจจุบันของแต่ละคน
   end note
 
-  state "นำเข้ารายชื่อนักศึกษา Whitelist\n(UC-37)" as ImportStudentWhitelist
-  note right of ImportStudentWhitelist
-    แสดง: ช่องอัปโหลดไฟล์ CSV รายชื่อนักศึกษาที่มีสิทธิ์
-    กฎ: Additive-only — เพิ่มเข้ารายชื่อเดิมเท่านั้น ไม่ลบของเก่า
-    ผิดพลาด: รูปแบบผิด/แถวผิดพลาด → แจ้งรายการที่ผิด /
-    อีเมลซ้ำของเดิม → ข้ามรายการนั้นไม่เพิ่มซ้ำ
-  end note
-
-  state "นำเข้ารายชื่อเจ้าหน้าที่ Whitelist\n(UC-38)" as ImportStaffWhitelist
-  note right of ImportStaffWhitelist
-    แสดง: ช่องอัปโหลดไฟล์ CSV รายชื่อเจ้าหน้าที่ที่มีสิทธิ์
-    กฎ/ผิดพลาด: เหมือน UC-37 ทุกประการ (Additive-only)
-  end note
-
-  [*] --> UserList
-
-  UserList --> UserDetail : เลือกผู้ใช้งาน
-  UserDetail --> UserList : ลบ/ระงับ/ปลดบล็อกสำเร็จ / กลับ
-  UserDetail --> RoleOverride : กำหนดบทบาทรายบุคคล\n(include UC-33)
-  RoleOverride --> UserDetail : บันทึกสำเร็จ /\nยกเลิก Override / กลับ
-  RoleOverride --> RoleOverrideBulk : เลือกกำหนดแบบกลุ่มผ่านไฟล์แทน
-  RoleOverrideBulk --> UserList : นำเข้าสำเร็จ / กลับ
-
   UserList --> PersonnelExport : เมนู "ส่งออกรายชื่อบุคลากร" (UC-36)
   PersonnelExport --> UserList : ดาวน์โหลดสำเร็จ / กลับ
-  UserList --> ImportStudentWhitelist : เมนู "นำเข้า Whitelist นักศึกษา" (UC-37)
-  ImportStudentWhitelist --> UserList : นำเข้าสำเร็จ / กลับ
-  UserList --> ImportStaffWhitelist : เมนู "นำเข้า Whitelist เจ้าหน้าที่" (UC-38)
-  ImportStaffWhitelist --> UserList : นำเข้าสำเร็จ / กลับ
 }
 
 ' ═════════ ข้ามโซน — กำหนดบทบาทหลังเข้าสู่ระบบ (UC-16) ═════════
-Login --> StuHome : ล็อกอินสำเร็จ\nบทบาท = นักศึกษา\n(Whitelist UC-37 หรือ Role Override UC-34/35)
-Login --> StaffDash : ล็อกอินสำเร็จ\nบทบาท = เจ้าหน้าที่\n(Whitelist UC-38 หรือ Role Override UC-34/35)
+Login --> StuHome : ล็อกอินสำเร็จ\nบทบาท = นักศึกษา\n(UBU SSO หรือ Role Override UC-34/35)
+Login --> StaffDash : ล็อกอินสำเร็จ\nบทบาท = เจ้าหน้าที่\n(UBU SSO หรือ Role Override UC-34/35)
 Login --> UserList : ล็อกอินสำเร็จ\nบทบาท = ผู้ดูแลระบบ
 
 StuHome --> Login : ออกจากระบบ
@@ -440,11 +413,10 @@ note bottom of Staff
 end note
 
 note bottom of Admin
-  ครอบคลุม UC-33 ถึง UC-38 (6 use case ของผู้ดูแลระบบ)
+  ครอบคลุม UC-33 ถึง UC-36 (4 use case ของผู้ดูแลระบบ)
   - Role Override (UC-34/35) มีผลเหนือกว่าบทบาทเริ่มต้นจาก
-    Whitelist เสมอ จนกว่าแอดมินจะยกเลิก
-  - Whitelist Import (UC-37/38) เป็น Additive-only เท่านั้น —
-    การเพิกถอนสิทธิ์ทำได้ทางเดียวคือผ่าน UC-33
+    UBU SSO เสมอ จนกว่าแอดมินจะยกเลิก
+  - การเพิกถอนสิทธิ์หรือลบบัญชีทำผ่าน UC-33
 end note
 
 @enduml

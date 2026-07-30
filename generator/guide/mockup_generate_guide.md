@@ -13,7 +13,7 @@
 **Standalone** = เปิดไฟล์ `.html` ได้ตรงจาก `file://` (ดับเบิลคลิกเปิดในเบราว์เซอร์) หรือรันผ่าน static server ง่ายๆ โดย**ไม่มี**:
 - Backend/view จริงของ Django (ไม่รัน `manage.py runserver`)
 - ฐานข้อมูลจริง (PostgreSQL)
-- Authentication จริง (django-allauth / Google OAuth)
+- Authentication จริง (django-allauth / UBU Single Sign-On (@ubu.ac.th))
 - การเรียก network request ไปยังบริการภายนอกจริง
 
 **แต่ต้องทำได้ครบ:**
@@ -254,7 +254,7 @@ function render() {
 | ฟังก์ชันในระบบจริง | ทำไมทำจริงไม่ได้แบบ standalone | วิธี Simulate |
 |---------------------|-------------------------------|----------------|
 | **ดึงข้อมูลจาก app อื่น** (เช่น `borrow` ดึงรายการของจาก `catalog`) | ไม่มี view/ORM จริง | เขียน mock function คืนค่าจาก `mock-data.js` ทันที พร้อม comment `// ระบบจริง: Item.objects.filter(...)` |
-| **Authentication (allauth/Google OAuth)** | ไม่มี allauth/Google จริง | ใช้ role switcher ใน §5 แทน ไม่ต้องล็อกอิน Google จริง |
+| **Authentication (allauth/UBU Single Sign-On (@ubu.ac.th))** | ไม่มี allauth/Google จริง | ใช้ role switcher ใน §5 แทน ไม่ต้องล็อกอิน Google จริง |
 | **อัปโหลดไฟล์/รูปภาพ** | ไม่มี server/`MEDIA_ROOT` จริง | ใช้ `FileReader` API อ่านไฟล์ที่เลือกแล้วแสดง preview ในเบราว์เซอร์ ("อัปโหลดสำเร็จ (จำลอง)") โดยไม่ต้องส่งไปไหนจริง |
 | **ส่งอีเมล/แจ้งเตือน** | ไม่มี mail server จริง | แสดง toast/banner "ส่งอีเมลแจ้งเตือนแล้ว (จำลอง)" |
 | **สร้างเอกสาร PDF/CSV** (เช่น รายงาน, ทะเบียนพัสดุ) | ไม่มี backend generate ไฟล์จริง | ใช้ library ฝั่ง client ที่ทำงานได้แบบ standalone จริง เช่น **jsPDF** (CDN) สร้าง PDF จริงจากข้อมูลใน mockup ได้ทันที หรืออย่างน้อยใช้ `window.print()` เปิด print-preview |

@@ -4,7 +4,7 @@
 >
 > ไฟล์นี้คือ **design system กลางของทั้งระบบ (Django monolith)** — ทั้งหน้าจริง (Django template + htmx + Alpine.js) และ mockup สาธิต ([`mockup_generate_guide.md`](mockup_generate_guide.md)) ต้องใช้สี/layout/component ชุดเดียวกันนี้ เพื่อให้หน้าตาพ้องกันทั้งระบบ และ screenshot จาก mockup ใช้แทน screenshot ของจริงได้
 >
-> **สถาปัตยกรรมเป้าหมาย: Django MVT monolith** — ไม่มี SPA แยก, ไม่มี API Gateway, ไม่มี JWT/microservice หน้าจอถูก render จากฝั่ง server (Template) โดยตรง เพิ่ม interactivity ด้วย htmx (โหลดบางส่วน) และ Alpine.js (state เล็ก ๆ ในหน้า) ยืนยันตัวตนด้วย django-allauth ผ่าน Google OAuth 2.0 (session-based)
+> **สถาปัตยกรรมเป้าหมาย: Django MVT monolith** — ไม่มี SPA แยก, ไม่มี API Gateway, ไม่มี JWT/microservice หน้าจอถูก render จากฝั่ง server (Template) โดยตรง เพิ่ม interactivity ด้วย htmx (โหลดบางส่วน) และ Alpine.js (state เล็ก ๆ ในหน้า) ยืนยันตัวตนด้วย django-allauth ผ่าน UBU Single Sign-On (@ubu.ac.th) (session-based)
 
 ---
 
@@ -33,7 +33,7 @@ UI ไม่ได้ออกแบบจากจินตนาการ — 
 | Interactivity ในหน้า | **Alpine.js** | state เล็ก ๆ ฝั่ง client (dropdown, modal, tab, toggle) ที่ไม่ต้องยิง server |
 | Routing | **Django URLconf** (`urls.py`) | ตั้งชื่อ URL (`name=`) ตามชื่อ state ใน state diagram · นำทางด้วย `{% url 'app:name' %}` |
 | Data | **Django ORM** + template context | htmx ใช้สำหรับ partial reload · ไม่มี REST client ฝั่ง browser เว้นแต่จำเป็น |
-| Auth | **django-allauth** ผ่าน **Google OAuth 2.0** (session) | ตรวจ Whitelist ก่อนอนุญาตเข้าใช้ · dev ใช้ user ทดสอบ/`createsuperuser` ได้ |
+| Auth | **django-allauth** ผ่าน **UBU Single Sign-On (@ubu.ac.th)** (session) | ตรวจ UBU SSO ก่อนอนุญาตเข้าใช้ · dev ใช้ user ทดสอบ/`createsuperuser` ได้ |
 | สิทธิ์ (authorization) | Django auth: `Group`/`Permission` หรือฟิลด์ `role` | บังคับที่ view ด้วย `LoginRequiredMixin`/`UserPassesTestMixin` หรือ decorator |
 | Icons | lucide ชุดเดียวทั้งระบบ | ฝัง SVG แบบ static (`{% include %}` partial) หรือ lucide ผ่าน CDN — ห้าม mix ชุด icon |
 | Font | Noto Sans Thai (Google Fonts) | UI ใช้ฟอนต์นี้ — TH Sarabun New ใช้เฉพาะเอกสาร/ไดอะแกรม |
@@ -234,7 +234,7 @@ Mapping สถานะจริงของโครงการ → สี (�
 - เมนู/ปุ่ม conditional render ตามตาราง **Actors** ใน fn req — role ที่ไม่มีสิทธิ์ต้อง "ไม่เห็น" ไม่ใช่แค่กดไม่ได้ ใช้ `{% if perms.app.change_x %}` หรือเช็ค group/role ใน template
 - ตัวอย่าง: เมนู "จัดการผู้ใช้งาน" + "Audit log" เห็นเฉพาะ admin · ปุ่มอนุมัติแสดงเฉพาะ staff
 - **Template ซ่อนเพื่อ UX เท่านั้น — การบังคับสิทธิ์จริงอยู่ที่ view** ด้วย `LoginRequiredMixin`, `PermissionRequiredMixin`, `UserPassesTestMixin` หรือ decorator `@login_required`/`@permission_required` เสมอ (ต่างจากสถาปัตยกรรม microservice ที่บังคับที่ Gateway — ที่นี่ view เป็นด่านบังคับสิทธิ์)
-- django-allauth คุมเฉพาะ **authentication** (ล็อกอิน Google + Whitelist) ส่วน **authorization** (ทำอะไรได้) เป็นหน้าที่ของ Django permission/group ในแต่ละ view
+- django-allauth คุมเฉพาะ **authentication** (ล็อกอิน Google + UBU SSO) ส่วน **authorization** (ทำอะไรได้) เป็นหน้าที่ของ Django permission/group ในแต่ละ view
 
 ---
 

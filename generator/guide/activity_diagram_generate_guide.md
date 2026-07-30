@@ -2,7 +2,7 @@
 
 > ใช้คู่กับ [`activity_diagram_template.md`](../template/activity_diagram_template.md) เป็นจุดเริ่มก๊อปปี้ และดู [`activity_diagram_example.md`](../example/activity_diagram_example.md) เป็นตัวอย่างที่ทำตามกฎครบทุกข้อ
 >
-> **สถาปัตยกรรมเป้าหมาย: Django MVT monolith** — business logic ทั้งหมดอยู่ในโปรเจกต์เดียว (ไม่มี microservice/API Gateway/JWT) ยืนยันตัวตนด้วย django-allauth ผ่าน Google OAuth (session) กฎด้านล่างสะท้อนความจริงของ monolith ไม่ใช่คลัสเตอร์ service
+> **สถาปัตยกรรมเป้าหมาย: Django MVT monolith** — business logic ทั้งหมดอยู่ในโปรเจกต์เดียว (ไม่มี microservice/API Gateway/JWT) ยืนยันตัวตนด้วย django-allauth ผ่าน UBU Single Sign-On (@ubu.ac.th) (session) กฎด้านล่างสะท้อนความจริงของ monolith ไม่ใช่คลัสเตอร์ service
 
 ---
 
@@ -26,7 +26,7 @@
 Partition คือ "ใครเป็นเจ้าของ logic ตรงนี้" ในบริบท monolith มี 3 ชนิดเท่านั้น:
 - **Actor ภายนอกที่เป็นมนุษย์** (นักศึกษา, เจ้าหน้าที่, ผู้ดูแลระบบ) — ผู้ริเริ่มการกระทำ
 - **ระบบ (Django application)** — โค้ดฝั่ง server ที่ประมวลผล (view + model + business logic) ทั้งหมดของโปรเจกต์
-- **บริการภายนอกจริง** ที่อยู่นอกโปรเจกต์ Django (เช่น Google OAuth, เซิร์ฟเวอร์อีเมล/SMTP, ที่เก็บไฟล์ภายนอก) — เส้นขอบประ (ดู §5)
+- **บริการภายนอกจริง** ที่อยู่นอกโปรเจกต์ Django (เช่น UBU Single Sign-On (@ubu.ac.th), เซิร์ฟเวอร์อีเมล/SMTP, ที่เก็บไฟล์ภายนอก) — เส้นขอบประ (ดู §5)
 
 ถ้าระบบทำงานหลายจุดในกระบวนการ ให้ใช้ชื่อ partition เดิมซ้ำทุกครั้ง — PlantUML รวมเป็นคอลัมน์เดียวกันเองตราบใดที่ชื่อ (และสี) ตรงกันทุกตัวอักษร
 
@@ -60,7 +60,7 @@ Partition คือ "ใครเป็นเจ้าของ logic ตรง�
 **ใน monolith ไม่มี API Gateway** — request จากเบราว์เซอร์วิ่งเข้า Django โดยตรง (ผ่าน WSGI/ASGI) ไม่ต้องวาด partition "Gateway" คั่นทุกครั้งเหมือนสถาปัตยกรรม microservice
 
 **2.1 การยืนยันตัวตนเกิดครั้งเดียวตอนล็อกอิน ไม่ใช่ทุก request** — django-allauth ทำ OAuth กับ Google ตอนล็อกอิน แล้วเซ็ต **session cookie** หลังจากนั้นทุก request แนบ session เอง Django middleware ผูก `request.user` ให้อัตโนมัติ ดังนั้น:
-- **flow ล็อกอิน** เท่านั้นที่ต้องวาดขั้นตอนติดต่อ Google OAuth (partition ภายนอก "Google OAuth (allauth)") + ตรวจ Whitelist
+- **flow ล็อกอิน** เท่านั้นที่ต้องวาดขั้นตอนติดต่อ UBU Single Sign-On (@ubu.ac.th) (partition ภายนอก "UBU Single Sign-On (@ubu.ac.th) (allauth)") + ตรวจ UBU SSO
 - **flow ทั่วไป** (ยืม/คืน/อนุมัติ) **ไม่ต้อง**วาดขั้นตอน OAuth ซ้ำ — สมมติว่า login แล้ว ให้เริ่มที่ actor กระทำได้เลย
 
 **2.2 การตรวจสิทธิ์ (authorization) เป็น step แรกในฝั่งระบบ ไม่ใช่ partition แยก** — เมื่อ request เข้าถึง view, Django ตรวจ `login_required` + permission/group ก่อนรัน logic แสดงเป็นกิจกรรมแรกใน partition ระบบได้ถ้าต้องการเน้น เช่น:
@@ -76,7 +76,7 @@ Partition คือ "ใครเป็นเจ้าของ logic ตรง�
 
 > ถ้า flow ไม่ได้เน้นเรื่องสิทธิ์ จะข้ามการวาด step "ตรวจสิทธิ์" ก็ได้ — เขียนเป็นหมายเหตุทั่วไปครั้งเดียวว่า "ทุก view ผ่าน login_required + permission" แทนการวาดซ้ำทุกไดอะแกรม (ดู §7 checklist)
 
-**2.3 การเรียกบริการภายนอกจริง** (Google OAuth, SMTP, storage) วาดเป็น partition แยกเส้นขอบประ เพราะอยู่นอกขอบเขต Django — ต่างจากการเรียกข้าม app ภายใน (§1.2) ที่เป็น in-process call ไม่ต้องแยกเส้นประ
+**2.3 การเรียกบริการภายนอกจริง** (UBU Single Sign-On (@ubu.ac.th), SMTP, storage) วาดเป็น partition แยกเส้นขอบประ เพราะอยู่นอกขอบเขต Django — ต่างจากการเรียกข้าม app ภายใน (§1.2) ที่เป็น in-process call ไม่ต้องแยกเส้นประ
 
 ---
 
@@ -128,7 +128,7 @@ repeat while (ข้อมูลผ่านครบหรือไม่?) is 
 |---|---|---|
 | Actor ภายนอก (human) | ขาว (`white`) | ทึบ (`#424242`) |
 | ระบบ (Django application) | เทาอ่อน (`#F5F5F5`) | ทึบ (`#424242`) |
-| บริการภายนอก (Google OAuth, SMTP, storage) | เทาอ่อน (`#F5F5F5`) | **เส้นประ** (`#616161`) — สื่อว่าอยู่นอกขอบเขต Django |
+| บริการภายนอก (UBU Single Sign-On (@ubu.ac.th), SMTP, storage) | เทาอ่อน (`#F5F5F5`) | **เส้นประ** (`#616161`) — สื่อว่าอยู่นอกขอบเขต Django |
 
 ```plantuml
 skinparam activity {
@@ -145,7 +145,7 @@ skinparam partition {
 }
 ```
 
-ถ้า PlantUML เวอร์ชันที่ใช้ไม่รองรับการทำเส้นประบน partition โดยตรง ให้ระบุชื่อ partition ต่อท้ายด้วย `(external)` แทนสี เช่น `|Google OAuth (external)|` — สื่อความหมายด้วยข้อความ ไม่ใช่สี
+ถ้า PlantUML เวอร์ชันที่ใช้ไม่รองรับการทำเส้นประบน partition โดยตรง ให้ระบุชื่อ partition ต่อท้ายด้วย `(external)` แทนสี เช่น `|UBU Single Sign-On (@ubu.ac.th) (external)|` — สื่อความหมายด้วยข้อความ ไม่ใช่สี
 
 **ห้ามใช้สีตระกูลต่างกัน (ส้ม/ฟ้า/เขียว/ม่วง) แยกแต่ละ partition เด็ดขาด** — ทุกอย่างอยู่ในโทนเทา-ขาวเดียวกัน แยกด้วยเส้นขอบ + label เท่านั้น
 
@@ -157,7 +157,7 @@ skinparam partition {
 - [ ] ค่าเริ่มต้นใช้ partition ระบบตัวเดียว (`ระบบ <ชื่อ>`) · แยกตาม Django app เฉพาะเมื่อ flow ข้ามหลาย app จริง และเข้าใจว่าเป็น in-process call (ข้อ 1.2)
 - [ ] ระบบเดียวกัน/app เดียวกันที่ทำงานซ้ำ ใช้ชื่อ partition เดิมทุกครั้ง ไม่สร้างซ้ำ
 - [ ] **ไม่มี partition "API Gateway" และไม่มีขั้นตอน "ตรวจ JWT" ทุก request** — auth เกิดตอน login ผ่าน allauth/Google (session) เท่านั้น (ข้อ 2)
-- [ ] flow ล็อกอินเท่านั้นที่วาดขั้นตอน Google OAuth (external) + Whitelist · flow อื่นเริ่มที่ actor ได้เลย
+- [ ] flow ล็อกอินเท่านั้นที่วาดขั้นตอน UBU Single Sign-On (@ubu.ac.th) (external) + UBU SSO · flow อื่นเริ่มที่ actor ได้เลย
 - [ ] บริการภายนอกจริง (OAuth/SMTP/storage) เป็น partition เส้นขอบประ · การเรียกข้าม app ภายในไม่ใช่เส้นประ
 - [ ] Write operation สำคัญที่ไม่ต้องรอ มีเส้นไป Audit Log/Notification แบบ `fork`/`end fork` (ผ่าน signal/async)
 - [ ] Loop ใช้ `repeat`/`repeat while` ไม่ใช่ลูกศรย้อนกลับเอง และ label `is`/`not` ไม่สลับกัน
