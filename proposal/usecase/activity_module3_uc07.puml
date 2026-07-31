@@ -68,7 +68,7 @@ legend right
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: การยกเลิกคำขอโดยนักศึกษาไม่อยู่ในรายการเหตุการณ์แจ้งเตือนอัตโนมัติ FR-39/40/41 (เป็นการกระทำของนักศึกษาเอง ไม่ต้องแจ้งซ้ำ)
   จึงไม่ใส่ fork ส่งอีเมล/in-app — มีเฉพาะ fork audit log เท่านั้น
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
 endlegend
 
 @enduml

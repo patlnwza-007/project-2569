@@ -75,7 +75,7 @@ legend right
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: ตะกร้าเป็นข้อมูลชั่วคราวไม่มีการแจ้งเตือน จึงไม่มี fork audit/notification ใน use case นี้
   ตามข้อ FR-39/40/41 การแจ้งเตือนอัตโนมัติเริ่มที่ UC-06/UC-08/UC-11/UC-18 เท่านั้น (ดู note ทั่วไปใน use_case_description.md)
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
 endlegend
 
 @enduml

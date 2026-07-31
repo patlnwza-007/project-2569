@@ -61,7 +61,7 @@ stop
 legend right
   |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
   หมายเหตุ: flow นี้เป็นการอ่านข้อมูล (read-only) ล้วน ไม่มี write/loop/fork — แสดงวิดเจ็ตสรุปตามลำดับเดียว (FR-18)
 endlegend
 

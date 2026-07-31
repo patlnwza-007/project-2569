@@ -38,7 +38,7 @@ actor "ผู้ดูแลระบบ\n(Admin)" as Admin
 
 rectangle "โมดูล 1 · บัญชีและการเข้าสู่ระบบ" {
   package "E1 · การเข้าสู่ระบบ (ใช้ร่วมกันทุกบทบาท)" {
-    usecase "UC-16\nเข้าสู่ระบบด้วย Google OAuth" as UC16
+    usecase "UC-16\nเข้าสู่ระบบด้วย UBU Single Sign-On" as UC16
   }
 
   package "E2 · ข้อมูลส่วนตัว (Student)" {

@@ -60,7 +60,7 @@ legend right
   |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: Pre-condition คือระบบมีข้อมูลตำแหน่งตู้/ชั้นวางที่ตั้งค่าไว้แล้ว — UC-04 ไม่มีความสัมพันธ์ <<extend>>/<<include>> กับ use case อื่นใน M2
-  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
 endlegend
 
 @enduml

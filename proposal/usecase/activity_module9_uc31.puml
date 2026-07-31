@@ -75,7 +75,7 @@ stop
 legend right
   |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน allauth/Google (session) จึงไม่วาดขั้นตอน OAuth ซ้ำในไดอะแกรมนี้
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session) จึงไม่วาดขั้นตอน OAuth ซ้ำในไดอะแกรมนี้
   หมายเหตุ: การสร้างไฟล์ PDF/CSV เป็น in-process logic ภายใน app เดียว (staff_report) ไม่มีการเรียกบริการภายนอกจริงในกระบวนการนี้ จึงไม่มี partition เส้นขอบประ
 endlegend
 

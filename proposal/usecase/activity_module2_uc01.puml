@@ -63,7 +63,7 @@ legend right
   |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: UC-01 เป็น base use case ของ UC-02 (ค้นหาและกรองสิ่งของ) และ UC-03 (ดูรายละเอียดสิ่งของ) แบบ <<extend>> — แต่ละ use case มีไดอะแกรมของตัวเองแยกต่างหาก ไม่ได้รวมในไฟล์นี้
-  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
 endlegend
 
 @enduml

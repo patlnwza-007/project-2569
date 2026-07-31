@@ -88,7 +88,7 @@ legend right
   หมายเหตุ: สถานะ "รออนุมัติ" ไม่อยู่ในรายการเหตุการณ์ที่ต้องแจ้งเตือนอัตโนมัติตาม FR-39/40/41
   (รายการนั้นมีแค่ผลอนุมัติ/ปฏิเสธที่ UC-18, ถึงคิวที่ UC-11, ใกล้/เกินกำหนดคืนต่อเนื่องจาก UC-08, และยกเลิกอัตโนมัติที่ UC-18)
   จึงไม่ใส่ fork ส่งอีเมล/in-app ใน use case นี้ — มีเฉพาะ fork audit log เท่านั้น
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
 endlegend
 
 @enduml

@@ -78,7 +78,7 @@ legend right
   |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
   |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
   หมายเหตุ: อ้างอิง FR-29, FR-39 (แจ้งเตือนนักศึกษาผู้เสนอทันทีทั้งหน้าเว็บและอีเมล เมื่อเจ้าหน้าที่ตัดสิน)
   หมายเหตุ: endpoint suggestion:staff_pending_list / staff_approve / staff_reject — นักศึกษาเห็นผลลัพธ์นี้ต่อที่ UC-13 (SuggestionStatusView)
 endlegend

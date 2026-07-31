@@ -76,7 +76,7 @@ end note
 legend right
   |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: flow นี้ไม่วาดขั้นตอน Google OAuth ซ้ำ — สมมติว่าผ่าน UC-16 (login) มาแล้ว
+  หมายเหตุ: flow นี้ไม่วาดขั้นตอน UBU Single Sign-On (@ubu.ac.th) ซ้ำ — สมมติว่าผ่าน UC-16 (login) มาแล้ว
   หมายเหตุ: ทุก view ผ่าน login_required + permission (ตรวจว่าเป็นเจ้าของโปรไฟล์เท่านั้น)
 endlegend
 

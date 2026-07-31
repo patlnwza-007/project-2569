@@ -82,7 +82,7 @@ legend right
   |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: การยืนยันรับของเองไม่ได้อยู่ในรายการเหตุการณ์แจ้งเตือนทันทีตาม FR-39/40/41 (แจ้งเตือนที่ตามมาเป็น background job ของ UC-08→UC-09)
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
 endlegend
 
 @enduml

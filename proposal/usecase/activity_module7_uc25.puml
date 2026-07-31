@@ -74,7 +74,7 @@ stop
 legend right
   |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
   หมายเหตุ: ไม่ใช้ repeat/repeat while ในไดอะแกรมนี้ — คำอธิบาย use case ระบุเพียงว่าแถวที่ผิดพลาดถูกข้ามและแจ้งรายการ ไม่ได้ระบุว่าเจ้าหน้าที่ต้องอัปโหลดไฟล์ซ้ำภายในกระบวนการเดียวกันจนผ่านทั้งหมด (การอัปโหลดใหม่หลังแก้ไขไฟล์ถือเป็นการเริ่มกระบวนการ UC-25 รอบใหม่)
 endlegend
 

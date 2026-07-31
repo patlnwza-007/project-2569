@@ -63,7 +63,7 @@ stop
 legend right
   |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
   หมายเหตุ: หน้านี้เป็น read-only overview — เป็นจุดเริ่มต้น (<<extend>>) ไปยัง UC-21 (แก้ไข)/UC-23 (ลบ)/UC-24 (เปลี่ยนสถานะ) ซึ่งแต่ละอันมีไดอะแกรมของตนเอง
 endlegend
 

@@ -68,7 +68,7 @@ stop
 legend right
   |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
   |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน allauth/Google (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
   หมายเหตุ: UC-27 เป็นฐานของ UC-28 (<<include>>) — เจ้าหน้าที่ต้องเลือกนักศึกษาจากรายชื่อนี้ก่อนจึงจัดการสิทธิ์การยืมต่อได้
 endlegend
 
