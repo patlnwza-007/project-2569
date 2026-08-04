@@ -37,50 +37,51 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-32 · ออกแบบฟอร์มความพึงพอใจและดูผลสรุป — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-32 · ออกแบบฟอร์มความพึงพอใจและดูผลสรุป — Activity Diagram\npartition หน้าจอ = frontend:EvaluationForm (ตรงกับ state diagram — 2 ส่วนในหน้าเดียว)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|เจ้าหน้าที่|
+|frontend:EvaluationForm|
 start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดหน้าจัดการแบบฟอร์มความพึงพอใจ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :แสดงแบบฟอร์มปัจจุบัน (คำถามที่มีอยู่);
 
-|เจ้าหน้าที่|
+|frontend:EvaluationForm|
 :สร้าง/แก้ไขคำถามในแบบฟอร์ม;
 :กดเผยแพร่แบบฟอร์ม;
 
-|ระบบ UBORROWU|
+|backend|
 :บันทึกแบบฟอร์ม (write) และเปลี่ยนสถานะเป็นเผยแพร่แล้ว;
 
 fork
+  |frontend:EvaluationForm|
   :แจ้งผลการเผยแพร่แบบฟอร์มให้เจ้าหน้าที่ (main flow);
 fork again
+  |backend|
   :เขียน audit log (เผยแพร่แบบฟอร์มประเมิน) ผ่าน signal;
 end fork
 
 :แบบฟอร์มพร้อมใช้งานสำหรับนักศึกษา (ใช้ใน UC-15);
 
-|เจ้าหน้าที่|
+|frontend:EvaluationForm|
 :เปิดหน้าผลสรุปคำตอบแบบประเมิน;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :รวบรวมและคำนวณผลสรุปคำตอบจากคำตอบที่นักศึกษาส่งเข้ามา (UC-15);
-:แสดงผลสรุปภาพรวมความคิดเห็นให้เจ้าหน้าที่;
 
-|เจ้าหน้าที่|
+|frontend:EvaluationForm|
+:แสดงผลสรุปภาพรวมความคิดเห็นให้เจ้าหน้าที่;
 :ดูผลสรุปคำตอบย้อนหลัง;
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: กระบวนการนี้รวม 2 กิจกรรมของ use case เดียว (จัดการแบบฟอร์ม + ดูผลสรุป) เรียงตามลำดับ · ทุก view ผ่าน login_required + permission
+  |<back:white>    </back>| frontend:EvaluationForm — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: กระบวนการนี้รวม 2 กิจกรรมของ use case เดียว (จัดการแบบฟอร์ม + ดูผลสรุป) เรียงตามลำดับ อยู่ในหน้าเดียวกันตาม state diagram · ทุก view ผ่าน login_required + permission
 endlegend
 
 @enduml

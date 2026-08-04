@@ -1,14 +1,30 @@
 # ตัวอย่าง — Activity Diagram ที่ทำตามกฎครบทุกข้อ (Monolith)
 
-> ตัวอย่างนี้ใช้ระบบสมมติ **"ระบบสั่งซื้อสินค้าออนไลน์"** (Django MVT monolith) เพื่อสาธิตกฎทั้งหมดใน [`activity_diagram_generate_guide.md`](../guide/activity_diagram_generate_guide.md) — ไม่ผูกกับโครงงานใดโครงงานหนึ่งโดยเฉพาะ ใช้เป็นตัวอย่างอ้างอิงได้กับทุกโปรเจกต์
+> ตัวอย่างนี้ใช้ระบบสมมติ **"ระบบสั่งซื้อสินค้าออนไลน์"** (Django MVT monolith) เพื่อสาธิตกฎทั้งหมดใน [`activity_diagram_generate_guide.md`](../guide/activity_diagram_generate_guide.md) — เป็น**ระบบเดียวกับ** [`ui_state_diagram_example.md`](ui_state_diagram_example.md) โดยตั้งใจ เพื่อให้เห็นว่า partition ในไฟล์นี้ (`frontend:CartDetail`, `frontend:CheckoutForm`, `frontend:CustOrderList`) ต้องตรงกับชื่อ state ในไดอะแกรมนั้นทุกตัวอักษร
 
 จุดที่ตัวอย่างนี้สาธิตให้เห็น:
-- **partition ระบบตัวเดียว** — `ระบบร้านค้าออนไลน์` ทำทั้งสร้างคำสั่งซื้อ + ตรวจสต๊อก + ยืนยันคำสั่งซื้อ (logic ทั้งหมดอยู่ใน process เดียว ไม่แยกตาม endpoint และไม่แยกเป็น service ย่อย)
-- **ไม่มี API Gateway / ไม่มีตรวจ JWT ทุก request** — สมมติผู้ใช้ล็อกอินแล้ว (session ผ่าน allauth) flow เริ่มที่ actor ได้เลย · การตรวจสิทธิ์เป็น step แรกในฝั่งระบบ ไม่ใช่ partition แยก
-- **บริการภายนอกจริงเป็น partition เส้นขอบประ** — `Payment Gateway` และ `เซิร์ฟเวอร์อีเมล` อยู่นอกโปรเจกต์ Django จึงกำกับ `(external)`
-- **Loop ด้วย `repeat`/`repeat while`** — ชำระเงินไม่สำเร็จ วนกลับให้ลูกค้าลองใหม่ (ไม่มี Gateway ให้ผ่านทุกรอบ)
+- **partition หน้าจอเป็น `frontend:<PageCode>` เสมอ** — ไม่ใช่ชื่อ actor (`Customer`) ลอย ๆ แบบเดิม และทุก `PageCode` (`CartDetail`, `CheckoutForm`, `CustOrderList`) มีอยู่จริงใน `module_state_diagram_order.puml` ของ [`ui_state_diagram_example.md`](ui_state_diagram_example.md)
+- **partition เปลี่ยนตามหน้าจอที่เปลี่ยนจริง** — ลูกค้าเริ่มที่ `frontend:CartDetail` แล้วถูกพาไปหน้า `frontend:CheckoutForm` ตรงกับ transition `CartDetail --> CheckoutForm` ในไดอะแกรม state · เมื่อสต๊อกไม่พอ กระบวนการพากลับไป `frontend:CartDetail` ตรงกับ transition ขาล้มเหลว `CheckoutForm --> CartDetail`
+- **`backend` เดี่ยว ๆ แทนชื่อโปรเจกต์** — ไม่มี partition ชื่อ "ระบบร้านค้าออนไลน์" อีกต่อไป ใช้ `backend` คงที่ตลอดไฟล์
+- **บริการภายนอกจริงเป็น partition เส้นขอบประ** — `Payment Gateway (external)` และ `เซิร์ฟเวอร์อีเมล (external)` อยู่นอกโปรเจกต์ Django
+- **Loop ด้วย `repeat`/`repeat while` วนที่ `frontend:CheckoutForm` เดิม** — ชำระเงินไม่สำเร็จ วนกลับให้ลูกค้าลองใหม่บนหน้าเดิม ไม่เปลี่ยนชื่อ partition
 - **Audit log + อีเมลแบบ non-blocking ด้วย `fork`/`end fork`** — ผ่าน Django signal / async task ไม่บล็อกการตอบลูกค้า
-- **Monochrome ล้วน** — แยกบทบาทด้วยข้อความ `(external)` แทนสี
+- **Monochrome ล้วน** — แยก `frontend`/`backend`/external ด้วยข้อความ ไม่ใช่สี
+
+---
+
+## เตรียมข้อมูลก่อนกรอก template
+
+| ขั้นที่ | ใครทำ | เกิดที่หน้าไหน (`PageCode`) | กิจกรรม |
+|---|---|---|---|
+| 1 | ลูกค้า | `CartDetail` | กดสั่งซื้อสินค้าในตะกร้า |
+| 2 | backend | — | ตรวจสิทธิ์ + สร้างคำสั่งซื้อ (pending) |
+| 3 | ลูกค้า | `CheckoutForm` | กรอกที่อยู่/วิธีชำระเงิน แล้วกดยืนยัน |
+| 4 | backend | — | ตรวจสต๊อก + เรียกชำระเงิน |
+| 5a | ลูกค้า | `CartDetail` *(สต๊อกไม่พอ — ย้อนกลับ)* | เห็นข้อความยกเลิกคำสั่งซื้อ |
+| 5b | ลูกค้า/Payment Gateway | `CheckoutForm` *(loop จนกว่าจะสำเร็จ)* | ชำระเงิน |
+| 6 | backend | — | ยืนยันคำสั่งซื้อ + ตัดสต๊อก (write) |
+| 7 | ลูกค้า | `CustOrderList` | เห็นคำสั่งซื้อในประวัติพร้อมสถานะ "ยืนยันแล้ว" |
 
 ---
 
@@ -48,35 +64,44 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title สั่งซื้อสินค้าออนไลน์ (Checkout) — Activity Diagram\nMonolith: ระบบตัวเดียวทำ logic ทั้งหมด · บริการภายนอกกำกับ (external)
+title สั่งซื้อสินค้าออนไลน์ (Checkout) — Activity Diagram\npartition หน้าจอ = frontend:PageCode (ตรงกับ module_state_diagram_order.puml) · ฝั่งเซิร์ฟเวอร์ = backend
 
-|Customer|
+|frontend:CartDetail|
 start
-' สมมติ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :กดสั่งซื้อสินค้าในตะกร้า;
 
-|ระบบร้านค้าออนไลน์|
+|backend|
 :ตรวจ session + สิทธิ์ (ลูกค้าที่ล็อกอิน);
 :สร้างคำสั่งซื้อ (สถานะ pending);
-:ตรวจสอบสต๊อกสินค้า (ORM);
+
+|frontend:CheckoutForm|
+:กรอกที่อยู่จัดส่งและเลือกวิธีชำระเงิน;
+:กดยืนยันชำระเงิน;
+
+|backend|
+:ตรวจสอบสต๊อกสินค้าอีกครั้ง (ORM);
 if (สต๊อกเพียงพอหรือไม่?) then (ไม่พอ)
-  :ยกเลิกคำสั่งซื้อ;
+  :ยกเลิกคำสั่งซื้อ (pending);
+  |frontend:CartDetail|
+  :เห็นข้อความแจ้งยกเลิก กลับสู่ตะกร้า;
   stop
 else (พอ)
 endif
 :เรียกชำระเงิน;
 
-|Customer|
+|frontend:CheckoutForm|
 repeat
   |Payment Gateway (external)|
   :ประมวลผลการชำระเงิน;
-repeat while (ชำระเงินสำเร็จหรือไม่?) is (ไม่สำเร็จ — ลูกค้าลองใหม่) not (สำเร็จ)
+repeat while (ชำระเงินสำเร็จหรือไม่?) is (ไม่สำเร็จ — ลูกค้าลองใหม่บนหน้าเดิม) not (สำเร็จ)
 
-|ระบบร้านค้าออนไลน์|
+|backend|
 :ยืนยันคำสั่งซื้อ + ตัดสต๊อก (write);
 
 fork
-  :แสดงหน้ายืนยันให้ลูกค้า (main flow);
+  |frontend:CustOrderList|
+  :เห็นคำสั่งซื้อสถานะ "ยืนยันแล้ว" ในประวัติ (main flow);
 fork again
   :เขียน audit log (ยืนยันคำสั่งซื้อ) ผ่าน signal;
 fork again
@@ -87,11 +112,23 @@ end fork
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (Customer) |
-  |<back:#F5F5F5>    </back>| ระบบร้านค้าออนไลน์ (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ module_state_diagram_order.puml) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   |<back:#F5F5F5>    </back>| บริการภายนอก (Payment Gateway, อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
-  หมายเหตุ: สร้างคำสั่งซื้อ + ตรวจสต๊อก + ตัดสต๊อก เป็น in-process logic ใน process เดียว ไม่ใช่การเรียกข้าม service
+  หมายเหตุ: สร้างคำสั่งซื้อ + ตรวจสต๊อก + ตัดสต๊อก เป็น in-process logic ใน backend เดียวกัน ไม่ใช่การเรียกข้าม service
 endlegend
 
 @enduml
 ```
+
+---
+
+## ตรวจก่อนส่ง
+
+ต้องไม่มี output ทั้งคู่ — ยืนยันว่าทุก `frontend:PageCode` ในไฟล์นี้มีอยู่จริงใน state diagram และไม่มีหน้าไหนถูกคิดขึ้นเองลอย ๆ:
+
+```bash
+grep -ohE '\|frontend:[A-Za-z][A-Za-z0-9]*\|' order_activity_checkout.puml | tr -d '|' | cut -d: -f2 | sort -u | while read p; do grep -qE " as $p$" module_state_diagram_order.puml || echo "ORPHAN: $p"; done
+```
+
+ผลตรวจ: `CartDetail`, `CheckoutForm`, `CustOrderList` — ทั้ง 3 ชื่อมีอยู่จริงใน [`ui_state_diagram_example.md`](ui_state_diagram_example.md) → ไม่มี output → ผ่าน

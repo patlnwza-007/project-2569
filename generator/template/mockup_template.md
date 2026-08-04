@@ -13,6 +13,8 @@
 | {{FacultyList}} | `pages/page-{{faculty-list}}.js` | {{UC-01, UC-05}} | {{hr}} | ☐ |
 | {{...}} | | | | ☐ |
 
+> ตารางนี้เป็นแค่ checklist กันตกหล่น — **คำอธิบายเต็มของแต่ละหน้า** (วัตถุประสงค์, ทำอะไรได้, actor ไหนเข้าถึงได้, empty/error state, การนำทางเข้า-ออก) ต้องทำแยกที่ `page_description.md` ตาม [`page_description_template.md`](page_description_template.md) — บังคับตาม [mockup guide §4.3](../guide/mockup_generate_guide.md)
+
 ---
 
 ## 2. โครงไฟล์
@@ -22,6 +24,7 @@
 ├── index.html
 ├── app.js
 ├── mock-data.js
+├── page_description.md    ← คำอธิบายรายหน้า (บังคับ) — ใช้ page_description_template.md
 ├── style.css              (ถ้ามีสไตล์นอกเหนือ Tailwind)
 ├── layout/
 │   ├── topbar.js

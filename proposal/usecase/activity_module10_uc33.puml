@@ -33,33 +33,35 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-33 · จัดการบัญชีผู้ใช้งานทั้งหมด — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-33 · จัดการบัญชีผู้ใช้งานทั้งหมด — Activity Diagram\npartition หน้าจอ = frontend:UserList → frontend:UserDetail (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|ผู้ดูแลระบบ|
+' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+|frontend:UserList|
 start
 :เปิดหน้ารายชื่อผู้ใช้งาน แยกตามบทบาท (นักศึกษา/เจ้าหน้าที่);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (Admin เท่านั้น);
 :แสดงรายชื่อผู้ใช้งานแยกตามบทบาท;
 
-|ผู้ดูแลระบบ|
+|frontend:UserList|
 :เลือกดูรายละเอียดผู้ใช้งานรายบุคคล;
 
-|ระบบ UBORROWU|
-:แสดงบทบาทปัจจุบัน + ที่มาของบทบาท\n(UBU SSO อัตโนมัติ หรือ Role Override เฉพาะบุคคล);
+|backend|
+:ดึงบทบาทปัจจุบัน + ที่มาของบทบาท\n(UBU SSO อัตโนมัติ หรือ Role Override เฉพาะบุคคล);
 
-|ผู้ดูแลระบบ|
+|frontend:UserDetail|
+:แสดงบทบาทปัจจุบัน + ที่มาของบทบาท;
+
+|frontend:UserDetail|
 :เลือกการดำเนินการ (ลบถาวร / ระงับสิทธิ์ / ปลดบล็อก);
 
 if (การดำเนินการ = ลบผู้ใช้งานถาวร?) then (ใช่)
-  |ระบบ UBORROWU|
+  |backend|
   :ตรวจสอบคำขอยืมที่ค้างอยู่ของบัญชีนี้;
   if (มีคำขอยืมค้างอยู่หรือไม่?) then (มี)
+    |frontend:UserDetail|
     :แจ้งเตือนให้แอดมินยืนยันอีกครั้งก่อนลบถาวร;
-    |ผู้ดูแลระบบ|
     if (ยืนยันลบถาวรอีกครั้งหรือไม่?) then (ยกเลิก)
       :ยกเลิกการลบ;
       stop
@@ -67,25 +69,27 @@ if (การดำเนินการ = ลบผู้ใช้งานถ�
     endif
   else (ไม่มี)
   endif
-  |ระบบ UBORROWU|
+  |backend|
   :ลบบัญชีผู้ใช้งานออกจากระบบอย่างถาวร (write);
 else (ระงับ/ปลดบล็อก)
-  |ระบบ UBORROWU|
+  |backend|
   :อัปเดตสถานะบัญชี (ระงับสิทธิ์ / ปลดบล็อก) (write);
 endif
 
 fork
+  |frontend:UserDetail|
   :แสดงผลลัพธ์การดำเนินการให้แอดมิน (main flow);
 fork again
+  |backend|
   :เขียน audit log (จัดการบัญชีผู้ใช้งาน) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (ผู้ดูแลระบบ) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff/Admin) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff/Admin) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

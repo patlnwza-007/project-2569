@@ -37,26 +37,25 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-18 · อนุมัติ/ปฏิเสธคำขอยืม — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-18 · อนุมัติ/ปฏิเสธคำขอยืม — Activity Diagram\npartition หน้าจอ = frontend:PendingRequests (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
-|เจ้าหน้าที่|
+|frontend:PendingRequests|
 start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
 :เปิดรายการคำขอยืมที่รออนุมัติทั้งหมด (staff:request_pending_list);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
 :แสดงรายการคำขอสถานะ "รออนุมัติ";
 
-|เจ้าหน้าที่|
+|frontend:PendingRequests|
 :เลือกคำขอ 1 รายการหรือหลายรายการ (bulk);
 if (อนุมัติหรือปฏิเสธ?) then (ปฏิเสธ)
   :กดปฏิเสธ;
-  |ระบบ UBORROWU|
+  |backend|
   if (ระบุเหตุผลครบหรือไม่?) then (ไม่ครบ)
     :แสดงข้อความบังคับให้ระบุเหตุผลก่อนบันทึก;
-    |เจ้าหน้าที่|
+    |frontend:PendingRequests|
     :กรอกเหตุผลการปฏิเสธ;
   else (ครบ)
   endif
@@ -64,7 +63,7 @@ else (อนุมัติ)
   :กดอนุมัติ;
 endif
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจสอบรายการที่เลือก — ข้ามรายการที่ถูกยกเลิกไปแล้ว (UC-07) และเตรียมแจ้งผลลัพธ์;
 if (มีรายการที่ถูกข้าม?) then (มี)
   :บันทึกรายการที่ข้าม เพื่อแจ้งผลลัพธ์ให้เจ้าหน้าที่ทราบ;
@@ -78,16 +77,19 @@ else (อนุมัติ)
 endif
 
 fork
+  |frontend:PendingRequests|
   :แสดงผลลัพธ์การอนุมัติ/ปฏิเสธให้เจ้าหน้าที่ (main flow);
 fork again
+  |backend|
   :เขียน audit log (อนุมัติ/ปฏิเสธคำขอยืม) ผ่าน signal;
 fork again
+  |backend|
   :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษา (FR-39);
   |เซิร์ฟเวอร์อีเมล (external)|
   :ส่งอีเมลแจ้งผลคำขอยืมให้นักศึกษา (FR-39);
 end fork
 
-|เจ้าหน้าที่|
+|frontend:PendingRequests|
 :เห็นผลลัพธ์การอนุมัติ/ปฏิเสธ (รวมรายการที่ถูกข้ามถ้ามี);
 
 stop
@@ -102,10 +104,10 @@ note right
 end note
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PendingRequests — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

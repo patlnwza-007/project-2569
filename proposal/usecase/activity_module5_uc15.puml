@@ -37,44 +37,45 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-15 · ประเมินความพึงพอใจ — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-15 · ประเมินความพึงพอใจ — Activity Diagram\npartition หน้าจอ = frontend:Evaluation → frontend:History
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่านักศึกษา login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' หมายเหตุ: สมมติว่านักศึกษา login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 ' Pre-condition: มีแบบฟอร์มประเมินที่เจ้าหน้าที่สร้างไว้แล้ว (UC-32) และนักศึกษาเคยยืม-คืนสิ่งของนั้นแล้ว
-|นักศึกษา|
+|frontend:Evaluation|
 start
 :เปิดแบบฟอร์มประเมินความพึงพอใจจากประวัติการยืม;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาเจ้าของประวัติการยืม-คืนนั้น);
 :ตรวจสอบว่าเคยประเมินสิ่งของรายการนี้ไปแล้วหรือไม่;
 
 if (เคยส่งแบบประเมินสิ่งของนี้ไปแล้วหรือไม่?) then (เคยแล้ว)
+  |frontend:Evaluation|
   :ปฏิเสธการส่งซ้ำ (แจ้งเตือนว่าประเมินไปแล้ว);
   stop
 else (ยังไม่เคย)
 endif
 
+|frontend:Evaluation|
 :แสดงแบบฟอร์มประเมิน (ตามที่เจ้าหน้าที่กำหนดไว้ใน UC-32);
-
-|นักศึกษา|
 :กรอกคำตอบตามแบบฟอร์มและกดส่ง;
 
-|ระบบ UBORROWU|
+|backend|
 :บันทึกคำตอบแบบประเมิน (write);
 
 fork
-  :แสดงหน้ายืนยันการส่งแบบประเมินให้นักศึกษา (main flow);
+  |frontend:History|
+  :กลับไปหน้าประวัติการยืม (main flow);
 fork again
+  |backend|
   :เขียน audit log (ส่งแบบประเมิน) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: คำตอบที่บันทึกจะถูกรวมเข้าผลสรุปที่เจ้าหน้าที่ดูได้ใน UC-32 · ทุก view ผ่าน login_required + permission
 endlegend
 

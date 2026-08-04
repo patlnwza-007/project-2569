@@ -33,22 +33,22 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-26 · จัดการข้อมูลพื้นฐานของคลัง — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-26 · จัดการข้อมูลพื้นฐานของคลัง — Activity Diagram\npartition หน้าจอ = frontend:WarehouseSettings (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
-|เจ้าหน้าที่|
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
+|frontend:WarehouseSettings|
 start
 :เปิดหน้าตั้งค่าคลัง;
 :เลือกจัดการหมวดหมู่/สถานะ/ตำแหน่ง;
 :เลือกการกระทำ (เพิ่ม/แก้ไข/ลบ) กับรายการที่เลือก;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 
 if (การกระทำที่เลือกคือ "ลบ" หรือไม่?) then (ลบ)
   :ตรวจสอบว่ารายการนี้ถูกใช้งานโดยสิ่งของอยู่หรือไม่;
   if (ยังถูกใช้งานโดยสิ่งของอยู่หรือไม่?) then (ยังใช้งานอยู่)
+    |frontend:WarehouseSettings|
     :ปฏิเสธการลบ และแจ้งเหตุผล;
     stop
   else (ไม่ได้ใช้งานแล้ว)
@@ -59,17 +59,19 @@ else (เพิ่ม/แก้ไข)
 endif
 
 fork
+  |frontend:WarehouseSettings|
   :แสดงผลยืนยันการเปลี่ยนแปลงให้เจ้าหน้าที่ (main flow);
 fork again
+  |backend|
   :เขียน audit log (จัดการข้อมูลพื้นฐานคลัง) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:WarehouseSettings — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: ข้อมูลพื้นฐานที่จัดการที่นี่ (หมวดหมู่/สถานะ/ตำแหน่ง) ถูกใช้อ้างอิงใน UC-21 (เพิ่ม/แก้ไขวัสดุ)
 endlegend
 

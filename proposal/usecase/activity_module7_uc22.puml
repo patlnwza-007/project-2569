@@ -33,37 +33,38 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-22 · ดูภาพรวมสถานะวัสดุครุภัณฑ์ในคลัง — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-22 · ดูภาพรวมสถานะวัสดุครุภัณฑ์ในคลัง — Activity Diagram\npartition หน้าจอ = frontend:ItemOverview (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
 ' หมายเหตุ: UC นี้เป็นฐานของ UC-21/UC-23/UC-24 ผ่าน <<extend>> (เจ้าหน้าที่กดต่อจากตารางนี้ไปแก้ไข/ลบ/เปลี่ยนสถานะทีละชิ้น)
 ' — extension flow เหล่านั้นวาดแยกเป็นไดอะแกรมของตัวเอง ไม่ซ้ำในไดอะแกรมนี้
-|เจ้าหน้าที่|
+|frontend:ItemOverview|
 start
 :เปิดหน้าภาพรวมสถานะคลัง;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :ดึงข้อมูลวัสดุและครุภัณฑ์ทั้งหมด (ORM);
-:แสดงตารางพร้อมป้ายสถานะปัจจุบัน\n(ว่าง/พร้อมให้ยืม, กำลังยืม, ไม่พร้อมใช้งาน)\nและจำนวนคงเหลือ (สำหรับวัสดุ);
 
-|เจ้าหน้าที่|
+|frontend:ItemOverview|
+:แสดงตารางพร้อมป้ายสถานะปัจจุบัน\n(ว่าง/พร้อมให้ยืม, กำลังยืม, ไม่พร้อมใช้งาน)\nและจำนวนคงเหลือ (สำหรับวัสดุ);
 :ค้นหาด้วยชื่อ และ/หรือกรองตามสถานะ/หมวดหมู่/ประเภท;
 
-|ระบบ UBORROWU|
+|backend|
 if (พบรายการที่ตรงเงื่อนไขหรือไม่?) then (ไม่พบ)
+  |frontend:ItemOverview|
   :แสดงข้อความ "ไม่พบข้อมูล";
 else (พบ)
+  |frontend:ItemOverview|
   :แสดงรายการที่ตรงเงื่อนไขค้นหา/กรอง;
 endif
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:ItemOverview — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: หน้านี้เป็น read-only overview — เป็นจุดเริ่มต้น (<<extend>>) ไปยัง UC-21 (แก้ไข)/UC-23 (ลบ)/UC-24 (เปลี่ยนสถานะ) ซึ่งแต่ละอันมีไดอะแกรมของตนเอง
 endlegend
 

@@ -37,31 +37,29 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-17 · ดูแดชบอร์ดภาพรวมระบบ — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-17 · ดูแดชบอร์ดภาพรวมระบบ — Activity Diagram\npartition หน้าจอ = frontend:StaffDashboard (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
-|เจ้าหน้าที่|
+|frontend:StaffDashboard|
 start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
 :เปิดหน้าแดชบอร์ด (staff:dashboard);
 
-' ===== ระบบ Django ประมวลผล (view + model + logic) =====
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
 :คำนวณและแสดงการ์ดสรุปจำนวนการยืม-คืนปัจจุบัน;
 :แสดงกราฟแท่งสถานะการยืมทั้งหมด;
 :แสดงกราฟโดนัทสัดส่วนนักศึกษาปกติ/ถูกระงับสิทธิ์;
 :แสดงรายการสิ่งของที่ถูกยืมมากที่สุด 3 อันดับแรก;
 
-|เจ้าหน้าที่|
+|frontend:StaffDashboard|
 :เห็นภาพรวมสถานะระบบล่าสุด;
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:StaffDashboard — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: flow นี้เป็นการอ่านข้อมูล (read-only) ล้วน ไม่มี write/loop/fork — แสดงวิดเจ็ตสรุปตามลำดับเดียว (FR-18)
 endlegend
 

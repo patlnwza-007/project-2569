@@ -37,19 +37,18 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-29 · อนุมัติ/ปฏิเสธรายการเสนอแนะสิ่งของ — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก · สมมติล็อกอินแล้ว (session)
+title UC-29 · อนุมัติ/ปฏิเสธรายการเสนอแนะสิ่งของ — Activity Diagram\npartition หน้าจอ = frontend:SuggestionReview (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|เจ้าหน้าที่|
+|frontend:SuggestionReview|
 start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดรายการคำเสนอแนะที่รอพิจารณา;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :ดึงรายการคำเสนอแนะสถานะ "รอพิจารณา" (ORM);
 
-|เจ้าหน้าที่|
+|frontend:SuggestionReview|
 :พิจารณารายละเอียดที่นักศึกษาระบุ;
 if (อนุมัติหรือปฏิเสธ?) then (อนุมัติ)
   :กดอนุมัติ;
@@ -57,15 +56,18 @@ else (ปฏิเสธ)
   :กดปฏิเสธ;
 endif
 
-|ระบบ UBORROWU|
+|backend|
 :เปลี่ยนสถานะคำเสนอแนะเป็น "อนุมัติแล้ว"/"ปฏิเสธแล้ว" (write);
 
 ' ===== Notification แบบ non-blocking (FR-39): แจ้งเตือนนักศึกษาผู้เสนอทันที ผ่านหน้าเว็บ + อีเมล =====
 fork
+  |frontend:SuggestionReview|
   :แสดงผลยืนยันการพิจารณาให้เจ้าหน้าที่ (main flow);
 fork again
+  |backend|
   :เขียน audit log (พิจารณาคำเสนอแนะ) ผ่าน signal;
 fork again
+  |backend|
   :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษาผู้เสนอ ผ่าน signal;
 fork again
   |เซิร์ฟเวอร์อีเมล (external)|
@@ -75,12 +77,12 @@ end fork
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:SuggestionReview — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: อ้างอิง FR-29, FR-39 (แจ้งเตือนนักศึกษาผู้เสนอทันทีทั้งหน้าเว็บและอีเมล เมื่อเจ้าหน้าที่ตัดสิน)
-  หมายเหตุ: endpoint suggestion:staff_pending_list / staff_approve / staff_reject — นักศึกษาเห็นผลลัพธ์นี้ต่อที่ UC-13 (SuggestionStatusView)
+  หมายเหตุ: endpoint suggestion:staff_pending_list / staff_approve / staff_reject — นักศึกษาเห็นผลลัพธ์นี้ต่อที่ UC-13 (frontend:Suggestion)
 endlegend
 
 @enduml

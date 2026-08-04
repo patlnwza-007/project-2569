@@ -37,17 +37,18 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-03 · ดูรายละเอียดสิ่งของ — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view) · <<extend>> ของ UC-01
+title UC-03 · ดูรายละเอียดสิ่งของ — Activity Diagram\npartition หน้าจอ = frontend:ItemList → frontend:ItemDetail · <<extend>> ของ UC-01
 
-|นักศึกษา|
+|frontend:ItemList|
 start
-' สมมติว่านักศึกษาเข้าสู่ระบบแล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่านักศึกษาเข้าสู่ระบบแล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :กดเลือกสิ่งของจากรายการ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอินแล้ว);
 :ค้นหาสิ่งของตามรหัสที่เลือก (catalog:item_detail);
 
+|frontend:ItemDetail|
 if (พบสิ่งของนี้ในระบบหรือไม่? (ยังไม่ถูกลบ/ปลดระวาง)) then (ไม่พบ — ถูกลบ/ปลดระวางแล้ว)
   :แสดงข้อความว่าไม่พบสิ่งของนี้;
 else (พบ)
@@ -57,10 +58,10 @@ endif
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: UC-03 เป็น <<extend>> ของ UC-01 (ดูรายการวัสดุและครุภัณฑ์) — Pre-condition คือสิ่งของที่เลือกดูต้องมีอยู่ในระบบ
-  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

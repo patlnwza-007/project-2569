@@ -37,7 +37,7 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-19 · จัดการรับคืนครุภัณฑ์ — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-19 · จัดการรับคืนครุภัณฑ์ — Activity Diagram\npartition หน้าจอ = frontend:ReturnList (ตรงกับ state diagram)
 
 note over
   **หมายเหตุ — asynchronous handoff จาก UC-09:** นักศึกษาแจ้งคืน (UC-09) เป็นคนละ actor
@@ -45,56 +45,61 @@ note over
   เจ้าหน้าที่ตรวจสอบครุภัณฑ์ที่นักศึกษานำมาคืนจริงแล้วเท่านั้น ไม่วาดขั้นตอนฝั่งนักศึกษาซ้ำ
 end note
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
-|เจ้าหน้าที่|
+|frontend:ReturnList|
 start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
 :เปิดรายการครุภัณฑ์ที่กำลังถูกยืมอยู่ พร้อมวันครบกำหนดคืน (staff:return_pending_list);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
 :แสดงรายการครุภัณฑ์ที่กำลังยืม พร้อมวันครบกำหนดคืน;
 
-|เจ้าหน้าที่|
+|frontend:ReturnList|
 :ตรวจสอบสภาพของจริงที่นักศึกษานำมาคืน;
 if (สภาพของครบ/ไม่ชำรุดหรือไม่?) then (ไม่ครบ/ชำรุด)
   :กดปฏิเสธการรับคืน (staff:return_reject);
-  |ระบบ UBORROWU|
+  |backend|
   :คงสถานะครุภัณฑ์เป็น "กำลังยืม" (ไม่เปลี่ยนแปลง);
   fork
+    |frontend:ReturnList|
     :แจ้งผลการปฏิเสธพร้อมเหตุผลให้เจ้าหน้าที่ (main flow);
   fork again
+    |backend|
     :เขียน audit log (ปฏิเสธการรับคืน) ผ่าน signal;
   fork again
+    |backend|
     :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษาพร้อมเหตุผล;
     |เซิร์ฟเวอร์อีเมล (external)|
     :ส่งอีเมลแจ้งเหตุผลการปฏิเสธรับคืนให้นักศึกษา;
   end fork
 else (ครบ/ไม่ชำรุด)
   :กดยืนยันการรับคืน (staff:return_confirm);
-  |ระบบ UBORROWU|
+  |backend|
   :เปลี่ยนสถานะครุภัณฑ์เป็น "ว่าง/พร้อมให้ยืม" (write);
   fork
+    |frontend:ReturnList|
     :แสดงผลการยืนยันรับคืนให้เจ้าหน้าที่ (main flow);
   fork again
+    |backend|
     :เขียน audit log (ยืนยันรับคืนครุภัณฑ์) ผ่าน signal;
   fork again
+    |backend|
     :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษา;
     |เซิร์ฟเวอร์อีเมล (external)|
     :ส่งอีเมลยืนยันรับคืนให้นักศึกษา;
   end fork
 endif
 
-|เจ้าหน้าที่|
+|frontend:ReturnList|
 :เห็นผลลัพธ์การดำเนินการรับคืน;
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:ReturnList — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

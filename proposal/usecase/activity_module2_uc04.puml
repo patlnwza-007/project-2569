@@ -37,17 +37,18 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-04 · ดูแผนผังตำแหน่งชั้นวาง (Position Map) — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-04 · ดูแผนผังตำแหน่งชั้นวาง (Position Map) — Activity Diagram\npartition หน้าจอ = frontend:PositionMap (ตรงกับ state diagram)
 
-|นักศึกษา|
+|frontend:PositionMap|
 start
-' สมมติว่านักศึกษาเข้าสู่ระบบแล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่านักศึกษาเข้าสู่ระบบแล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดหน้าแผนผังตำแหน่งชั้นวาง (catalog:position_map);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอินแล้ว);
 :ดึงข้อมูลตำแหน่งตู้/ชั้นวางที่ตั้งค่าไว้ (ORM);
 
+|frontend:PositionMap|
 if (มีข้อมูลตำแหน่งจัดเก็บที่ตั้งค่าไว้แล้วหรือไม่?) then (ไม่มี)
   :แสดงข้อความ "ยังไม่มีข้อมูลตำแหน่งจัดเก็บ";
 else (มี)
@@ -57,10 +58,10 @@ endif
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PositionMap — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: Pre-condition คือระบบมีข้อมูลตำแหน่งตู้/ชั้นวางที่ตั้งค่าไว้แล้ว — UC-04 ไม่มีความสัมพันธ์ <<extend>>/<<include>> กับ use case อื่นใน M2
-  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

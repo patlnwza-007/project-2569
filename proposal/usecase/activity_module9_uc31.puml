@@ -37,28 +37,29 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-31 · ส่งออกรายงาน (staff_report) — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view) · สมมติเจ้าหน้าที่ล็อกอินแล้ว (session)
+title UC-31 · ส่งออกรายงาน (staff_report) — Activity Diagram\npartition หน้าจอ = frontend:ReportExport (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|เจ้าหน้าที่|
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+|frontend:ReportExport|
 start
 :เปิดหน้าส่งออกรายงาน;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :แสดงตัวเลือกรูปแบบรายงาน\n(PDF 4 รูปแบบ: สรุปสถานะการยืม-คืนรายเดือน, ของชำรุด, รายงานคนค้างส่ง, คำเสนอแนะสิ่งของ / CSV ข้อมูลคลัง);
 
-|เจ้าหน้าที่|
+|frontend:ReportExport|
 :เลือกรูปแบบรายงาน (PDF) หรือ\nเลือกส่งออกข้อมูลคลัง (CSV);
 
-|ระบบ UBORROWU|
+|backend|
 if (มีข้อมูลในช่วง/เงื่อนไขที่เลือกหรือไม่?) then (ไม่มีข้อมูล)
+  |frontend:ReportExport|
   :แจ้งเตือนไม่มีข้อมูล\n(ไม่สร้างไฟล์ว่างเปล่า);
   stop
 else (มีข้อมูล)
 endif
 
+|backend|
 if (รูปแบบที่เลือก?) then (PDF)
   :สร้างไฟล์รายงาน PDF\nตามรูปแบบที่เลือก (ReportExportPDFView);
 else (CSV)
@@ -67,15 +68,15 @@ endif
 
 :ส่งไฟล์ให้ดาวน์โหลด;
 
-|เจ้าหน้าที่|
+|frontend:ReportExport|
 :ได้รับไฟล์รายงานตามรูปแบบที่เลือก;
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session) จึงไม่วาดขั้นตอน OAuth ซ้ำในไดอะแกรมนี้
+  |<back:white>    </back>| frontend:ReportExport — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session) จึงไม่วาดขั้นตอน OAuth ซ้ำในไดอะแกรมนี้
   หมายเหตุ: การสร้างไฟล์ PDF/CSV เป็น in-process logic ภายใน app เดียว (staff_report) ไม่มีการเรียกบริการภายนอกจริงในกระบวนการนี้ จึงไม่มี partition เส้นขอบประ
 endlegend
 

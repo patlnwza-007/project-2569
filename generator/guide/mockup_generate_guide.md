@@ -2,7 +2,9 @@
 
 > ใช้คู่กับ [`fn req/<module>.md`](fn%20req/) (functional requirements), `<module>/proposal/usecase_description.md` (use case), `<module>/activity/*.puml` (รายละเอียด step/decision/loop ของแต่ละหน้าจอ — ดู §4.1) และ [`architecture/overview_state_diagram.puml`](../../architecture/overview_state_diagram.puml) (จุดเชื่อมเข้า-ออกกับ Dashboard/โมดูลอื่น) — ไฟล์นี้บอกวิธี **แปลง FN + Use Case + Activity Diagram ให้เป็นหน้าจอที่กดใช้งานได้จริง** โดยไม่ต้องมี server/backend/database จริง
 >
-> ใช้ [`mockup_template.md`](../template/mockup_template.md) เป็นจุดเริ่มก๊อปปี้ และดู [`mockup_example.md`](../example/mockup_example.md) เป็นตัวอย่างที่ทำตามกฎครบทุกข้อ — **หน้าตาของ mockup ต้องพ้องกับหน้าจริง (Django template)** ตาม design system กลางใน [`UI_django_frontend.md`](UI_django_frontend.md) (สีประจำแอป, layout, component เดียวกัน)
+> ใช้ [`mockup_template.md`](../template/mockup_template.md) + [`page_description_template.md`](../template/page_description_template.md) (คำอธิบายรายหน้า — บังคับ ดู §4.3) เป็นจุดเริ่มก๊อปปี้ และดู [`mockup_example.md`](../example/mockup_example.md) เป็นตัวอย่างที่ทำตามกฎครบทุกข้อ
+>
+> วิธีสร้าง `module_state_diagram*.puml` / `overview_state_diagram.puml` ที่คู่มือนี้อ้างถึงตลอด อยู่ใน [`ui_state_diagram_generate_guide.md`](ui_state_diagram_generate_guide.md) (กฎการตั้ง `page_code`, `page_title`, transition) — **หน้าตาของ mockup ต้องพ้องกับหน้าจริง (Django template)** ตาม design system กลางใน [`UI_django_frontend.md`](UI_django_frontend.md) (สีประจำแอป, layout, component เดียวกัน)
 >
 > ผลลัพธ์ที่ได้ใช้เป็น **สไลด์ 10 · Demo Mockup** ใน [`template_slides.md`](../template/template_slides.md) ได้ทันที (screenshot จาก mockup จริง ดีกว่าภาพนิ่งจาก Figma เพราะพิสูจน์ flow การทำงานได้จริงระหว่างสอบ)
 
@@ -36,6 +38,7 @@
 <module>/mockup/<app>/
 ├── index.html            ← shell: topbar (โลโก้+ปุ่มกลับหน้าหลัก, role switcher ถ้ามี) + sidebar (ลิงก์จริงไปแต่ละ state) + <iframe>
 ├── shared.js              ← mock data (seed arrays ตาม Data Entities ใน fn req) + localStorage helpers + notifyParentPage() ร่วมทุกหน้า
+├── page_description.md    ← คำอธิบายรายหน้า: วัตถุประสงค์ / ทำอะไรได้ / actor ไหนเข้าถึงได้ (บังคับ — ดู §4.3)
 └── pages/                  ← 1 ไฟล์ .html สมบูรณ์ต่อ 1 state ใน module_state_diagram (ตั้งชื่อตาม state, ไม่ใช่ตาม UC)
     ├── page-<state-1>.html   ← เช่น page-faculty-list.html สำหรับ state "FacultyList" — เปิดตรงจาก file:// ได้เองแม้ไม่ผ่าน iframe
     ├── page-<state-2>.html
@@ -187,6 +190,30 @@ let theses = loadData("theses", mockTheses);
 
 ---
 
+## 4.3 `page_description.md` — คำอธิบายรายหน้าจอ (บังคับทำคู่กับ mockup)
+
+Mockup เป็น "ภาพที่กดได้" แต่ตัวมันเองไม่ได้บอกว่า **ทำไม**หน้านั้นมีอยู่ และ **ใคร**ควรเห็นมัน — ข้อมูลสองอย่างนี้ต้องอยู่ในไฟล์ `<module>/mockup/<app>/page_description.md` เสมอ ใช้ [`page_description_template.md`](../template/page_description_template.md) เป็นจุดเริ่มก๊อปปี้
+
+**ทำไมต้องมี:** (1) กรรมการสอบ/อาจารย์ที่ปรึกษาอ่านคู่กับ screenshot ได้โดยไม่ต้องเดาว่าหน้านี้ทำอะไร (2) คนเขียน Django view รู้ทันทีว่าหน้านี้ต้องบังคับสิทธิ์ role ไหน (`UserPassesTestMixin`) (3) เป็นหลักฐานว่าไม่มีหน้าจอไหนถูกสร้างลอย ๆ โดยไม่มี UC รองรับ
+
+**โครงของไฟล์ 3 ส่วน:**
+
+| ส่วน | เนื้อหา | ทำไมจำเป็น |
+|---|---|---|
+| **§A สารบัญ + ตารางสิทธิ์** | ตารางทุกหน้า (page_code, ชื่อหน้า, วัตถุประสงค์ 1 บรรทัด, UC, actor) + **ตาราง Actor × หน้าจอ** | ตารางสิทธิ์คือสิ่งที่ `data-roles` ใน sidebar และ mixin ในหน้าจริงต้องตรงตาม |
+| **§B บล็อกรายหน้า** | 1 บล็อกต่อ 1 ไฟล์ใน `pages/` — วัตถุประสงค์, ความสามารถ, ฟิลด์, empty/error state, กฎ, ตารางนำทางเข้า-ออก | เป็นสเปกที่คนเขียน view/template ใช้ได้ตรง ๆ |
+| **§C สิ่งที่ไม่มีหน้าจอ** | UC ที่เป็น background job/API + พฤติกรรมอัตโนมัติ (แจ้งเตือน, auto-expire) | ถ้าไม่มีส่วนนี้ คนอ่านจะนับ UC ไม่ครบแล้วสรุปว่า mockup ทำไม่เสร็จ |
+
+**กฎสำคัญ 3 ข้อ:**
+
+1. **ทุกหัวข้อต้องมีที่มา ห้ามแต่งเพิ่ม** — `วัตถุประสงค์` มาจาก **Post-condition** ของ UC (ไม่ใช่คำบรรยายหน้าตาแบบ "หน้านี้มีตารางกับปุ่มสีน้ำเงิน") · `ความสามารถ` มาจาก **Basic Flow** + transition ขาออกของ state · `actor` มาจาก **Actor หลัก** ของ UC + โซน role ที่ state นั้นอยู่ · `empty/error` มาจาก **Alternative Flow** · `กฎ` มาจาก **Business Rules** (ดูตารางที่มาเต็มใน [template](../template/page_description_template.md))
+2. **จำนวนบล็อก §B = จำนวน state ใน `module_state_diagram` = จำนวนไฟล์ใน `pages/`** — นับได้ตรงทั้ง 3 ที่ ไม่ขาดไม่เกิน
+3. **ข้อความบนปุ่มในตารางนำทาง ต้องตรงกับ label ของ transition ในไดอะแกรมคำต่อคำ** และตรงกับปุ่มในไฟล์ mockup จริง — ถ้า 3 ที่นี้เขียนคนละคำ จะกลายเป็นหลักฐานว่าเอกสารกับของจริงไม่ตรงกันทันที
+
+> ถ้ากรอกช่องไหนไม่ได้เพราะเอกสารต้นทางไม่มีข้อมูล **ห้ามเติมเอง** — ทำตาม [`ui_state_diagram_generate_guide.md`](ui_state_diagram_generate_guide.md) §11 คือบันทึกจุดที่ขาดไว้ แล้วถามเจ้าของเอกสารก่อนแก้ `usecase_description.md` / `activity_*.puml`
+
+---
+
 ## 5. Role-based Navigation (จำลอง Login)
 
 **หน้าเลือก role ก็เป็น "page" 1 ไฟล์เหมือนกัน** (เช่น `pages/page-login.js`) แต่ต่างจาก page อื่นตรงที่ `render()` ของมันไม่ต้องพึ่ง `Layout.topbar`/`Layout.sidebar` — `app.js` เช็คว่ายังไม่มี `current_role` ให้ข้าม topbar/sidebar แล้วโชว์แค่หน้านี้เต็มจอ:
@@ -284,6 +311,11 @@ function render() {
 - [ ] อ่าน `<module>/activity/*.puml` ครบทุกไฟล์ก่อน map แล้วนำ decision/loop/fork มาแปลงเป็น validation/error/loop จริงในหน้าจอ (§4.1 ข้อ 1)
 - [ ] ปุ่ม/ลิงก์ "กลับหน้าหลัก" ของแต่ละแอปใช้คำตรงกับ action label ใน `architecture/overview_state_diagram.puml` (§4.1 ข้อ 2)
 - [ ] ทุกหน้าจอตรงกับ state ใน `module_state_diagram` ของโมดูล (1 state = 1 หน้าจอ ไม่ขาด ไม่เกิน)
+- [ ] มีไฟล์ `page_description.md` ครบตาม §4.3 — จำนวนบล็อกรายหน้า = จำนวน state = จำนวนไฟล์ใน `pages/`
+- [ ] `page_description.md` มี **ตารางสิทธิ์ Actor × หน้าจอ** (§A.2) และตรงกับ `data-roles` ใน sidebar จริง
+- [ ] `วัตถุประสงค์` ของทุกหน้าใน `page_description.md` สรุปจาก **Post-condition** ของ UC ไม่ใช่คำบรรยายหน้าตา
+- [ ] ข้อความบนปุ่มใน `page_description.md` = label ของ transition ในไดอะแกรม = ปุ่มในไฟล์ mockup (ตรงกันทั้ง 3 ที่ คำต่อคำ)
+- [ ] `page_description.md` มีส่วน §C — UC ที่ไม่มีหน้าจอ (background job/API) + พฤติกรรมอัตโนมัติ
 - [ ] แยกไฟล์ตามโครง §2: `layout/topbar.js` + `layout/sidebar.js` แยกจาก `pages/*.js` และมี **1 ไฟล์ต่อ 1 state** ในโฟลเดอร์ `pages/` (นับไฟล์เทียบ state diagram ได้ตรง ๆ) — ไม่ยัดรวมเป็นไฟล์เดียวเว้นแต่เข้าเงื่อนไขทางเลือกสำรอง
 - [ ] ใช้สีประจำแอป + component pattern ตาม [`UI_django_frontend.md`](UI_django_frontend.md) — ไม่มีดีไซน์ที่หลุดจาก design system กลาง
 - [ ] เปิดไฟล์จาก `file://` ตรงๆ ได้โดยไม่ error (ทดสอบโดยไม่มี internet ยกเว้น CDN ที่ใช้)

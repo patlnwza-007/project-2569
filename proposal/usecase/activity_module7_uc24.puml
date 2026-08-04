@@ -33,43 +33,45 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-24 · เปลี่ยนสถานะครุภัณฑ์ — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-24 · เปลี่ยนสถานะครุภัณฑ์ — Activity Diagram\npartition หน้าจอ = frontend:ItemStatusChange (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
-|เจ้าหน้าที่|
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
+|frontend:ItemStatusChange|
 start
-:เปิดหน้ารายละเอียดครุภัณฑ์;
+:เปิดหน้าเปลี่ยนสถานะครุภัณฑ์สำหรับรายการที่เลือก;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :ตรวจสอบสถานะปัจจุบันของครุภัณฑ์;
 
 if (ครุภัณฑ์กำลังถูกยืมอยู่หรือไม่?) then (กำลังยืม)
+  |frontend:ItemStatusChange|
   :ไม่อนุญาตให้เปลี่ยนสถานะ และแจ้งเหตุผล\n(ต้องรอจนกว่าจะมีการคืน);
   stop
 else (ไม่ได้ยืม)
 endif
 
-|เจ้าหน้าที่|
+|frontend:ItemStatusChange|
 :เลือกสถานะใหม่ (ชำรุด/เลิกใช้งาน/ปลดระวาง);
 
-|ระบบ UBORROWU|
+|backend|
 :บันทึกสถานะใหม่ โดยคงประวัติการยืม-คืนเดิมไว้ (write);
 :ปรับให้ไม่ปรากฏเป็นตัวเลือกให้ยืม (หากสถานะไม่พร้อมใช้งาน);
 
 fork
+  |frontend:ItemStatusChange|
   :แสดงผลยืนยันสถานะใหม่ให้เจ้าหน้าที่ (main flow);
 fork again
+  |backend|
   :เขียน audit log (เปลี่ยนสถานะครุภัณฑ์) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:ItemStatusChange — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

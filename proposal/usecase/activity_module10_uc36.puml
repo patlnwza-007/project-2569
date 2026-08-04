@@ -33,35 +33,36 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-36 · ส่งออกไฟล์ CSV รายชื่อบุคลากร — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-36 · ส่งออกไฟล์ CSV รายชื่อบุคลากร — Activity Diagram\npartition หน้าจอ = frontend:PersonnelExport (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|ผู้ดูแลระบบ|
+' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+|frontend:PersonnelExport|
 start
 :เปิดหน้าส่งออกรายชื่อบุคลากร;
 :กดส่งออกไฟล์;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (Admin เท่านั้น);
 :สร้างไฟล์ CSV รายชื่อบุคลากรทั้งหมดพร้อมบทบาทปัจจุบัน;
 :ส่งไฟล์ให้ดาวน์โหลด;
 
-|ผู้ดูแลระบบ|
+|frontend:PersonnelExport|
 :รับไฟล์ CSV รายชื่อบุคลากรล่าสุด;
 
 fork
+  |frontend:PersonnelExport|
   :ดำเนินการต่อ (main flow);
 fork again
+  |backend|
   :เขียน audit log (ส่งออกไฟล์รายชื่อบุคลากร) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (ผู้ดูแลระบบ) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (Admin) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:PersonnelExport — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (Admin) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

@@ -33,23 +33,23 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-35 · กำหนดบทบาทผู้ใช้แบบกลุ่มผ่านไฟล์ (Bulk Role Override) — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view) · <<extend>> ของ UC-34
+title UC-35 · กำหนดบทบาทผู้ใช้แบบกลุ่มผ่านไฟล์ (Bulk Role Override) — Activity Diagram\npartition หน้าจอ = frontend:RoleOverrideBulk (ตรงกับ state diagram) · <<extend>> ของ UC-34
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|ผู้ดูแลระบบ|
+' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+|frontend:RoleOverrideBulk|
 start
+:เปิดหน้ากำหนดบทบาทแบบกลุ่มผ่านไฟล์;
 :กดดาวน์โหลดไฟล์ต้นแบบ (template);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (Admin เท่านั้น);
 :สร้างไฟล์ต้นแบบ (อีเมล + คอลัมน์บทบาท) ให้ดาวน์โหลด;
 
-|ผู้ดูแลระบบ|
+|frontend:RoleOverrideBulk|
 :กรอกอีเมลและบทบาทที่ต้องการกำหนดของผู้ใช้หลายรายการลงในไฟล์;
 :อัปโหลดไฟล์ CSV กลับเข้าระบบ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจสอบรูปแบบไฟล์และ validate ทีละแถว;
 
 if (มีแถวข้อมูลผิดพลาดหรือไม่?) then (มี)
@@ -65,16 +65,18 @@ note right
 end note
 
 fork
+  |frontend:RoleOverrideBulk|
   :แสดงสรุปผลนำเข้า (สำเร็จ/ผิดพลาด) ให้แอดมิน (main flow);
 fork again
+  |backend|
   :เขียน audit log (นำเข้า Role Override แบบกลุ่ม) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (ผู้ดูแลระบบ) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:RoleOverrideBulk — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: บทบาทที่บันทึกมีผลตั้งแต่การเข้าสู่ระบบครั้งถัดไป (UC-16) · ทุก view ผ่าน login_required + permission (Admin)
 endlegend
 

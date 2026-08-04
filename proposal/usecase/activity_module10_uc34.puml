@@ -33,23 +33,27 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-34 · กำหนดบทบาทผู้ใช้เป็นรายบุคคล (Role Override) — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view) · <<include>> UC-33
+title UC-34 · กำหนดบทบาทผู้ใช้เป็นรายบุคคล (Role Override) — Activity Diagram\npartition หน้าจอ = frontend:UserDetail → frontend:RoleOverride · <<include>> UC-33
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|ผู้ดูแลระบบ|
+' หมายเหตุ: สมมติว่าแอดมิน login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+|frontend:UserList|
 start
-:เลือกผู้ใช้งานเป้าหมายจากรายชื่อ / รายละเอียด (<<include>> UC-33);
+:เลือกผู้ใช้งานเป้าหมายจากรายชื่อ (<<include>> UC-33);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (Admin เท่านั้น);
-:เปิดหน้ารายละเอียดผู้ใช้งานที่เลือก;
+:ดึงข้อมูลบทบาทปัจจุบันของผู้ใช้งานที่เลือก;
 
-|ผู้ดูแลระบบ|
+|frontend:UserDetail|
+:เปิดหน้ารายละเอียดผู้ใช้งานที่เลือก;
+:กด "กำหนดบทบาทเฉพาะบุคคล";
+
+|frontend:RoleOverride|
+:เปิดหน้ากำหนดบทบาทรายบุคคล;
 if (ต้องการทำอะไร?) then (กำหนด/เปลี่ยนบทบาท)
   :เลือกบทบาทที่ต้องการกำหนด (เช่น Student → Staff)\nและระบุเหตุผล (ไม่บังคับ);
 
-  |ระบบ UBORROWU|
+  |backend|
   :บันทึกบทบาทที่ถูกกำหนด (Role Override) ไว้กับบัญชีนั้น (write);
   note right
     Business rule: Role Override
@@ -57,25 +61,27 @@ if (ต้องการทำอะไร?) then (กำหนด/เปลี
     UBU SSO เสมอ จนกว่าจะถูกยกเลิก
   end note
 else (ยกเลิก Override เดิม)
-  |ผู้ดูแลระบบ|
+  |frontend:RoleOverride|
   :กดยกเลิกบทบาทที่เคยกำหนดไว้;
 
-  |ระบบ UBORROWU|
+  |backend|
   :ลบ Role Override ออกจากบัญชี (write);
   :บัญชีกลับไปใช้บทบาทอัตโนมัติจาก UBU SSO ตามปกติ;
 endif
 
 fork
+  |frontend:UserDetail|
   :แสดงผลลัพธ์บทบาทล่าสุดให้แอดมิน (main flow);
 fork again
+  |backend|
   :เขียน audit log (เปลี่ยนบทบาทผู้ใช้งาน) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (ผู้ดูแลระบบ) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: บทบาทที่บันทึกมีผลตั้งแต่การเข้าสู่ระบบครั้งถัดไป (UC-16) · ทุก view ผ่าน login_required + permission (Admin)
 endlegend
 

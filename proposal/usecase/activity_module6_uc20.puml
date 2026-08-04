@@ -37,38 +37,38 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-20 · ดูประวัติการยืม-คืนของนักศึกษาทั้งหมด — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-20 · ดูประวัติการยืม-คืนของนักศึกษาทั้งหมด — Activity Diagram\npartition หน้าจอ = frontend:AllHistory (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
-|เจ้าหน้าที่|
+|frontend:AllHistory|
 start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
 :เปิดหน้าประวัติการยืม-คืนทั้งระบบ (staff:borrow_history_list);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
 :แสดงรายการประวัติการยืม-คืนทั้งหมด (ค่าเริ่มต้น);
 
-|เจ้าหน้าที่|
+|frontend:AllHistory|
 :ค้นหา/กรองตามชื่อนักศึกษาหรือช่วงวันที่;
 
-|ระบบ UBORROWU|
+|backend|
 :สืบค้นข้อมูลตามเงื่อนไข (ORM query);
 if (พบประวัติที่ตรงเงื่อนไขหรือไม่?) then (ไม่พบ)
+  |frontend:AllHistory|
   :แสดงข้อความ "ไม่พบข้อมูล";
 else (พบ)
+  |frontend:AllHistory|
   :แสดงรายการประวัติตามเงื่อนไขที่กรอง;
 endif
 
-|เจ้าหน้าที่|
 :เห็นประวัติการยืม-คืนที่ต้องการ;
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:AllHistory — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: flow นี้เป็นการอ่านข้อมูล/ค้นหา (read-only) ไม่มี write จึงไม่ต้องใช้ fork audit/notification
 endlegend
 

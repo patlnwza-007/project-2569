@@ -37,37 +37,38 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-02 · ค้นหาและกรองสิ่งของ — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view) · <<extend>> ของ UC-01
+title UC-02 · ค้นหาและกรองสิ่งของ — Activity Diagram\npartition หน้าจอ = frontend:ItemList (ตรงกับ state diagram) · <<extend>> ของ UC-01 — ไม่แยกหน้า
 
-|นักศึกษา|
+|frontend:ItemList|
 start
-' Pre-condition: นักศึกษาอยู่ในหน้ารายการสิ่งของ (UC-01) และเข้าสู่ระบบแล้ว (session ผ่าน allauth)
+' Pre-condition: นักศึกษาอยู่ในหน้ารายการสิ่งของ (UC-01) และเข้าสู่ระบบแล้ว (session)
 :กรอกคำค้นหา และ/หรือเลือกตัวกรองหมวดหมู่/ประเภท/สถานะ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอินแล้ว);
 :ประมวลผลคำค้นหา/ตัวกรอง (catalog:item_list?q=&category=&type=&status=);
 
+|frontend:ItemList|
 if (พบสิ่งของที่ตรงเงื่อนไขหรือไม่?) then (ไม่พบ)
   :แสดงข้อความ "ไม่พบรายการที่ค้นหา";
 else (พบ)
   :แสดงรายการสิ่งของที่ตรงเงื่อนไขค้นหา/กรอง;
 endif
 
-|นักศึกษา|
 repeat
   :ปรับเงื่อนไขค้นหา/กรองซ้ำ;
-  |ระบบ UBORROWU|
+  |backend|
   :ประมวลผลและแสดงรายการที่ตรงเงื่อนไขใหม่;
+  |frontend:ItemList|
 repeat while (ต้องการปรับเงื่อนไขค้นหา/กรองต่ออีกหรือไม่?) is (ต้องการ — ปรับเงื่อนไขใหม่) not (ไม่ต้องการแล้ว)
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: UC-02 เป็น <<extend>> ของ UC-01 (ดูรายการวัสดุและครุภัณฑ์) — เกิดเฉพาะเมื่อผู้ใช้เลือกค้นหา/กรองจากหน้ารายการ
-  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:ItemList — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: UC-02 เป็น <<extend>> ของ UC-01 (ดูรายการวัสดุและครุภัณฑ์) — เกิดเฉพาะเมื่อผู้ใช้เลือกค้นหา/กรองจากหน้ารายการ ไม่ใช่หน้าแยก
+  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

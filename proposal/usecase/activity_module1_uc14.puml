@@ -37,23 +37,23 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-14 · จัดการข้อมูลส่วนตัว — Activity Diagram\nMonolith: partition ระบบตัวเดียว · ไม่วาด OAuth ซ้ำ (ดู UC-16)
+title UC-14 · จัดการข้อมูลส่วนตัว — Activity Diagram\npartition หน้าจอ = frontend:Profile (ตรงกับ state diagram) · ไม่วาด OAuth ซ้ำ (ดู UC-16)
 
-|นักศึกษา|
+|frontend:Profile|
 start
-' สมมติว่า login แล้ว (session ผ่าน allauth ตาม UC-16) — ไม่วาดขั้นตอน OAuth ซ้ำในไดอะแกรมนี้
+' สมมติว่า login แล้ว (session ผ่าน UBU SSO ตาม UC-16) — ไม่วาดขั้นตอน OAuth ซ้ำในไดอะแกรมนี้
 :เปิดหน้าโปรไฟล์ (profile_detail);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาเจ้าของบัญชีเท่านั้น);
 :ดึงข้อมูลส่วนตัว + วันที่เข้าสู่ระบบครั้งแรก (date_joined)\nและวันเวลาเข้าสู่ระบบครั้งล่าสุด (last_login) ที่บันทึกไว้ตอน UC-16;
 :แสดงข้อมูลส่วนตัวพร้อม first login / last login;
 
-|นักศึกษา|
+|frontend:Profile|
 :แก้ไขข้อมูลติดต่อ (เช่น เบอร์โทรศัพท์);
 :กดบันทึก;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจสอบความครบถ้วน/ความถูกต้องของข้อมูลที่กรอก (validation);
 :บันทึกข้อมูลส่วนตัวที่แก้ไข (profile_update, write);
 
@@ -74,9 +74,9 @@ note right
 end note
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: flow นี้ไม่วาดขั้นตอน UBU Single Sign-On (@ubu.ac.th) ซ้ำ — สมมติว่าผ่าน UC-16 (login) มาแล้ว
+  |<back:white>    </back>| frontend:Profile — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: flow นี้ไม่วาดขั้นตอน UBU Single Sign-On ซ้ำ — สมมติว่าผ่าน UC-16 (login) มาแล้ว
   หมายเหตุ: ทุก view ผ่าน login_required + permission (ตรวจว่าเป็นเจ้าของโปรไฟล์เท่านั้น)
 endlegend
 

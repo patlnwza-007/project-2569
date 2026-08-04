@@ -37,33 +37,35 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-09 แจ้งคืนครุภัณฑ์ — Activity Diagram\nMonolith: partition ระบบเดียว
+title UC-09 แจ้งคืนครุภัณฑ์ — Activity Diagram\npartition หน้าจอ = frontend:NotifyReturn → frontend:RequestList
 
-|นักศึกษา|
+|frontend:NotifyReturn|
 start
-' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดรายการครุภัณฑ์ที่กำลังยืมอยู่;
 :เลือกรายการที่ต้องการคืน และกดแจ้งคืน;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าของรายการเท่านั้น);
 :ตรวจว่าครุภัณฑ์นั้นอยู่ในสถานะ "กำลังยืม" ภายใต้ชื่อนักศึกษาคนนี้;
 :เปลี่ยนสถานะเป็น "รอยืนยันการคืน" (write);
 
 fork
-  :แสดงผลยืนยันการแจ้งคืนให้นักศึกษา (main flow) — รอเจ้าหน้าที่ตรวจรับที่ UC-19;
+  |frontend:RequestList|
+  :กลับไปหน้าสถานะการยืมของฉัน (main flow) — รอเจ้าหน้าที่ตรวจรับที่ UC-19;
 fork again
+  |backend|
   :เขียน audit log (แจ้งคืนครุภัณฑ์) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: การแจ้งคืนหยุดวงจรแจ้งเตือนใกล้/เกินกำหนดคืนที่เริ่มจาก UC-08 (FR-40) แต่ตัวการแจ้งคืนเองไม่อยู่ในรายการแจ้งเตือนอัตโนมัติ FR-39/40/41
   จึงไม่ใส่ fork ส่งอีเมล/in-app — มีเฉพาะ fork audit log เท่านั้น การยืนยัน/ปฏิเสธรับคืนจริงเป็นหน้าที่เจ้าหน้าที่ที่ UC-19 (โมดูลอื่น)
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

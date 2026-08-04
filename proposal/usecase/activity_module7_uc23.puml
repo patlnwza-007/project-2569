@@ -33,17 +33,16 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-23 · ลบวัสดุออกจากระบบ — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-23 · ลบวัสดุออกจากระบบ — Activity Diagram\npartition หน้าจอ = frontend:ItemDelete (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
-|เจ้าหน้าที่|
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
+|frontend:ItemDelete|
 start
 :เปิดรายการวัสดุ;
 :เลือกวัสดุ 1 รายการหรือหลายรายการที่ต้องการลบ;
 :ยืนยันการลบ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 
 ' ===== วนตรวจสอบรายการที่เลือกทีละรายการ (รองรับกรณีลบหลายชิ้นพร้อมกัน) =====
@@ -57,17 +56,19 @@ repeat
 repeat while (ยังมีรายการที่เลือกไว้ที่ยังไม่ตรวจสอบหรือไม่?) is (มี — ตรวจรายการถัดไป) not (ตรวจครบทุกรายการแล้ว)
 
 fork
+  |frontend:ItemDelete|
   :แสดงผลสรุปการลบให้เจ้าหน้าที่ (รายการที่ลบสำเร็จ/ถูกปฏิเสธ);
 fork again
+  |backend|
   :เขียน audit log (ลบวัสดุ) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:ItemDelete — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: loop ในไดอะแกรมนี้สื่อการตรวจสอบทีละรายการเมื่อเลือกลบหลายชิ้นพร้อมกัน (bulk delete) ตามคำอธิบาย basic flow ข้อ 2 ("เลือกวัสดุ 1 รายการหรือหลายรายการ") ไม่ใช่ loop แบบ retry
 endlegend
 

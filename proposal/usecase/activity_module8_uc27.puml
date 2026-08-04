@@ -37,26 +37,27 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-27 · ดูและค้นหารายชื่อนักศึกษา — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-27 · ดูและค้นหารายชื่อนักศึกษา — Activity Diagram\npartition หน้าจอ = frontend:StudentList (ตรงกับ state diagram)
 
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 ' หมายเหตุ: UC นี้ถูก <<include>> โดย UC-28 (จัดการสิทธิ์การยืมของนักศึกษา) — ต้องค้นหา/เลือกนักศึกษาจากที่นี่ก่อน จึงจะไปจัดการสิทธิ์ต่อได้
 
-|เจ้าหน้าที่|
+|frontend:StudentList|
 start
 :เปิดหน้ารายชื่อนักศึกษา;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
 :ดึงรายชื่อนักศึกษาทั้งหมด (ORM);
-:แสดงรายชื่อนักศึกษา;
 
-|เจ้าหน้าที่|
+|frontend:StudentList|
+:แสดงรายชื่อนักศึกษา;
 :ค้นหาด้วยชื่อ/รหัสนักศึกษา และ/หรือเลือกเรียงลำดับตามคอลัมน์ที่ต้องการ;
 
-|ระบบ UBORROWU|
+|backend|
 :กรองและเรียงลำดับรายชื่อตามเงื่อนไขที่ระบุ (ORM query);
 
+|frontend:StudentList|
 if (พบนักศึกษาที่ตรงเงื่อนไขหรือไม่?) then (ไม่พบ)
   :แสดงข้อความ "ไม่พบข้อมูล";
 else (พบ)
@@ -66,9 +67,9 @@ endif
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:StudentList — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: UC-27 เป็นฐานของ UC-28 (<<include>>) — เจ้าหน้าที่ต้องเลือกนักศึกษาจากรายชื่อนี้ก่อนจึงจัดการสิทธิ์การยืมต่อได้
 endlegend
 

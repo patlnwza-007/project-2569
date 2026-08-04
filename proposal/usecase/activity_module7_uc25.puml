@@ -33,29 +33,30 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-25 · นำเข้าข้อมูลคลังแบบชุด — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-25 · นำเข้าข้อมูลคลังแบบชุด — Activity Diagram\npartition หน้าจอ = frontend:BulkImport (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
 ' หมายเหตุ: <<extend>> ของ UC-21 — เป็นอีกวิธีหนึ่งของการเพิ่มสิ่งของ ใช้เฉพาะเมื่อเลือกนำเข้าแบบไฟล์
-|เจ้าหน้าที่|
+|frontend:BulkImport|
 start
 :เปิดหน้านำเข้าข้อมูลคลังแบบชุด;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :สร้างไฟล์ต้นแบบ (template) ให้ดาวน์โหลด;
 
-|เจ้าหน้าที่|
+|frontend:BulkImport|
 :ดาวน์โหลดไฟล์ต้นแบบ (template);
 :กรอกข้อมูลสิ่งของหลายรายการลงในไฟล์ (CSV/Excel);
 :อัปโหลดไฟล์กลับเข้าระบบ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจสอบรูปแบบไฟล์และแถวข้อมูลตาม template;
 
 if (ไฟล์และแถวข้อมูลถูกต้องทั้งหมดหรือไม่?) then (มีแถวผิดพลาด/รูปแบบไม่ถูกต้อง)
+  |frontend:BulkImport|
   :แจ้งรายการแถวที่ผิดพลาดให้เจ้าหน้าที่ทราบ;
+  |backend|
   :นำเข้าเฉพาะแถวที่ถูกต้อง และข้ามแถวที่ผิดพลาด;
 else (ถูกต้องทั้งหมด)
   :นำเข้าข้อมูลทั้งหมดเป็นชุด;
@@ -64,17 +65,19 @@ endif
 :บันทึกสิ่งของที่นำเข้าเข้าคลัง (write);
 
 fork
+  |frontend:BulkImport|
   :แสดงผลสรุปการนำเข้าให้เจ้าหน้าที่ (สำเร็จ/ผิดพลาด);
 fork again
+  |backend|
   :เขียน audit log (นำเข้าข้อมูลคลังแบบชุด) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:BulkImport — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: ไม่ใช้ repeat/repeat while ในไดอะแกรมนี้ — คำอธิบาย use case ระบุเพียงว่าแถวที่ผิดพลาดถูกข้ามและแจ้งรายการ ไม่ได้ระบุว่าเจ้าหน้าที่ต้องอัปโหลดไฟล์ซ้ำภายในกระบวนการเดียวกันจนผ่านทั้งหมด (การอัปโหลดใหม่หลังแก้ไขไฟล์ถือเป็นการเริ่มกระบวนการ UC-25 รอบใหม่)
 endlegend
 

@@ -37,23 +37,28 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-08 ยืนยันรับสิ่งของ — Activity Diagram\nMonolith: partition ระบบเดียว · แยกสถานะตามประเภทสิ่งของ (วัสดุ/ครุภัณฑ์)
+title UC-08 ยืนยันรับสิ่งของ — Activity Diagram\npartition หน้าจอ = frontend:RequestList → frontend:ConfirmPickup · แยกสถานะตามประเภทสิ่งของ (วัสดุ/ครุภัณฑ์)
 
-|นักศึกษา|
+|frontend:RequestList|
 start
-' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :ไปรับสิ่งของจากเจ้าหน้าที่ตามที่นัดหมาย;
+:เลือกคำขอสถานะ "อนุมัติแล้ว/รอรับของ" จากรายการ;
+
+|frontend:ConfirmPickup|
 :กดยืนยันการรับของในระบบ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าของคำขอเท่านั้น);
 :ตรวจสถานะคำขอปัจจุบัน;
 if (คำขอถูกเปลี่ยนเป็น "หมดอายุ" ไปแล้วหรือไม่ (เกิน 2 วันหลังอนุมัติ — auto-expire ที่ UC-18)?) then (หมดอายุแล้ว)
+  |frontend:ConfirmPickup|
   :แจ้งว่าไม่สามารถยืนยันรับของได้อีก ต้องส่งคำขอยืมใหม่ (UC-06);
   stop
 else (ยังไม่หมดอายุ — "อนุมัติแล้ว/รอรับของ")
 endif
 
+|backend|
 repeat
   :ตรวจประเภทของรายการถัดไปในคำขอ;
   if (ประเภทสิ่งของ?) then (วัสดุ)
@@ -71,18 +76,20 @@ note right
 end note
 
 fork
+  |frontend:RequestList|
   :แสดงผลยืนยันการรับของให้นักศึกษา (main flow);
 fork again
+  |backend|
   :เขียน audit log (ยืนยันรับของ) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: การยืนยันรับของเองไม่ได้อยู่ในรายการเหตุการณ์แจ้งเตือนทันทีตาม FR-39/40/41 (แจ้งเตือนที่ตามมาเป็น background job ของ UC-08→UC-09)
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

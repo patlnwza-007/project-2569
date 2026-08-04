@@ -37,45 +37,46 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-05 จัดการตะกร้าสิ่งของ — Activity Diagram\nMonolith: partition ระบบเดียว (ตรวจจำนวนคงเหลือจาก model ของ catalog แบบ in-process ไม่ใช่เรียกข้าม service)
+title UC-05 จัดการตะกร้าสิ่งของ — Activity Diagram\npartition หน้าจอ = frontend:ItemList → frontend:Cart (ตรวจจำนวนคงเหลือจาก model ของ catalog แบบ in-process)
 
-|นักศึกษา|
+|frontend:ItemList|
 start
-' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+' กดเพิ่มลงตะกร้าได้ทั้งจากหน้ารายการ (ItemList) และหน้ารายละเอียดสิ่งของ (ItemDetail) — ใช้ ItemList เป็นตัวแทน
 :กดเพิ่มสิ่งของลงตะกร้าจากหน้ารายการ/รายละเอียดสิ่งของ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
-:ตรวจจำนวนคงเหลือของสิ่งของ (อ่าน model ของ catalog — in-process call ตาม §1.2);
+:ตรวจจำนวนคงเหลือของสิ่งของ (อ่าน model ของ catalog — in-process call ตาม §1.3);
 if (จำนวนที่ต้องการเพิ่ม <= จำนวนคงเหลือหรือไม่?) then (เกิน)
   :แจ้งเตือน "จำนวนเกินจำนวนคงเหลือ" ไม่อนุญาตให้เพิ่ม;
 else (ไม่เกิน)
   :เพิ่มรายการลงตะกร้า / บันทึกสถานะตะกร้า;
 endif
 
-|นักศึกษา|
+|frontend:Cart|
 :เปิดหน้าตะกร้า;
 
 repeat
   :แก้ไขจำนวนที่ต้องการยืมของแต่ละรายการ หรือลบรายการออกจากตะกร้า;
-  |ระบบ UBORROWU|
+  |backend|
   :ตรวจจำนวนใหม่เทียบกับจำนวนคงเหลือ (อ่าน model ของ catalog);
   if (จำนวนใหม่เกินจำนวนคงเหลือหรือไม่?) then (เกิน)
     :แจ้งเตือน ไม่อนุญาตให้แก้ไขเกินจำนวนคงเหลือ (คงค่าตะกร้าเดิมไว้);
   else (ไม่เกิน)
     :บันทึกสถานะตะกร้าล่าสุด;
   endif
-  |นักศึกษา|
+  |frontend:Cart|
 repeat while (ต้องการแก้ไข/ลบรายการในตะกร้าต่อหรือไม่?) is (ต้องการ) not (พอแล้ว — ออกจากหน้าตะกร้า)
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: ตะกร้าเป็นข้อมูลชั่วคราวไม่มีการแจ้งเตือน จึงไม่มี fork audit/notification ใน use case นี้
   ตามข้อ FR-39/40/41 การแจ้งเตือนอัตโนมัติเริ่มที่ UC-06/UC-08/UC-11/UC-18 เท่านั้น (ดู note ทั่วไปใน use_case_description.md)
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

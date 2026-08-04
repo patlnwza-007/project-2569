@@ -37,58 +37,67 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-06 ส่งคำขอยืมสิ่งของ — Activity Diagram\n<<include>> UC-05 (จัดการตะกร้าสิ่งของ) · Monolith: partition ระบบเดียว
+title UC-06 ส่งคำขอยืมสิ่งของ — Activity Diagram\n<<include>> UC-05 · partition หน้าจอ = frontend:Cart → frontend:RequestForm
 
-|นักศึกษา|
+|frontend:Cart|
 start
-' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 note right
   Pre-condition: ตะกร้ามีรายการอย่างน้อย 1 รายการแล้ว
   (มาจาก UC-05 จัดการตะกร้าสิ่งของ — <<include>> เสมอ)
 end note
 :กดยืนยันส่งคำขอยืมจากหน้าตะกร้า;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
+
+|frontend:RequestForm|
+repeat
+  :ระบุเหตุผลการยืม และวันที่ต้องการใช้งาน (กรณีมีครุภัณฑ์ในตะกร้า);
+  |backend|
+  :ตรวจ Business Rule — วันที่ใช้งานบังคับกรอกเฉพาะเมื่อตะกร้ามีครุภัณฑ์อย่างน้อย 1 ชิ้น;
+  |frontend:RequestForm|
+repeat while (มีครุภัณฑ์ในตะกร้าแต่ยังไม่ระบุวันที่ใช้งานหรือไม่?) is (ไม่ครบ — กรอกใหม่) not (ครบแล้ว)
+
+|backend|
 :ตรวจข้อมูลติดต่อของนักศึกษา (ตาม FR-15);
 if (ข้อมูลติดต่อครบถ้วนหรือไม่?) then (ไม่ครบ)
-  :พาไปหน้าแก้ไขโปรไฟล์ (เชื่อมโยง UC-14);
+  |frontend:Profile|
+  :พาไปหน้าโปรไฟล์ส่วนตัว (เชื่อมโยง UC-14);
   stop
 else (ครบ)
 endif
 
+|backend|
 :ตรวจสถานะระงับสิทธิ์การยืม (Block);
 if (นักศึกษาถูกระงับสิทธิ์อยู่หรือไม่?) then (ถูกระงับ)
+  |frontend:RequestForm|
   :ปฏิเสธการส่งคำขอ พร้อมแจ้งเหตุผล;
   stop
 else (ไม่ถูกระงับ)
 endif
 
-|นักศึกษา|
-repeat
-  :ระบุเหตุผลการยืม และวันที่ต้องการใช้งาน (กรณีมีครุภัณฑ์ในตะกร้า);
-  |ระบบ UBORROWU|
-  :ตรวจ Business Rule — วันที่ใช้งานบังคับกรอกเฉพาะเมื่อตะกร้ามีครุภัณฑ์อย่างน้อย 1 ชิ้น;
-repeat while (มีครุภัณฑ์ในตะกร้าแต่ยังไม่ระบุวันที่ใช้งานหรือไม่?) is (ไม่ครบ — กรอกใหม่) not (ครบแล้ว)
-
-|ระบบ UBORROWU|
+|backend|
 :บันทึกคำขอยืม (สถานะ "รออนุมัติ") และล้างตะกร้า (write);
 
 fork
-  :แสดงหน้ายืนยันคำขอให้นักศึกษา (main flow) — รอเจ้าหน้าที่พิจารณาต่อที่ UC-18;
+  |frontend:RequestList|
+  :กลับไปหน้าสถานะการยืมของฉัน (main flow) — รอเจ้าหน้าที่พิจารณาต่อที่ UC-18;
 fork again
+  |backend|
   :เขียน audit log (สร้างคำขอยืม) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ลำดับตรวจข้อมูลติดต่อ/สถานะระงับสิทธิ์เกิด**หลัง**นักศึกษากรอกเหตุผล/วันที่ใช้งานใน RequestForm เสมอ ตรงตาม Basic Flow ข้อ 2-3 ของ UC-06 (ไม่ใช่ตรวจก่อนเข้าฟอร์ม)
   หมายเหตุ: สถานะ "รออนุมัติ" ไม่อยู่ในรายการเหตุการณ์ที่ต้องแจ้งเตือนอัตโนมัติตาม FR-39/40/41
   (รายการนั้นมีแค่ผลอนุมัติ/ปฏิเสธที่ UC-18, ถึงคิวที่ UC-11, ใกล้/เกินกำหนดคืนต่อเนื่องจาก UC-08, และยกเลิกอัตโนมัติที่ UC-18)
   จึงไม่ใส่ fork ส่งอีเมล/in-app ใน use case นี้ — มีเฉพาะ fork audit log เท่านั้น
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

@@ -37,33 +37,32 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-01 · ดูรายการวัสดุและครุภัณฑ์ — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-01 · ดูรายการวัสดุและครุภัณฑ์ — Activity Diagram\npartition หน้าจอ = frontend:ItemList (ตรงกับ state diagram)
 
-|นักศึกษา|
+|frontend:ItemList|
 start
-' สมมติว่านักศึกษาเข้าสู่ระบบแล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่านักศึกษาเข้าสู่ระบบแล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดหน้ารายการสิ่งของ (catalog:item_list);
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอินแล้ว);
 :ดึงรายการวัสดุและครุภัณฑ์ทั้งหมด (ORM);
 
+|frontend:ItemList|
 if (มีสิ่งของในคลังหรือไม่?) then (ไม่มี)
   :แสดงข้อความ "ยังไม่มีรายการสิ่งของ";
 else (มี)
   :แสดงรายการวัสดุและครุภัณฑ์ พร้อมรูปภาพ ชื่อ หมวดหมู่ สถานะ และจำนวนคงเหลือ;
-
-  |นักศึกษา|
   :เลื่อนดูรายการ (pagination/scroll);
 endif
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:ItemList — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: UC-01 เป็น base use case ของ UC-02 (ค้นหาและกรองสิ่งของ) และ UC-03 (ดูรายละเอียดสิ่งของ) แบบ <<extend>> — แต่ละ use case มีไดอะแกรมของตัวเองแยกต่างหาก ไม่ได้รวมในไฟล์นี้
-  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

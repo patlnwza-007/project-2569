@@ -33,45 +33,48 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-21 · เพิ่ม/แก้ไขข้อมูลวัสดุและครุภัณฑ์ — Activity Diagram\nMonolith: partition = actor / ระบบ Django / บริการภายนอก (ไม่ใช่ 1 view)
+title UC-21 · เพิ่ม/แก้ไขข้อมูลวัสดุและครุภัณฑ์ — Activity Diagram\npartition หน้าจอ = frontend:ItemForm (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth ซ้ำใน flow ทั่วไป
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
 ' หมายเหตุ: หมวดหมู่และตำแหน่งที่จะเลือกใช้ต้องถูกตั้งค่าไว้ก่อนแล้ว (UC-26)
-|เจ้าหน้าที่|
+|frontend:ItemForm|
 start
 :เปิดหน้าเพิ่ม/แก้ไขวัสดุหรือครุภัณฑ์;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :โหลดตัวเลือกหมวดหมู่และตำแหน่งที่ตั้งค่าไว้ (UC-26);
 
-|เจ้าหน้าที่|
+|frontend:ItemForm|
 :กรอกชื่อ อัปโหลดรูปภาพ เลือกหมวดหมู่และตำแหน่ง\nและระบุจำนวนวันสูงสุดที่ยืมได้ (กรณีครุภัณฑ์);
 :กดบันทึก;
 
-|ระบบ UBORROWU|
+|backend|
 if (ข้อมูลบังคับครบถ้วนหรือไม่?) then (ไม่ครบ)
+  |frontend:ItemForm|
   :แจ้งเตือนข้อมูลไม่ครบ;
   :ไม่บันทึกข้อมูล;
   stop
 else (ครบ)
 endif
 
+|backend|
 :บันทึกข้อมูลวัสดุ/ครุภัณฑ์ (write);
 
 fork
+  |frontend:ItemForm|
   :แสดงหน้ายืนยันการบันทึกให้เจ้าหน้าที่ (main flow);
 fork again
+  |backend|
   :เขียน audit log (เพิ่ม/แก้ไขวัสดุ) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:ItemForm — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: หลังบันทึกสำเร็จ นักศึกษาเห็นข้อมูลล่าสุดในหน้ารายการ (UC-01) เนื่องจากอ่านจากฐานข้อมูลเดียวกัน (ไม่ใช่ external call)
 endlegend
 

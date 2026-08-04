@@ -37,16 +37,18 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-10 ดูสถานะการยืมปัจจุบัน — Activity Diagram\nMonolith: partition ระบบเดียว · read-only flow
+title UC-10 ดูสถานะการยืมปัจจุบัน — Activity Diagram\npartition หน้าจอ = frontend:RequestList · read-only flow
 
-|นักศึกษา|
+|frontend:RequestList|
 start
-' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดหน้าหลัก;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
 :ดึงรายการคำขอยืมทั้งหมดของนักศึกษาคนนี้ (ORM query);
+
+|frontend:RequestList|
 if (มีคำขอยืมอยู่หรือไม่?) then (ไม่มี)
   :แสดงข้อความ "ยังไม่มีรายการยืม";
 else (มี)
@@ -61,10 +63,10 @@ endif
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:RequestList — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: เป็น read-only flow ไม่มีการเขียนข้อมูล จึงไม่มี fork audit log/notification
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

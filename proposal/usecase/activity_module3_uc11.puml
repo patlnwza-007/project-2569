@@ -37,48 +37,52 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-11 จัดการคิวการจอง — Activity Diagram\nรวม 3 sub-action: จองคิว / ดูรายการคิว / ออกจากคิว ในไดอะแกรมเดียว (1 use case)
+title UC-11 จัดการคิวการจอง — Activity Diagram\nรวม 3 sub-action: จองคิว / ดูรายการคิว / ออกจากคิว · partition หน้าจอ = frontend:ItemDetail → frontend:QueueList
 
-|นักศึกษา|
+|frontend:ItemDetail|
 start
-' สมมติว่า login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :กดจองคิวจากหน้ารายละเอียดสิ่งของที่ถูกยืมหมด;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
 :ตรวจจำนวนคงเหลือของสิ่งของ (อ่าน model ของ catalog — in-process call);
 if (จำนวนคงเหลือ = 0 หรือไม่?) then (มีคงเหลือ > 0)
+  |frontend:ItemDetail|
   :ไม่อนุญาตให้จองคิว และแนะนำให้ยืมได้ทันที;
   stop
 else (คงเหลือ = 0)
   :เพิ่มนักศึกษาเข้าคิว (write) และคำนวณลำดับที่;
+  |frontend:ItemDetail|
   :แจ้งลำดับคิวให้นักศึกษาทราบ;
 endif
 
-|นักศึกษา|
+|frontend:QueueList|
 :เปิดหน้ารายการคิวที่จองอยู่เพื่อติดตามลำดับ;
 
-|ระบบ UBORROWU|
+|backend|
 :ดึงรายการคิวและลำดับปัจจุบันของนักศึกษา (ORM query);
-:แสดงรายการคิว;
 
-|นักศึกษา|
+|frontend:QueueList|
+:แสดงรายการคิว;
 if (ต้องการออกจากคิวหรือไม่ (ไม่ต้องการยืมแล้ว)?) then (ต้องการออก)
   :กดออกจากคิว;
-  |ระบบ UBORROWU|
+  |backend|
   :ลบนักศึกษาออกจากคิว (write);
   stop
 else (ยังต้องการรอคิวต่อ)
 endif
 
 ' ===== เหตุการณ์อัตโนมัติ: เมื่อสิ่งของว่างและถึงคิวของนักศึกษาคนนี้ (background job, แยกจาก action ของ actor ข้างบน) =====
-|ระบบ UBORROWU|
+|backend|
 :(อัตโนมัติ) ตรวจพบสิ่งของว่างและถึงคิวของนักศึกษาคนนี้;
 :อัปเดตสถานะคิวเป็น "ถึงคิวแล้ว" ให้นักศึกษาไปยืมภายในเวลาที่กำหนด (write);
 
 fork
+  |frontend:QueueList|
   :แสดงสถานะ "ถึงคิวแล้ว" ในหน้ารายการคิว (main flow);
 fork again
+  |backend|
   :ส่งแจ้งเตือนในหน้าเว็บ (in-app notification) ผ่าน signal (FR-39);
 fork again
   |เซิร์ฟเวอร์อีเมล (external)|
@@ -88,11 +92,11 @@ end fork
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
   หมายเหตุ: "ถึงคิวแล้ว" เป็นเหตุการณ์ที่ FR-39 ระบุชัดเจนว่าต้องแจ้งเตือนทั้ง in-app และอีเมลทันที — เป็น fork ที่มีหลักฐานรองรับจากข้อความต้นทาง
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 
 @enduml

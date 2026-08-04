@@ -37,26 +37,27 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-30 · เพิ่มรายการจัดซื้อด้วยตนเอง — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view) · สมมติล็อกอินแล้ว (session)
+title UC-30 · เพิ่มรายการจัดซื้อด้วยตนเอง — Activity Diagram\npartition หน้าจอ = frontend:PurchaseAdd (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|เจ้าหน้าที่|
+|frontend:PurchaseAdd|
 start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดหน้ารายการจัดซื้อ;
 :กรอกชื่อสิ่งของและรายละเอียดที่ต้องการจัดซื้อ แล้วส่ง;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
 :บันทึกรายการจัดซื้อใหม่ในระบบติดตามความต้องการจัดซื้อ (write);
+
+|frontend:PurchaseAdd|
 :แสดงผลยืนยันการเพิ่มรายการให้เจ้าหน้าที่;
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:PurchaseAdd — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: อ้างอิง FR-30, endpoint suggestion:purchase_request_create → PurchaseRequestCreateView
   หมายเหตุ: flow เชิงเส้นตรง ไม่มีเงื่อนไข/loop ตามลำดับเหตุการณ์หลักใน use case description (ไม่มี alternative flow ระบุไว้)
 endlegend

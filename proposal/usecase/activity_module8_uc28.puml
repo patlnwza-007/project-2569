@@ -37,40 +37,44 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-28 · จัดการสิทธิ์การยืมของนักศึกษา — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view)
+title UC-28 · จัดการสิทธิ์การยืมของนักศึกษา — Activity Diagram\npartition หน้าจอ = frontend:StudentList → frontend:StudentPermission
 
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 ' หมายเหตุ: UC นี้ <<include>> UC-27 (ดูและค้นหารายชื่อนักศึกษา) — ขั้นตอนแรก "เลือกนักศึกษาจากรายชื่อ" คือผลของ UC-27
 ' จึงแสดงเป็นกิจกรรมปกติขั้นตอนแรกในไดอะแกรมนี้ ไม่ต้องวาดไดอะแกรมของ UC-27 ซ้ำ
 
-|เจ้าหน้าที่|
+|frontend:StudentList|
 start
 :เลือกนักศึกษาเป้าหมายจากรายชื่อ (ผลจาก UC-27 · <<include>>);
-:เปิดหน้ารายละเอียดนักศึกษาที่เลือก;
 
-|ระบบ UBORROWU|
+|frontend:StudentPermission|
+:เปิดหน้าจัดการสิทธิ์การยืมของนักศึกษาที่เลือก;
+
+|backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
 :ดึงข้อมูลรายละเอียด + สถานะสิทธิ์การยืมปัจจุบันของนักศึกษา (ORM);
-:แสดงหน้ารายละเอียดนักศึกษา;
 
-|เจ้าหน้าที่|
+|frontend:StudentPermission|
+:แสดงหน้าจัดการสิทธิ์การยืม พร้อมสถานะปัจจุบันของนักศึกษา;
 :เลือกดำเนินการ — กำหนด/แก้ไขวันครบกำหนดคืน (Deadline) หรือกดระงับสิทธิ์ (Block) หรือกดปลดบล็อก (Unblock);
 
-|ระบบ UBORROWU|
+|backend|
 :บันทึกสถานะสิทธิ์การยืมล่าสุดของนักศึกษา (write);
 
 fork
+  |frontend:StudentPermission|
   :แสดงผลการอัปเดตสถานะสิทธิ์ให้เจ้าหน้าที่ (main flow);
 fork again
+  |backend|
   :เขียน audit log (เปลี่ยนแปลงสิทธิ์การยืมของนักศึกษา) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (เจ้าหน้าที่) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: UC-28 <<include>> UC-27 — เจ้าหน้าที่ต้องเลือกนักศึกษาจากรายชื่อ/ค้นหา (UC-27) ก่อนจึงเข้าสู่ flow นี้ได้
   หมายเหตุ: สถานะสิทธิ์ (deadline/block) ที่อัปเดตมีผลต่อการส่งคำขอยืมครั้งถัดไปของนักศึกษา (UC-06)
 endlegend

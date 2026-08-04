@@ -72,8 +72,8 @@ state "ยังไม่เข้าสู่ระบบ" as PreAuth {
 
 ' ═════════ โซนนักศึกษา (Student — UC-01 ถึง UC-15) ═════════
 state "นักศึกษา (Student)" as Student {
-  state "หน้าหลัก\nสถานะการยืมของฉัน (UC-10)" as StuHome
-  note right of StuHome
+  state "หน้าหลัก\nสถานะการยืมของฉัน (UC-10)" as RequestList
+  note right of RequestList
     แสดง: รายการคำขอยืมของฉันทั้งหมด + ป้ายสถานะแยกวัสดุ/ครุภัณฑ์
     (รออนุมัติ / ปฏิเสธแล้ว / อนุมัติแล้ว-รอรับของ / หมดอายุ /
     กำลังยืม / รอยืนยันการคืน / คืนสำเร็จ / เบิกสำเร็จ)
@@ -82,7 +82,7 @@ state "นักศึกษา (Student)" as Student {
 
   state "โปรไฟล์ส่วนตัว\n(UC-14)" as Profile
   note right of Profile
-    ฟิลด์แก้ไขได้: เบอร์โทรศัพท์
+    ฟิลด์: เบอร์โทรศัพท์ (แก้ไขได้)
     อ่านอย่างเดียว: วันที่เข้าสู่ระบบครั้งแรก, วันเวลาเข้าสู่ระบบล่าสุด
     กฎ: ข้อมูลติดต่อต้องครบก่อนส่งคำขอยืมได้ (บังคับใช้ที่ UC-06)
   end note
@@ -160,52 +160,53 @@ state "นักศึกษา (Student)" as Student {
     ผิดพลาด: กรอกข้อมูลไม่ครบ → แจ้งเตือนก่อนส่ง
   end note
 
-  [*] --> StuHome
+  [*] --> RequestList
 
-  StuHome --> Profile : เมนูโปรไฟล์
-  Profile --> StuHome : บันทึกสำเร็จ / กลับ
+  RequestList --> Profile : เมนูโปรไฟล์
+  Profile --> RequestList : บันทึกสำเร็จ / กลับ
 
-  StuHome --> ItemList : เมนูรายการสิ่งของ
-  ItemList --> StuHome : กลับ
+  RequestList --> ItemList : เมนูรายการสิ่งของ
+  ItemList --> RequestList : กลับ
   ItemList --> ItemDetail : เลือกสิ่งของ (UC-03)
   ItemDetail --> ItemList : กลับ
   ItemDetail --> PositionMap : ดูตำแหน่งชั้นวาง (UC-04)
   PositionMap --> ItemDetail : กลับ
   ItemDetail --> Cart : เพิ่มลงตะกร้า\n(จำนวนคงเหลือ > 0)
   ItemDetail --> ItemDetail : กดจองคิว (UC-11)\n(จำนวนคงเหลือ = 0)\n→ เพิ่มเข้าคิว + แจ้งลำดับที่
-  StuHome --> QueueList : เมนู "คิวของฉัน"
-  QueueList --> StuHome : กลับ
+  ItemDetail --> QueueList : เปิดหน้ารายการคิวที่จองอยู่เพื่อติดตามลำดับ\n(ต่อเนื่องจากการจองคิวสำเร็จ)
+  RequestList --> QueueList : เมนู "คิวของฉัน"
+  QueueList --> RequestList : กลับ
   QueueList --> QueueList : กดออกจากคิว
 
   ItemList --> Cart : เพิ่มลงตะกร้าจากรายการ
-  StuHome --> Cart : เมนูตะกร้า
-  Cart --> StuHome : กลับ
+  RequestList --> Cart : เมนูตะกร้า
+  Cart --> RequestList : กลับ
   Cart --> ItemList : เลือกซื้อเพิ่ม
   Cart --> RequestForm : กดยืนยันส่งคำขอยืม\n(include UC-05)
   RequestForm --> Profile : ข้อมูลติดต่อไม่ครบ\n→ บังคับกรอกให้ครบก่อน (UC-14)
   Profile --> Cart : ข้อมูลครบแล้ว (มาจาก RequestForm)\n→ กลับไปลองส่งคำขอยืมอีกครั้ง
   RequestForm --> Cart : ยกเลิก / แก้ไขตะกร้าต่อ
-  RequestForm --> StuHome : ส่งคำขอสำเร็จ\n(สถานะ "รออนุมัติ" → รอ UC-18)
+  RequestForm --> RequestList : ส่งคำขอสำเร็จ\n(สถานะ "รออนุมัติ" → รอ UC-18)
 
-  StuHome --> StuHome : ยกเลิกคำขอยืม (UC-07)\n(เฉพาะสถานะ "รออนุมัติ")
-  StuHome --> ConfirmPickup : เลือกคำขอสถานะ\n"อนุมัติแล้ว/รอรับของ"
-  ConfirmPickup --> StuHome : ยืนยันรับของสำเร็จ\nวัสดุ → "เบิกสำเร็จ" /\nครุภัณฑ์ → "กำลังยืม"
-  StuHome --> NotifyReturn : เลือกครุภัณฑ์สถานะ\n"กำลังยืม"
-  NotifyReturn --> StuHome : แจ้งคืนสำเร็จ\n(สถานะ "รอยืนยันการคืน" → รอ UC-19)
+  RequestList --> RequestList : ยกเลิกคำขอยืม (UC-07)\n(เฉพาะสถานะ "รออนุมัติ")
+  RequestList --> ConfirmPickup : เลือกคำขอสถานะ\n"อนุมัติแล้ว/รอรับของ"
+  ConfirmPickup --> RequestList : ยืนยันรับของสำเร็จ\nวัสดุ → "เบิกสำเร็จ" /\nครุภัณฑ์ → "กำลังยืม"
+  RequestList --> NotifyReturn : เลือกครุภัณฑ์สถานะ\n"กำลังยืม"
+  NotifyReturn --> RequestList : แจ้งคืนสำเร็จ\n(สถานะ "รอยืนยันการคืน" → รอ UC-19)
 
-  StuHome --> History : เมนูประวัติการยืม (UC-12)
-  History --> StuHome : กลับ
+  RequestList --> History : เมนูประวัติการยืม (UC-12)
+  History --> RequestList : กลับ
   History --> Evaluation : ประเมินความพึงพอใจ (UC-15)\n(เฉพาะรายการที่คืน/เบิกสำเร็จแล้ว)
   Evaluation --> History : ส่งแบบประเมินสำเร็จ / กลับ
 
-  StuHome --> Suggestion : เมนูเสนอแนะสิ่งของ (UC-13)
-  Suggestion --> StuHome : ส่งคำเสนอแนะสำเร็จ / กลับ
+  RequestList --> Suggestion : เมนูเสนอแนะสิ่งของ (UC-13)
+  Suggestion --> RequestList : ส่งคำเสนอแนะสำเร็จ / กลับ
 }
 
 ' ═════════ โซนเจ้าหน้าที่ (Staff — UC-17 ถึง UC-32) ═════════
 state "เจ้าหน้าที่ (Staff)" as Staff {
-  state "แดชบอร์ดภาพรวมระบบ\n(UC-17)" as StaffDash
-  note right of StaffDash
+  state "แดชบอร์ดภาพรวมระบบ\n(UC-17)" as StaffDashboard
+  note right of StaffDashboard
     แสดง 4 องค์ประกอบ: (1) การ์ดสรุปจำนวนยืม-คืนปัจจุบัน
     (2) กราฟแท่งสถานะการยืมทั้งหมด (3) กราฟโดนัทสัดส่วนนักศึกษา
     ปกติ/ถูกระงับสิทธิ์ (4) รายการสิ่งของถูกยืมมากที่สุด 3 อันดับแรก
@@ -218,11 +219,12 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
     หมายเหตุ: รายการที่นักศึกษายกเลิกไปแล้ว (UC-07) ถูกข้ามอัตโนมัติ
   end note
 
-  state "รับคืนครุภัณฑ์\n(UC-19)" as ReturnMgmt
-  note right of ReturnMgmt
-    แสดง: รายการครุภัณฑ์กำลังยืม + วันครบกำหนดคืน
-    ปุ่ม: ยืนยันรับคืน / ปฏิเสธ (ของไม่ครบ/ชำรุด — คงสถานะ
-    "กำลังยืม" ไว้ พร้อมแจ้งเหตุผลกลับไปยังนักศึกษา)
+  state "รับคืนครุภัณฑ์\n(UC-19)" as ReturnList
+  note right of ReturnList
+    แสดง: รายการรอตรวจรับคืน (สถานะ "รอยืนยันการคืน") + วันครบกำหนดคืน
+    ปุ่ม: ยืนยันรับคืน (→ "คืนสำเร็จ" + คืนจำนวนคงเหลือเข้าคลังอัตโนมัติ) /
+    ปฏิเสธ (สภาพพัสดุมีปัญหา — บังคับระบุเหตุผล คงสถานะ "กำลังยืม" ไว้)
+    กฎ: หากพบว่าชำรุดจากการยืม ส่งต่อไปเปลี่ยนสถานะครุภัณฑ์ได้ (UC-24)
   end note
 
   state "ประวัติการยืม-คืนทั้งระบบ\n(UC-20)" as AllHistory
@@ -256,8 +258,8 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
   state "ลบวัสดุ\n(UC-23)" as ItemDelete
   note right of ItemDelete
     แสดง: เลือกรายการทีละ/หลายชิ้น + ปุ่มยืนยันการลบ
-    ผิดพลาด: วัสดุยังมีคำขอยืมค้างอยู่ (รออนุมัติ/รอรับของ)
-    → ปฏิเสธการลบรายการนั้น พร้อมเหตุผล
+    กฎ: อนุญาตให้ลบถาวรเฉพาะประเภท "วัสดุ" เท่านั้น
+    ผิดพลาด: หากเลือกครุภัณฑ์ → ไม่อนุญาต ให้ใช้การเปลี่ยนสถานะแทน (UC-24)
   end note
 
   state "เปลี่ยนสถานะครุภัณฑ์\n(ชำรุด/เลิกใช้/ปลดระวาง — UC-24)" as ItemStatusChange
@@ -294,8 +296,10 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
 
   state "เพิ่มรายการจัดซื้อเอง\n(UC-30)" as PurchaseAdd
   note right of PurchaseAdd
-    ฟิลด์: ชื่อสิ่งของ, รายละเอียดที่ต้องการจัดซื้อ
-    หมายเหตุ: เป็นเมนูอิสระ ไม่ผูกกับ UC-29
+    ฟิลด์: ชื่อสิ่งของ, หมวดหมู่, จำนวนที่ต้องการจัดซื้อ, งบประมาณประมาณการ
+    เข้าได้ 2 ทาง: เมนูอิสระ (เพิ่มด้วยตนเอง) หรือ
+    ส่งต่อจากคำเสนอแนะที่อนุมัติแล้ว (UC-29)
+    หมายเหตุ: รายการในแผนจัดซื้อใช้ติดตามการนำเข้าคลัง (UC-21/UC-25)
   end note
 
   state "ออกแบบฟอร์มประเมิน +\nดูผลสรุป (UC-32)" as EvaluationForm
@@ -311,19 +315,19 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
     ผิดพลาด: ไม่มีข้อมูลในช่วงที่เลือก → แจ้งเตือน ไม่สร้างไฟล์ว่าง
   end note
 
-  [*] --> StaffDash
+  [*] --> StaffDashboard
 
-  StaffDash --> PendingRequests : เมนู "คำขอรออนุมัติ"
-  PendingRequests --> StaffDash : อนุมัติ/ปฏิเสธสำเร็จ\n(ทีละรายการ/หลายรายการ) / กลับ
+  StaffDashboard --> PendingRequests : เมนู "คำขอรออนุมัติ"
+  PendingRequests --> StaffDashboard : อนุมัติ/ปฏิเสธสำเร็จ\n(ทีละรายการ/หลายรายการ) / กลับ
 
-  StaffDash --> ReturnMgmt : เมนู "รับคืนครุภัณฑ์"
-  ReturnMgmt --> StaffDash : ยืนยัน/ปฏิเสธการรับคืน / กลับ
+  StaffDashboard --> ReturnList : เมนู "รับคืนครุภัณฑ์"
+  ReturnList --> StaffDashboard : ยืนยัน/ปฏิเสธการรับคืน / กลับ
 
-  StaffDash --> AllHistory : เมนูประวัติทั้งระบบ
-  AllHistory --> StaffDash : กลับ
+  StaffDashboard --> AllHistory : เมนูประวัติทั้งระบบ
+  AllHistory --> StaffDashboard : กลับ
 
-  StaffDash --> ItemOverview : เมนูจัดการคลัง
-  ItemOverview --> StaffDash : กลับ
+  StaffDashboard --> ItemOverview : เมนูจัดการคลัง
+  ItemOverview --> StaffDashboard : กลับ
   ItemOverview --> ItemForm : เพิ่ม/แก้ไขทีละชิ้น (UC-21)
   ItemForm --> ItemOverview : บันทึกสำเร็จ / กลับ
   ItemForm --> BulkImport : เลือกนำเข้าแบบไฟล์แทน\n(extend UC-25)
@@ -332,24 +336,28 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
   ItemDelete --> ItemOverview : ลบสำเร็จ / กลับ
   ItemOverview --> ItemStatusChange : เปลี่ยนสถานะครุภัณฑ์ (UC-24)
   ItemStatusChange --> ItemOverview : บันทึกสำเร็จ / กลับ
-  StaffDash --> WarehouseSettings : เมนูตั้งค่าคลัง (UC-26)
-  WarehouseSettings --> StaffDash : กลับ
+  ReturnList --> ItemStatusChange : ตรวจรับคืนแล้วพบว่าชำรุด\n→ ส่งต่อเปลี่ยนสถานะครุภัณฑ์ (UC-24)
+  ItemStatusChange --> ReturnList : บันทึกสถานะชำรุดสำเร็จ\n(กรณีมาจากการตรวจรับคืน)
+  StaffDashboard --> WarehouseSettings : เมนูตั้งค่าคลัง (UC-26)
+  WarehouseSettings --> StaffDashboard : กลับ
 
-  StaffDash --> StudentList : เมนูจัดการนักศึกษา
-  StudentList --> StaffDash : กลับ
+  StaffDashboard --> StudentList : เมนูจัดการนักศึกษา
+  StudentList --> StaffDashboard : กลับ
   StudentList --> StudentPermission : เลือกนักศึกษา\n(include UC-27)
   StudentPermission --> StudentList : บันทึกสำเร็จ / กลับ
 
-  StaffDash --> SuggestionReview : เมนูคำเสนอแนะสิ่งของ (UC-29)
-  SuggestionReview --> StaffDash : อนุมัติ/ปฏิเสธสำเร็จ / กลับ
-  StaffDash --> PurchaseAdd : เมนูรายการจัดซื้อ (UC-30)
-  PurchaseAdd --> StaffDash : บันทึกสำเร็จ / กลับ
+  StaffDashboard --> SuggestionReview : เมนูคำเสนอแนะสิ่งของ (UC-29)
+  SuggestionReview --> StaffDashboard : อนุมัติ/ปฏิเสธสำเร็จ / กลับ
+  SuggestionReview --> PurchaseAdd : กรณีอนุมัติ — เลือกแปลงเป็น\nรายการแผนจัดซื้อทันที (UC-30)
+  StaffDashboard --> PurchaseAdd : เมนูรายการจัดซื้อ (UC-30)
+  PurchaseAdd --> StaffDashboard : บันทึกสำเร็จ / กลับ
+  PurchaseAdd --> SuggestionReview : กลับ (กรณีมาจากคำเสนอแนะ)
 
-  StaffDash --> EvaluationForm : เมนูแบบประเมินความพึงพอใจ (UC-32)
-  EvaluationForm --> StaffDash : กลับ
+  StaffDashboard --> EvaluationForm : เมนูแบบประเมินความพึงพอใจ (UC-32)
+  EvaluationForm --> StaffDashboard : กลับ
 
-  StaffDash --> ReportExport : เมนูส่งออกรายงาน (UC-31)
-  ReportExport --> StaffDash : ดาวน์โหลดสำเร็จ / กลับ
+  StaffDashboard --> ReportExport : เมนูส่งออกรายงาน (UC-31)
+  ReportExport --> StaffDashboard : ดาวน์โหลดสำเร็จ / กลับ
 }
 
 ' ═════════ โซนผู้ดูแลระบบ (Admin — UC-33 ถึง UC-36) ═════════
@@ -363,8 +371,7 @@ state "ผู้ดูแลระบบ (Admin)" as Admin {
   note right of UserDetail
     แสดง: บทบาทปัจจุบัน + ที่มาของบทบาท (อัตโนมัติจาก UBU SSO
     หรือถูกกำหนดเฉพาะบุคคล — Role Override)
-    ปุ่ม: ลบถาวร, ระงับสิทธิ์/ปลดบล็อก
-    ยืนยันซ้ำ: หากบัญชีมีคำขอยืมค้างอยู่ก่อนลบถาวร
+    ปุ่ม: ลบถาวร (ยืนยันซ้ำหากบัญชีมีคำขอยืมค้างอยู่ก่อนลบถาวร), ระงับสิทธิ์/ปลดบล็อก
   end note
 
   state "กำหนดบทบาทรายบุคคล\n(Role Override — UC-34)" as RoleOverride
@@ -385,17 +392,33 @@ state "ผู้ดูแลระบบ (Admin)" as Admin {
     ทั้งหมดพร้อมบทบาทปัจจุบันของแต่ละคน
   end note
 
+  [*] --> UserList
+
+  ' ---------- UC-33 จัดการบัญชีผู้ใช้งาน ----------
+  UserList --> UserDetail : เลือกดูรายละเอียดผู้ใช้งานรายบุคคล (UC-33)
+  UserDetail --> UserList : กลับ
+  UserDetail --> UserDetail : กดระงับสิทธิ์ / ปลดบล็อก / ลบถาวร (UC-33)\n(ลบถาวร: ยืนยันซ้ำถ้าบัญชีมีคำขอยืมค้างอยู่)
+
+  ' ---------- UC-34 include UC-33 — ต้องเลือกผู้ใช้จากรายละเอียดก่อนเสมอ ----------
+  UserDetail --> RoleOverride : กด "กำหนดบทบาทเฉพาะบุคคล"\n(include UC-33)
+  RoleOverride --> UserDetail : บันทึกบทบาทสำเร็จ /\nยกเลิก Override (กลับไปใช้บทบาทจาก UBU SSO) / กลับ
+
+  ' ---------- UC-35 extend UC-34 — ใช้เฉพาะเมื่อเลือกทำแบบกลุ่มผ่านไฟล์ ----------
+  RoleOverride --> RoleOverrideBulk : เลือกกำหนดแบบกลุ่มผ่านไฟล์ CSV แทน\n(extend UC-35)
+  RoleOverrideBulk --> RoleOverride : นำเข้าสำเร็จ / กลับ
+
+  ' ---------- UC-36 ส่งออกรายชื่อบุคลากร ----------
   UserList --> PersonnelExport : เมนู "ส่งออกรายชื่อบุคลากร" (UC-36)
   PersonnelExport --> UserList : ดาวน์โหลดสำเร็จ / กลับ
 }
 
 ' ═════════ ข้ามโซน — กำหนดบทบาทหลังเข้าสู่ระบบ (UC-16) ═════════
-Login --> StuHome : ล็อกอินสำเร็จ\nบทบาท = นักศึกษา\n(UBU SSO หรือ Role Override UC-34/35)
-Login --> StaffDash : ล็อกอินสำเร็จ\nบทบาท = เจ้าหน้าที่\n(UBU SSO หรือ Role Override UC-34/35)
+Login --> RequestList : ล็อกอินสำเร็จ\nบทบาท = นักศึกษา\n(UBU SSO หรือ Role Override UC-34/35)
+Login --> StaffDashboard : ล็อกอินสำเร็จ\nบทบาท = เจ้าหน้าที่\n(UBU SSO หรือ Role Override UC-34/35)
 Login --> UserList : ล็อกอินสำเร็จ\nบทบาท = ผู้ดูแลระบบ
 
-StuHome --> Login : ออกจากระบบ
-StaffDash --> Login : ออกจากระบบ
+RequestList --> Login : ออกจากระบบ
+StaffDashboard --> Login : ออกจากระบบ
 UserList --> Login : ออกจากระบบ
 
 note bottom of Student

@@ -37,33 +37,35 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-13 · เสนอแนะสิ่งของใหม่ — Activity Diagram\nMonolith: partition = actor / ระบบ Django (ไม่ใช่ 1 view) · สมมติล็อกอินแล้ว (session)
+title UC-13 · เสนอแนะสิ่งของใหม่ — Activity Diagram\npartition หน้าจอ = frontend:Suggestion (ตรงกับ state diagram)
 
-' ===== Actor ภายนอก (human) ที่ริเริ่มกระบวนการ =====
-' หมายเหตุ: สมมติว่านักศึกษา login แล้ว (session ผ่าน allauth) — ไม่ต้องวาด OAuth ซ้ำใน flow นี้
-|นักศึกษา|
+|frontend:Suggestion|
 start
+' สมมติว่านักศึกษา login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 :เปิดหน้าเสนอแนะสิ่งของ;
 
-|ระบบ UBORROWU|
+|backend|
 :ตรวจ session + สิทธิ์ (นักศึกษาที่ล็อกอิน);
 
-|นักศึกษา|
+|frontend:Suggestion|
 repeat
   :กรอกชื่อสิ่งของและรายละเอียดที่ต้องการเสนอแนะ แล้วส่ง;
 
-  |ระบบ UBORROWU|
+  |backend|
   :ตรวจ validation (ชื่อสิ่งของ/รายละเอียดครบหรือไม่);
+  |frontend:Suggestion|
 repeat while (ข้อมูลครบหรือไม่?) is (ไม่ครบ — แจ้งเตือนให้กรอกใหม่) not (ครบ)
 
-|ระบบ UBORROWU|
+|backend|
 :บันทึกคำเสนอแนะ (สถานะ "รอพิจารณา") (write);
+
+|frontend:Suggestion|
 :แสดงผลยืนยันการส่งคำเสนอแนะให้นักศึกษา;
 ' ===== ส่วนต่อขยาย (basic flow ข้อ 4): นักศึกษาติดตามสถานะภายหลังได้ =====
 note right
   ภายหลัง นักศึกษาสามารถกลับเข้ามาติดตาม
   สถานะคำเสนอแนะของตนเอง (รอพิจารณา/อนุมัติแล้ว/ปฏิเสธแล้ว)
-  ผ่าน SuggestionStatusView ได้ทุกเมื่อ — ไม่ใช่ส่วนหนึ่งของ
+  ที่หน้า frontend:Suggestion เดิมนี้ได้ทุกเมื่อ — ไม่ใช่ส่วนหนึ่งของ
   ธุรกรรมการส่งคำเสนอแนะนี้ จึงไม่วาดเป็นขั้นตอนถัดจาก stop
   (ดูรายละเอียดผลลัพธ์ที่ UC-29 เมื่อเจ้าหน้าที่พิจารณาแล้ว)
 end note
@@ -71,9 +73,9 @@ end note
 stop
 
 legend right
-  |<back:white>    </back>| Actor ภายนอก (นักศึกษา) |
-  |<back:#F5F5F5>    </back>| ระบบ UBORROWU (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (@ubu.ac.th) (session)
+  |<back:white>    </back>| frontend:Suggestion — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
   หมายเหตุ: อ้างอิง FR-13, endpoint suggestion:suggestion_create / suggestion:suggestion_status
 endlegend
 
