@@ -1,6 +1,6 @@
 @startuml ui_state_diagram
 ' ══════════════════════════════════════════════════════════════════
-' UBORROWU · ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี
+' YuemDee · ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี
 ' UI State Transition Diagram — สร้างจาก use case ทั้งหมด (UC-01–UC-36)
 ' อ้างอิง: proposal/usecase/use_case_description.md,
 '          proposal/usecase/usecase_overview.puml + usecase_module1–10.puml,
@@ -47,7 +47,7 @@ skinparam note {
   BorderColor #9E9E9E
 }
 
-title UBORROWU — UI State Transition Diagram (การนำทางระหว่างหน้าจอ)\nระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี
+title YuemDee — UI State Transition Diagram (การนำทางระหว่างหน้าจอ)\nระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี
 
 ' ═════════ โซนก่อนเข้าสู่ระบบ (Guest) ═════════
 state "ยังไม่เข้าสู่ระบบ" as PreAuth {

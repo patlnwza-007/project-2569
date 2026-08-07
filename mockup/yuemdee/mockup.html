@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UBORROWU · ระบบยืม-คืนพัสดุออนไลน์ (Standalone Single File Mockup)</title>
+<title>YuemDee · ระบบยืม-คืนพัสดุออนไลน์ (Standalone Single File Mockup)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,8 +39,8 @@
   <header class="h-14 shrink-0 bg-blue-700 text-white flex items-center justify-between px-4 shadow-sm z-10">
     <div class="flex items-center gap-2 cursor-pointer" onclick="navigate(getRole() ? HOME_PAGE[getRole()] : 'welcome')">
       <span class="text-xl">📦</span>
-      <span class="font-bold tracking-tight">UBORROWU</span>
-      <span class="hidden md:inline text-blue-200 text-xs font-normal">ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี</span>
+      <span class="font-bold tracking-tight">YuemDee</span>
+      <span class="hidden md:inline text-blue-200 text-xs font-normal">ระบบยืม-คืนพัสดุออนไลน์</span>
     </div>
     <div id="topbar-right" class="flex items-center gap-3 text-sm"></div>
   </header>
@@ -914,8 +914,8 @@
 <div id="view-welcome" class="page-view hidden w-full h-full overflow-y-auto p-6 bg-gradient-to-b from-blue-700 to-blue-500 flex items-center justify-center">
 <div class="bg-white rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
     <div class="text-6xl mb-3">📦</div>
-    <h1 class="text-2xl font-bold text-blue-800">UBORROWU</h1>
-    <p class="text-sm text-gray-500 mt-1 mb-8">ระบบยืม-คืนพัสดุออนไลน์<br>มหาวิทยาลัยอุบลราชธานี</p>
+    <h1 class="text-2xl font-bold text-blue-800">YuemDee</h1>
+    <p class="text-sm text-gray-500 mt-1 mb-8">ระบบยืม-คืนพัสดุออนไลน์</p>
     <a href="javascript:void(0)" onclick="navigate('login')" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-4 py-3 text-sm shadow-sm transition">
       เข้าสู่ระบบด้วย Google
     </a>
@@ -927,7 +927,7 @@
 
   <!-- Footer reset -->
   <footer class="shrink-0 bg-white border-t border-gray-200 px-4 py-1.5 flex justify-between items-center z-10">
-    <span class="text-xs text-gray-400">UBORROWU Single-File Mockup — ไม่เชื่อมต่อฐานข้อมูล/เซิร์ฟเวอร์จริง</span>
+    <span class="text-xs text-gray-400">YuemDee Single-File Mockup — ไม่เชื่อมต่อฐานข้อมูล/เซิร์ฟเวอร์จริง</span>
     <button onclick="if(confirm('รีเซ็ตข้อมูลตัวอย่างทั้งหมดกลับสู่ค่าเริ่มต้น?')) resetAllData()" class="text-xs text-gray-400 hover:text-red-600 underline">↺ รีเซ็ตข้อมูลตัวอย่าง</button>
   </footer>
 </div>
@@ -937,12 +937,12 @@
  * SHARED DATA & HELPERS
  * ==========================================================================*/
 /* ============================================================================
- * UBORROWU · shared.js
+ * YuemDee · shared.js
  * มัสาก data + localStorage helpers + session/role helpers ใช้ร่วมกันทุกหน้า
  * ระบบจริง: Django ORM + django-allauth (Google OAuth) + session
  * ==========================================================================*/
 
-const LS_PREFIX = "uborrowu_";
+const LS_PREFIX = "yuemdee_";
 
 /* ---------------------------- Seed Mock Data ---------------------------- */
 
@@ -1134,7 +1134,7 @@ function currentStaff() { return db("staffs").find(s => s.id === currentUserId()
 function notifyParentPage(stateKey) {
   try {
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ type: "uborrowu-page", page: stateKey }, "*");
+      window.parent.postMessage({ type: "yuemdee-page", page: stateKey }, "*");
     }
   } catch (e) { /* standalone open ไม่มี parent - เงียบไว้ */ }
 }
@@ -3045,7 +3045,7 @@ function p_report_export_render() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       doc.setFontSize(14);
-      doc.text("UBORROWU - " + rep.name, 14, 16);
+      doc.text("YuemDee - " + rep.name, 14, 16);
       doc.setFontSize(9);
       let y = 28;
       rows.forEach(line => {

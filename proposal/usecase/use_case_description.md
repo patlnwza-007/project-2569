@@ -1,6 +1,6 @@
-# UBORROWU · ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี — Use Case Description
+# YuemDee · ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี — Use Case Description
 
-> อ้างอิงจาก `uborrowu_functional_requirements.md` (v1.2) — 1 use case ในเอกสารนี้ต้องตรงกับ 1 use case ใน `usecase.puml` (UC-01 ถึง UC-36)
+> อ้างอิงจาก `yuemdee_functional_requirements.md` (v1.2) — 1 use case ในเอกสารนี้ต้องตรงกับ 1 use case ใน `usecase.puml` (UC-01 ถึง UC-36)
 > ผู้ใช้งาน 3 บทบาท: 🎓 นักศึกษา (Student), 👷 เจ้าหน้าที่ (Staff), 👑 ผู้ดูแลระบบ (Admin)
 > จัดกลุ่มเป็น 10 Module (M1–M10) ตาม Django app หลังยุบรวม (ดูตารางสรุปท้ายเอกสาร) แต่ละ module แบ่งเป็น Epic (E1, E2...) ภายใน
 

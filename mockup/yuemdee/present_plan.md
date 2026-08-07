@@ -1,6 +1,6 @@
-# แผนการนำเสนอ Mockup — UBORROWU (8 นาที)
+# แผนการนำเสนอ Mockup — YuemDee (8 นาที)
 
-> อ้างอิงจากไฟล์ mockup จริง `mockup/uborrowu/index.html` (ครอบคลุมเกือบทุก page_code ทั้ง 10 module, มีปุ่มรีเซ็ตข้อมูลตัวอย่าง, สลับ role ผ่าน login)
+> อ้างอิงจากไฟล์ mockup จริง `mockup/yuemdee/index.html` (ครอบคลุมเกือบทุก page_code ทั้ง 10 module, มีปุ่มรีเซ็ตข้อมูลตัวอย่าง, สลับ role ผ่าน login)
 
 ## หลักคิดการแบ่งเวลา
 

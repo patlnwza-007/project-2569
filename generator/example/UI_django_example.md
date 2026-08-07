@@ -2,7 +2,7 @@
 
 > ตัวอย่างนี้คือ **หน้า Dashboard หลัง login** — state `Dashboard` ใน [`architecture/overview_state_diagram.puml`](../../architecture/overview_state_diagram.puml) ซึ่งเป็นจุดแตกแขนงไปทุก app ของระบบ — เขียนตามกฎใน [`UI_django_frontend.md`](../guide/UI_django_frontend.md) ครบทุกข้อ ใช้เป็นตัวอย่างอ้างอิงตอนสร้างหน้าอื่นต่อ
 >
-> ใช้ระบบตัวอย่าง **UBORROWU** (ยืม-คืนพัสดุ) 3 role: นักศึกษา (Student) / เจ้าหน้าที่ (Staff) / ผู้ดูแลระบบ (Admin)
+> ใช้ระบบตัวอย่าง **YuemDee** (ยืม-คืนพัสดุ) 3 role: นักศึกษา (Student) / เจ้าหน้าที่ (Staff) / ผู้ดูแลระบบ (Admin)
 
 จุดที่ตัวอย่างนี้สาธิตให้เห็น:
 - **App shell = `base.html`** — top bar + sidebar 3 กลุ่ม (โปรไฟล์ / โมดูล / ผู้ดูแลระบบ) render ฝั่ง server (guide §4.1)
@@ -73,7 +73,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 ```django
 {# core/templates/core/dashboard.html #}
 {% extends "base.html" %}
-{% block title %}หน้าหลัก · UBORROWU{% endblock %}
+{% block title %}หน้าหลัก · YuemDee{% endblock %}
 
 {% block content %}
   {# คำทักทาย + role badge — guide §4.2 ข้อ 1 #}

@@ -1,4 +1,4 @@
-# Functional Requirements — ระบบ UBORROWU
+# Functional Requirements — ระบบ YuemDee
 **ระบบยืม-คืนพัสดุออนไลน์ มหาวิทยาลัยอุบลราชธานี**
 
 > **Version:** 1.2
