@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · notify-return</title>
+</head>
+<body class="bg-gray-50" onload="p_notify_return_init()">
+
+<div id="view-notify-return" class="w-full h-full overflow-y-auto p-6">
+  <div class="max-w-2xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <a href="javascript:void(0)" onclick="navigate('request-list')" class="text-sm text-blue-600 hover:underline inline-flex items-center gap-1 mb-1">← กลับหน้าหลัก</a>
+        <h1 class="text-2xl font-bold text-gray-900">↩️ แจ้งคืนครุภัณฑ์</h1>
+        <p class="text-sm text-gray-500 mt-0.5">นำของมาคืนที่คลัง แล้วกดแจ้งคืนเพื่อรอเจ้าหน้าที่ตรวจรับ</p>
+      </div>
+    </div>
+
+    <!-- Overdue alert (injected dynamically) -->
+    <div id="p_notify_return_overdue_alert" class="hidden mb-5"></div>
+
+    <!-- Bulk return (shown when >1 item) -->
+    <div id="p_notify_return_bulk" class="hidden mb-4">
+      <button onclick="p_notify_return_bulkNotify()"
+        class="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold rounded-2xl py-3 transition-colors">
+        ↩️ แจ้งคืนทั้งหมดพร้อมกัน
+      </button>
+    </div>
+
+    <!-- Item rows -->
+    <div id="p_notify_return_rows" class="space-y-4"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_notify_return_init() { notifyParentPage("notify-return"); p_notify_return_render(); }
+
+function p_notify_return_render() {
+  const stu = currentUserId();
+  const highlight = qparam("rid") ? Number(qparam("rid")) : null;
+  const reqs = db("requests").filter(r => r.student_id === stu && r.status === "BORROWING")
+    .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
+  const host = document.getElementById("p_notify_return_rows");
+  const alertEl = document.getElementById("p_notify_return_overdue_alert");
+  const bulkEl  = document.getElementById("p_notify_return_bulk");
+
+  // ── Empty state ──────────────────────────────────────────────────────────
+  if (reqs.length === 0) {
+    if (alertEl) alertEl.classList.add("hidden");
+    if (bulkEl)  bulkEl.classList.add("hidden");
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+      <div class="text-5xl mb-3">✅</div>
+      <p class="text-gray-700 font-semibold text-base">ไม่มีครุภัณฑ์ที่ต้องคืนในขณะนี้</p>
+      <p class="text-xs text-gray-400 mt-1">เมื่อคุณยืมครุภัณฑ์และถึงเวลาคืน รายการจะแสดงที่นี่</p>
+    </div>`;
+    return;
+  }
+
+  // ── Overdue alert banner ────────────────────────────────────────────────
+  const overdueReqs = reqs.filter(r => daysLeft(r.due_date) < 0);
+  if (alertEl) {
+    if (overdueReqs.length > 0) {
+      alertEl.className = "mb-5 bg-red-50 border border-red-300 text-red-800 rounded-2xl p-4";
+      alertEl.innerHTML = `
+        <div class="font-bold text-sm mb-1.5">🚨 มี ${overdueReqs.length} รายการเกินกำหนดคืน!</div>
+        <ul class="list-disc list-inside space-y-0.5 text-xs">
+          ${overdueReqs.map(r => `<li>คำขอ #${r.id} — เกินกำหนด <strong>${Math.abs(daysLeft(r.due_date))}</strong> วัน</li>`).join("")}
+        </ul>
+        <p class="text-xs mt-2 text-red-600 font-medium">กรุณานำของมาคืนโดยเร็วที่สุด เพื่อหลีกเลี่ยงการถูกระงับสิทธิ์</p>`;
+      alertEl.classList.remove("hidden");
+    } else {
+      alertEl.classList.add("hidden");
+    }
+  }
+
+  // ── Bulk return button ──────────────────────────────────────────────────
+  if (bulkEl) bulkEl.classList.toggle("hidden", reqs.length < 2);
+
+  // ── Render each request card ──────────────────────────────────────────
+  host.innerHTML = reqs.map(r => {
+    const dl = daysLeft(r.due_date);
+    const isOverdue = dl < 0;
+    const isNear    = dl >= 0 && dl <= 2;
+    const highlightCls = r.id === highlight ? "border-blue-400 ring-2 ring-blue-100" :
+                         isOverdue ? "border-red-400 ring-2 ring-red-100" :
+                         isNear    ? "border-amber-400 ring-2 ring-amber-100" : "border-gray-200";
+    const dueBadge = isOverdue
+      ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">เกินกำหนด ${Math.abs(dl)} วัน</span>`
+      : isNear
+      ? `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">อีก ${dl} วัน</span>`
+      : `<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-[10px]">อีก ${dl} วัน</span>`;
+
+    const itemLines = r.items.map(it => {
+      const i = itemById(it.item_id);
+      return `<div class="flex items-center gap-2 text-sm text-gray-800">
+        <span class="text-xl">${i?.image || "📦"}</span>
+        <span class="font-medium">${i?.name || "?"}</span>
+        <span class="text-gray-400 text-xs">×${it.qty}</span>
+      </div>`;
+    }).join("");
+
+    return `<div class="bg-white rounded-2xl border ${highlightCls} shadow-sm p-5 hover:shadow-md transition-all">
+      <!-- Request meta -->
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <span class="text-xs text-gray-400 font-mono">คำขอ #${r.id}</span>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="text-xs text-gray-500">กำหนดคืน: <strong class="${isOverdue ? "text-red-600" : "text-gray-800"}">${r.due_date}</strong></span>
+            ${dueBadge}
+          </div>
+        </div>
+        <!-- Main notify button -->
+        <button onclick="p_notify_return_openDialog(${r.id})"
+          class="shrink-0 ${isOverdue ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} text-white text-sm font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm">
+          ↩️ แจ้งคืน
+        </button>
+      </div>
+      <!-- Items -->
+      <div class="space-y-1.5 mb-3">${itemLines}</div>
+      <!-- Condition note input -->
+      <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+        <label class="text-xs font-semibold text-gray-500 mb-1.5 block">📝 บันทึกสภาพของก่อนคืน (ไม่บังคับ)</label>
+        <div class="flex gap-3 mb-2">
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="radio" name="cond_${r.id}" value="normal" checked class="text-blue-600"> สภาพปกติ
+          </label>
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="radio" name="cond_${r.id}" value="damaged" class="text-red-500"> ชำรุด/สูญหายบางส่วน
+          </label>
+        </div>
+        <textarea id="note_${r.id}" rows="2" placeholder="หมายเหตุเพิ่มเติม เช่น มีรอยขีดข่วน, สายหายไป 1 เส้น ..."
+          class="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"></textarea>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function p_notify_return_openDialog(rid) {
+  const cond = document.querySelector(`input[name="cond_${rid}"]:checked`)?.value || "normal";
+  const note = document.getElementById("note_" + rid)?.value || "";
+  const isDamaged = cond === "damaged";
+  const msg = isDamaged
+    ? `ยืนยันแจ้งคืนคำขอ #${rid}?\n\n⚠️ คุณระบุว่าสิ่งของ "ชำรุด/สูญหาย" — เจ้าหน้าที่จะได้รับทราบและดำเนินการต่อไป`
+    : `ยืนยันแจ้งคืนคำขอ #${rid}?\n\nนำของมาที่คลังก่อนกดยืนยัน เจ้าหน้าที่จะตรวจรับและอัปเดตสถานะให้`;
+  if (!confirm(msg)) return;
+  p_notify_return_doNotify(rid, cond, note);
+}
+
+function p_notify_return_doNotify(rid, cond, note) {
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === rid);
+  r.status = "RETURN_PENDING";
+  r.return_notified_at = "2026-07-23 " + new Date().toTimeString().slice(0, 5);
+  r.return_condition = cond || "normal";
+  r.return_note = note || "";
+  dbSave("requests", reqs);
+  toastBanner("แจ้งคืนสำเร็จ รอเจ้าหน้าที่ตรวจรับ" + (cond === "damaged" ? " (แจ้งชำรุด)" : ""));
+  p_notify_return_render();
+}
+
+function p_notify_return_bulkNotify() {
+  const stu = currentUserId();
+  const reqs = db("requests").filter(r => r.student_id === stu && r.status === "BORROWING");
+  if (!confirm(`ยืนยันแจ้งคืนทั้งหมด ${reqs.length} รายการพร้อมกัน?\n\nนำของทั้งหมดมาที่คลังก่อนกดยืนยัน`)) return;
+  reqs.forEach(r => {
+    r.status = "RETURN_PENDING";
+    r.return_notified_at = "2026-07-23 " + new Date().toTimeString().slice(0, 5);
+    r.return_condition = "normal";
+  });
+  const allReqs = db("requests").map(r => reqs.find(x => x.id === r.id) || r);
+  dbSave("requests", allReqs);
+  toastBanner(`แจ้งคืนทั้งหมด ${reqs.length} รายการสำเร็จ รอเจ้าหน้าที่ตรวจรับ`);
+  p_notify_return_render();
+}
+</script>
+</body>
+</html>

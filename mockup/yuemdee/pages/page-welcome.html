@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · หน้าแรก</title>
+</head>
+<body class="bg-gray-50" onload="notifyParentPage('welcome')">
+
+<div id="view-welcome" class="w-full h-full overflow-y-auto p-6 bg-gradient-to-b from-blue-700 to-blue-500 flex items-center justify-center">
+<div class="bg-white rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
+    <div class="text-6xl mb-3">📦</div>
+    <h1 class="text-2xl font-bold text-blue-800">YuemDee</h1>
+    <p class="text-sm text-gray-500 mt-1 mb-8">ระบบยืม-คืนพัสดุออนไลน์</p>
+    <a href="javascript:void(0)" onclick="navigate('login')" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-4 py-3 text-sm shadow-sm transition">
+      เข้าสู่ระบบด้วย Google
+    </a>
+    <p class="text-xs text-gray-400 mt-6">รองรับเฉพาะบัญชีที่อยู่ใน Whitelist ของมหาวิทยาลัยเท่านั้น</p>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+</script>
+</body>
+</html>

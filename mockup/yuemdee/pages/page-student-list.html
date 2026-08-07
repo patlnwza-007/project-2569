@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · student-list</title>
+</head>
+<body class="bg-gray-50" onload="p_student_list_init()">
+
+<div id="view-student-list" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">รายชื่อนักศึกษา</h1>
+    <p class="text-sm text-gray-500 mb-4">ค้นหา/เรียงลำดับ เพื่อจัดการสิทธิ์การยืมของนักศึกษาแต่ละคน</p>
+    <input id="p_student_list_q" oninput="p_student_list_render()" placeholder="ค้นหาชื่อ/รหัสนักศึกษา..." class="w-full mb-4 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500"><tr>
+          <th class="text-left px-4 py-2 cursor-pointer" onclick="p_student_list_sortBy('id')">รหัสนักศึกษา ⇅</th>
+          <th class="text-left px-4 py-2 cursor-pointer" onclick="p_student_list_sortBy('name')">ชื่อ-นามสกุล ⇅</th>
+          <th class="text-left px-4 py-2">สถานะ</th><th class="text-left px-4 py-2">จัดการ</th></tr></thead>
+        <tbody id="p_student_list_rows"></tbody>
+      </table>
+      <div id="p_student_list_empty" class="hidden p-10 text-center text-gray-500">ไม่พบข้อมูล</div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+let sortKey = "id", sortAsc = true;
+    function p_student_list_init() { notifyParentPage("student-list"); p_student_list_render(); }
+    function p_student_list_sortBy(key) { sortAsc = (sortKey === key) ? !sortAsc : true; sortKey = key; p_student_list_render(); }
+    function p_student_list_render() {
+      const q = document.getElementById("p_student_list_q").value.trim().toLowerCase();
+      let list = db("students");
+      if (q) list = list.filter(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+      list = list.slice().sort((a,b) => { const r = String(a[sortKey]).localeCompare(String(b[sortKey])); return sortAsc ? r : -r; });
+      document.getElementById("p_student_list_empty").classList.toggle("hidden", list.length !== 0);
+      document.getElementById("p_student_list_rows").innerHTML = list.map(s => `<tr class="hover:bg-gray-50 border-t border-gray-100">
+        <td class="px-4 py-2 font-mono text-xs">${s.id}</td><td class="px-4 py-2">${s.name}</td>
+        <td class="px-4 py-2">${s.blocked ? '<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700">ถูกระงับสิทธิ์</span>' : '<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700">ปกติ</span>'}</td>
+        <td class="px-4 py-2"><a href="javascript:void(0)" onclick="navigate('student-permission', {id: '${s.id}'})" class="text-blue-600 text-xs hover:underline">จัดการสิทธิ์</a></td>
+      </tr>`).join("");
+    }
+</script>
+</body>
+</html>

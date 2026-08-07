@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · user-list</title>
+</head>
+<body class="bg-gray-50" onload="p_user_list_init()">
+
+<div id="view-user-list" class="w-full h-full overflow-y-auto p-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">👥 รายชื่อและสถานะบัญชีผู้ใช้งาน</h1>
+        <p class="text-sm text-gray-500 mt-0.5">ตรวจสอบบทบาทสิทธิ์ วิธีการยืนยันตัวตน และสถานะการใช้งานของบัญชีผู้ใช้ในระบบ</p>
+      </div>
+      <a href="javascript:void(0)" onclick="navigate('personnel-export')" class="inline-flex items-center gap-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-xl px-3.5 py-2 shadow-sm transition-all">
+        📤 ส่งออกรายชื่อ (CSV)
+      </a>
+    </div>
+
+    <!-- SSO Auto Auth Notice Banner -->
+    <div class="bg-blue-50/80 border border-blue-200 text-blue-900 rounded-2xl p-4 mb-5 text-xs flex items-start gap-3 shadow-sm">
+      <span class="text-xl shrink-0">🔐</span>
+      <div>
+        <strong class="font-bold text-sm text-blue-950 block mb-0.5">ระบบยืนยันตัวตนอัตโนมัติผ่าน UBU Single Sign-On (@ubu.ac.th)</strong>
+        <span>ผู้ใช้อีเมลมหาวิทยาลัยเข้าใช้งานและรับสิทธิ์สอดคล้องตามฐานข้อมูล SSO ของมหาวิทยาลัยโดยอัตโนมัติ Admin สามารถตรวจสอบสถานะสิทธิ์และสถานะบัญชีของผู้ใช้งานทั้งหมดได้จากตารางด้านล่าง</span>
+      </div>
+    </div>
+
+    <!-- Search & Filter Toolbar -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex flex-wrap items-center gap-3">
+      <div class="flex-1 min-w-[220px]">
+        <input id="p_user_list_q" oninput="p_user_list_render()" placeholder="🔍 ค้นหาชื่อ, อีเมล หรือรหัสผู้ใช้..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+      </div>
+      <div class="min-w-[150px]">
+        <select id="p_user_list_f-role" onchange="p_user_list_render()" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+          <option value="">บทบาททั้งหมด</option>
+          <option value="student">🎓 นักศึกษา</option>
+          <option value="staff">👷 เจ้าหน้าที่</option>
+          <option value="admin">👑 ผู้ดูแลระบบ</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- User Table -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-50 text-xs font-semibold uppercase text-gray-500 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-3">ผู้ใช้งาน</th>
+            <th class="px-4 py-3">อีเมล</th>
+            <th class="px-4 py-3">บทบาทสิทธิ์</th>
+            <th class="px-4 py-3">การยืนยันตัวตน</th>
+            <th class="px-4 py-3">สถานะบัญชี</th>
+            <th class="px-4 py-3 text-right">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="p_user_list_rows" class="divide-y divide-gray-100"></tbody>
+      </table>
+      <div id="p_user_list_empty" class="hidden p-10 text-center text-gray-500 text-sm">ไม่พบข้อมูลผู้ใช้งาน</div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_user_list_allUsers() {
+      const overrides = db("role_overrides").filter(o => o.active);
+      const overrideMap = {}; overrides.forEach(o => overrideMap[o.email] = o);
+      const users = [];
+      db("whitelist_student").forEach(email => {
+        const stu = db("students").find(s => s.email === email);
+        const ov = overrideMap[email];
+        users.push({ email, name: stu ? stu.name : "(ยังไม่เคยเข้าสู่ระบบ)", defaultRole: "student", effectiveRole: ov ? ov.role : "student", source: ov ? "Role Override" : "Whitelist", blocked: stu ? stu.blocked : false, studentId: stu ? stu.id : null });
+      });
+      db("whitelist_staff").forEach(email => {
+        const st = db("staffs").find(s => s.email === email);
+        const ov = overrideMap[email];
+        users.push({ email, name: st ? st.name : "(ยังไม่เคยเข้าสู่ระบบ)", defaultRole: "staff", effectiveRole: ov ? ov.role : "staff", source: ov ? "Role Override" : "Whitelist", blocked: false, studentId: null });
+      });
+      // อีเมลที่มี override แต่ไม่อยู่ใน whitelist ใด ๆ (กรณีพิเศษ เช่น s004)
+      overrides.forEach(o => {
+        if (!users.some(u => u.email === o.email)) {
+          users.push({ email: o.email, name: "(นอก Whitelist เดิม)", defaultRole: "student", effectiveRole: o.role, source: "Role Override", blocked: false, studentId: null });
+        }
+      });
+      return users;
+    }
+    function p_user_list_init() { notifyParentPage("user-list"); p_user_list_render(); }
+    function p_user_list_render() {
+      const role = document.getElementById("p_user_list_f-role")?.value || "";
+      const q = document.getElementById("p_user_list_q")?.value.trim().toLowerCase() || "";
+      let users = p_user_list_allUsers();
+      if (role) users = users.filter(u => u.effectiveRole === role);
+      if (q) users = users.filter(u => u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q) || (u.studentId && u.studentId.toLowerCase().includes(q)));
+
+      const emptyEl = document.getElementById("p_user_list_empty");
+      const hostEl = document.getElementById("p_user_list_rows");
+      if (emptyEl) emptyEl.classList.toggle("hidden", users.length !== 0);
+      if (!hostEl) return;
+
+      hostEl.innerHTML = users.map(u => {
+        const isStudent = u.effectiveRole === "student";
+        const roleBadge = isStudent
+          ? `<span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">🎓 นักศึกษา</span>`
+          : u.effectiveRole === "staff"
+          ? `<span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">👷 เจ้าหน้าที่</span>`
+          : `<span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">👑 ผู้ดูแลระบบ</span>`;
+
+        const authBadge = `<span class="bg-gray-100 text-gray-600 text-xs font-mono px-2 py-0.5 rounded">UBU SSO</span>`;
+        const statusBadge = u.blocked
+          ? `<span class="bg-red-100 text-red-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">🔴 ถูกระงับสิทธิ์</span>`
+          : `<span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">🟢 ปกติ</span>`;
+
+        return `<tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3">
+            <p class="font-bold text-gray-800 text-sm">${u.name}</p>
+            ${u.studentId ? `<p class="text-xs text-gray-400 font-mono">ID: ${u.studentId}</p>` : ''}
+          </td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-600">${u.email}</td>
+          <td class="px-4 py-3">${roleBadge}</td>
+          <td class="px-4 py-3">${authBadge}</td>
+          <td class="px-4 py-3">${statusBadge}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="javascript:void(0)" onclick="navigate('user-detail', {email: '${u.email}'})" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-1.5 rounded-lg transition-all">รายละเอียด →</a>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+</script>
+</body>
+</html>

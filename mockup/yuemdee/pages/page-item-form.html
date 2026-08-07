@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · item-form</title>
+</head>
+<body class="bg-gray-50" onload="p_item_form_init()">
+
+<div id="view-item-form" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-xl mx-auto">
+    <a href="javascript:void(0)" onclick="navigate('item-overview')" class="text-sm text-blue-600 hover:underline">← กลับภาพรวมคลัง</a>
+    <h1 id="p_item_form_title" class="text-2xl font-bold text-gray-800 mt-2 mb-1">เพิ่มสิ่งของใหม่</h1>
+    <p class="text-sm text-gray-500 mb-6">หมวดหมู่และตำแหน่งต้องตั้งค่าไว้ก่อนที่หน้าตั้งค่าคลัง (UC-26)</p>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <div><label class="text-sm font-semibold text-gray-700">ชื่อสิ่งของ <span class="text-red-500">*</span></label>
+        <input id="p_item_form_f-name" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      <div><label class="text-sm font-semibold text-gray-700">รูปภาพ (emoji แทนรูปถ่ายจริงในสาธิต)</label>
+        <input id="p_item_form_f-image" placeholder="📦" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-semibold text-gray-700">หมวดหมู่ <span class="text-red-500">*</span></label>
+          <select id="p_item_form_f-cat" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></select></div>
+        <div><label class="text-sm font-semibold text-gray-700">ตำแหน่งวาง <span class="text-red-500">*</span></label>
+          <select id="p_item_form_f-pos" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-semibold text-gray-700">ประเภท <span class="text-red-500">*</span></label>
+          <select id="p_item_form_f-type" onchange="p_item_form_toggleDays()" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option value="material">วัสดุ (เบิก ไม่ต้องคืน)</option>
+            <option value="equipment">ครุภัณฑ์ (ยืม ต้องคืน)</option>
+          </select>
+        </div>
+        <div><label class="text-sm font-semibold text-gray-700">จำนวนทั้งหมด <span class="text-red-500">*</span></label>
+          <input id="p_item_form_f-qty" type="number" min="1" oninput="p_item_form_renderUnitInputs()" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+      </div>
+
+      <!-- Max borrow days for Equipment -->
+      <div id="p_item_form_days-field"><label class="text-sm font-semibold text-gray-700">จำนวนวันสูงสุดที่ยืมได้ (ครุภัณฑ์)</label>
+        <input id="p_item_form_f-days" type="number" min="1" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+
+      <!-- Asset Tags Generator Box for Equipment -->
+      <div id="p_item_form_units-box" class="hidden bg-gray-50 border border-blue-200 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-bold text-blue-900 flex items-center gap-1">
+              <span>🏷️</span> รหัสครุภัณฑ์รายชิ้น (Asset Tags / Serial No.)
+            </h3>
+            <p class="text-[11px] text-gray-500">กำหนดรหัสประจำชิ้นเพื่อติดตามประวัติการยืมและสภาพสิ่งของ</p>
+          </div>
+          <button type="button" onclick="p_item_form_autoGenerateTags()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-3 py-1.5 transition-colors shadow-sm">
+            ⚡ รันรหัสอัตโนมัติ
+          </button>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-gray-600 font-medium shrink-0">Prefix รหัส:</span>
+          <input id="p_item_form_f-prefix" placeholder="เช่น UBU-CAM-2026-" class="border border-gray-300 rounded-lg px-2.5 py-1 text-xs font-mono w-44 bg-white">
+        </div>
+        <div id="p_item_form_units-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+      </div>
+
+      <p id="p_item_form_err" class="hidden text-xs text-red-600 font-medium">⚠️ กรุณากรอกข้อมูลบังคับและรหัสครุภัณฑ์ให้ครบถ้วนก่อนบันทึก</p>
+      <button onclick="p_item_form_save()" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-6 py-2.5 shadow-sm transition-all">บันทึกสิ่งของ</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+let editId = null;
+
+function p_item_form_init() {
+  notifyParentPage("item-form");
+  editId = null;
+  document.getElementById("p_item_form_f-cat").innerHTML = db("categories").map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("p_item_form_f-pos").innerHTML = db("positions").map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+
+  const id = qparam("id");
+  if (id) {
+    editId = Number(id);
+    const item = itemById(editId);
+    if (item) {
+      document.getElementById("p_item_form_title").textContent = "แก้ไขสิ่งของ";
+      document.getElementById("p_item_form_f-name").value = item.name;
+      document.getElementById("p_item_form_f-image").value = item.image;
+      document.getElementById("p_item_form_f-cat").value = item.category_id;
+      document.getElementById("p_item_form_f-pos").value = item.position_id;
+      document.getElementById("p_item_form_f-type").value = item.type;
+      document.getElementById("p_item_form_f-qty").value = item.qty_total;
+      document.getElementById("p_item_form_f-days").value = item.max_borrow_days || "";
+    }
+  } else {
+    document.getElementById("p_item_form_title").textContent = "เพิ่มสิ่งของใหม่";
+    document.getElementById("p_item_form_f-name").value = "";
+    document.getElementById("p_item_form_f-image").value = "";
+    document.getElementById("p_item_form_f-qty").value = "1";
+    document.getElementById("p_item_form_f-days").value = "7";
+    document.getElementById("p_item_form_f-prefix").value = "UBU-EQ-";
+  }
+
+  p_item_form_toggleDays();
+}
+
+function p_item_form_toggleDays() {
+  const isEquip = document.getElementById("p_item_form_f-type").value === "equipment";
+  document.getElementById("p_item_form_days-field").classList.toggle("hidden", !isEquip);
+  document.getElementById("p_item_form_units-box").classList.toggle("hidden", !isEquip);
+  if (isEquip) p_item_form_renderUnitInputs();
+}
+
+function p_item_form_renderUnitInputs() {
+  const isEquip = document.getElementById("p_item_form_f-type").value === "equipment";
+  if (!isEquip) return;
+
+  const qty = Math.max(1, Math.min(50, Number(document.getElementById("p_item_form_f-qty").value) || 1));
+  const listEl = document.getElementById("p_item_form_units-list");
+  if (!listEl) return;
+
+  let existingUnits = [];
+  if (editId) {
+    existingUnits = db("units").filter(u => u.item_id === editId);
+  }
+
+  const prefix = document.getElementById("p_item_form_f-prefix").value.trim() || "UBU-EQ-";
+  let html = "";
+
+  for (let i = 0; i < qty; i++) {
+    const defaultTag = existingUnits[i] ? existingUnits[i].asset_tag : `${prefix}${String(i + 1).padStart(3, "0")}`;
+    html += `<div class="flex items-center gap-2 text-xs">
+      <span class="text-gray-400 font-mono w-16 text-right shrink-0">ชิ้นที่ ${i + 1}:</span>
+      <input type="text" class="unit-tag-input border border-gray-300 rounded-lg px-2.5 py-1 font-mono text-xs w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" value="${defaultTag}" placeholder="รหัสครุภัณฑ์">
+    </div>`;
+  }
+
+  listEl.innerHTML = html;
+}
+
+function p_item_form_autoGenerateTags() {
+  const prefix = document.getElementById("p_item_form_f-prefix").value.trim() || "UBU-EQ-";
+  const inputs = document.querySelectorAll(".unit-tag-input");
+  inputs.forEach((input, i) => {
+    input.value = `${prefix}${String(i + 1).padStart(3, "0")}`;
+  });
+  toastBanner("รันรหัสครุภัณฑ์เรียบร้อยแล้ว");
+}
+
+function p_item_form_save() {
+  const name = document.getElementById("p_item_form_f-name").value.trim();
+  const qty = Number(document.getElementById("p_item_form_f-qty").value);
+  const type = document.getElementById("p_item_form_f-type").value;
+
+  if (!name || isNaN(qty) || qty <= 0) {
+    document.getElementById("p_item_form_err").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("p_item_form_err").classList.add("hidden");
+
+  const items = db("items");
+  const data = {
+    name,
+    image: document.getElementById("p_item_form_f-image").value.trim() || "📦",
+    category_id: Number(document.getElementById("p_item_form_f-cat").value),
+    position_id: Number(document.getElementById("p_item_form_f-pos").value),
+    type,
+    qty_total: qty,
+    max_borrow_days: type === "equipment" ? (Number(document.getElementById("p_item_form_f-days").value) || 7) : null,
+    base_status: "พร้อมให้ยืม",
+  };
+
+  let targetItemId = editId;
+
+  if (editId) {
+    const item = items.find(i => i.id === editId);
+    const diff = data.qty_total - item.qty_total;
+    Object.assign(item, data);
+    item.qty_available = Math.max(0, item.qty_available + diff);
+  } else {
+    targetItemId = nextId(items);
+    items.push({ id: targetItemId, qty_available: data.qty_total, ...data });
+  }
+
+  dbSave("items", items);
+
+  // Handle Equipment Asset Tags
+  if (type === "equipment") {
+    const units = db("units");
+    const tagInputs = document.querySelectorAll(".unit-tag-input");
+
+    // Remove old units for this item if edit
+    let remainingUnits = units.filter(u => u.item_id !== targetItemId);
+
+    tagInputs.forEach((input, i) => {
+      const tag = input.value.trim() || `UBU-EQ-${targetItemId}-${String(i + 1).padStart(2, "0")}`;
+      remainingUnits.push({
+        asset_tag: tag,
+        item_id: targetItemId,
+        status: "AVAILABLE",
+        note: ""
+      });
+    });
+
+    dbSave("units", remainingUnits);
+  }
+
+  toastBanner("บันทึกข้อมูลสิ่งของและรหัสครุภัณฑ์เรียบร้อยแล้ว");
+  setTimeout(() => navigate("item-overview"), 600);
+}
+</script>
+</body>
+</html>

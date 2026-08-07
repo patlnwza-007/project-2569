@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · evaluation</title>
+</head>
+<body class="bg-gray-50" onload="p_evaluation_init()">
+
+<div id="view-evaluation" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-xl mx-auto">
+    <a href="javascript:void(0)" onclick="navigate('history')" class="text-sm text-blue-600 hover:underline">← กลับประวัติการยืม</a>
+    <div id="p_evaluation_content" class="mt-3"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+let questions = [];
+
+function p_evaluation_init() {
+  notifyParentPage("evaluation");
+  const ridParam = qparam("rid");
+  let r = ridParam ? db("requests").find(x => x.id === Number(ridParam)) : null;
+
+  // Fallback demo sample returned item if opened directly
+  if (!r) {
+    r = db("requests").find(x => x.status === "RETURNED" || x.status === "ISSUED") || db("requests")[0];
+  }
+
+  const form = db("eval_form");
+  const host = document.getElementById("p_evaluation_content");
+
+  if (!form.published) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-3">ยังไม่มีแบบฟอร์มประเมินความพึงพอใจที่เผยแพร่ในขณะนี้</div>`;
+    return;
+  }
+  if (!r) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-3">ไม่พบรายการยืมสำหรับประเมิน</div>`;
+    return;
+  }
+
+  const already = db("eval_responses").some(e => e.request_id === r.id);
+  if (already && ridParam) {
+    host.innerHTML = `<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-2xl p-8 text-center mt-3">คุณเคยประเมินรายการนี้ไปแล้ว ไม่สามารถส่งซ้ำได้</div>`;
+    return;
+  }
+
+  questions = form.questions;
+  const itemCards = r.items.map(it => {
+    const item = itemById(it.item_id);
+    return `<div class="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
+      <span class="text-3xl">${item?.image || '📦'}</span>
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-gray-800 text-sm">${item?.name || 'สิ่งของ'} <span class="text-xs text-gray-400 font-mono font-normal">×${it.qty}</span></p>
+        <p class="text-xs text-gray-500">${item?.type === 'equipment' ? 'ครุภัณฑ์ (คืนเรียบร้อยแล้ว)' : 'วัสดุเบิกใช้'}</p>
+      </div>
+    </div>`;
+  }).join("");
+
+  host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mt-3 space-y-4">
+    <div>
+      <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">คำขอ #${r.id}</span>
+      <h1 class="text-xl font-bold text-gray-900 mt-2">แบบประเมินความพึงพอใจการยืมสิ่งของ</h1>
+      <p class="text-xs text-gray-500 mt-0.5">กรุณาประเมินความพึงพอใจการให้บริการสิ่งของในคลัง</p>
+    </div>
+
+    <!-- Evaluated Items Sample Box -->
+    <div class="space-y-2">
+      <label class="text-xs font-bold text-gray-600 uppercase tracking-wider block">📦 สิ่งของที่ประเมิน:</label>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        ${itemCards}
+      </div>
+    </div>
+
+    <div id="p_evaluation_q-host" class="space-y-4 pt-2 border-t border-gray-100"></div>
+    <button onclick="p_evaluation_submitEval(${r.id})" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 transition-all shadow-sm">ส่งแบบประเมิน</button>
+  </div>`;
+      document.getElementById("p_evaluation_q-host").innerHTML = questions.map(q => {
+        if (q.type === "rating") {
+          return `<div><label class="text-sm font-semibold text-gray-700">${q.text}</label>
+            <div class="flex gap-1 mt-1" id="rating-${q.id}">
+              ${[1,2,3,4,5].map(n => `<button type="button" onclick="p_evaluation_setRating(${q.id},${n})" data-n="${n}" class="star text-2xl text-gray-300">★</button>`).join("")}
+            </div></div>`;
+        }
+        return `<div><label class="text-sm font-semibold text-gray-700">${q.text}</label>
+          <textarea id="text-${q.id}" rows="2" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea></div>`;
+      }).join("");
+    }
+    window.p_evaluation_ratings = window.p_evaluation_ratings || {};
+    function p_evaluation_setRating(qid, n) {
+      window.p_evaluation_ratings[qid] = n;
+      document.querySelectorAll(`#view-evaluation #rating-${qid} .star`).forEach(s => {
+        s.classList.toggle("text-yellow-400", Number(s.dataset.n) <= n);
+        s.classList.toggle("text-gray-300", Number(s.dataset.n) > n);
+      });
+    }
+    function p_evaluation_submitEval(rid) {
+      const answers = {};
+      let missing = false;
+      questions.forEach(q => {
+        if (q.type === "rating") { if (!window.p_evaluation_ratings[q.id]) missing = true; answers[q.id] = window.p_evaluation_ratings[q.id] || null; }
+        else { answers[q.id] = document.getElementById("text-" + q.id).value.trim(); }
+      });
+      if (missing) { toastBanner("กรุณาให้คะแนนทุกข้อก่อนส่ง", "error"); return; }
+      const evals = db("eval_responses");
+      evals.push({ id: nextId(evals), request_id: rid, student_id: currentUserId(), answers, created_at: "2026-07-23" });
+      dbSave("eval_responses", evals);
+      toastBanner("ส่งแบบประเมินสำเร็จ ขอบคุณค่ะ/ครับ");
+      setTimeout(() => navigate("history"), 700);
+    }
+</script>
+</body>
+</html>

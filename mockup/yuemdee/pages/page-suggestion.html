@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · suggestion</title>
+</head>
+<body class="bg-gray-50" onload="p_suggestion_init()">
+
+<div id="view-suggestion" class="w-full h-full overflow-y-auto p-6">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">💡 เสนอแนะสิ่งของใหม่</h1>
+    <p class="text-sm text-gray-500 mb-6">เสนอแนะสิ่งของที่อยากให้หน่วยงานจัดซื้อเพิ่ม เจ้าหน้าที่จะรวบรวมเพื่อพิจารณาจัดหาในลำดับถัดไป</p>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 space-y-4">
+      <div>
+        <label class="text-sm font-semibold text-gray-700">ชื่อสิ่งของที่ต้องการเสนอแนะ <span class="text-red-500">*</span></label>
+        <input id="p_suggestion_f-name" placeholder="เช่น กล้องถ่ายภาพ DSLR, ขาตั้งกล้องทรงสูง..." class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-700">รายละเอียด / เหตุผลที่ควรจัดซื้อ <span class="text-red-500">*</span></label>
+        <textarea id="p_suggestion_f-detail" rows="3" placeholder="ระบุเหตุผล เช่น ใช้ในกิจกรรมชมรม, ของที่มีอยู่เดิมชำรุดไม่พอ..." class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"></textarea>
+      </div>
+      <p id="p_suggestion_err" class="hidden text-xs text-red-600 font-medium">⚠️ กรุณากรอกชื่อสิ่งของและรายละเอียดก่อนส่งข้อเสนอแนะ</p>
+      <button onclick="p_suggestion_submitSuggestion()" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-5 py-2.5 shadow-sm transition-all">
+        ส่งข้อเสนอแนะ
+      </button>
+    </div>
+
+    <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+      <span>📜</span> ประวัติข้อเสนอแนะของฉัน
+    </h2>
+    <div id="p_suggestion_rows" class="space-y-2.5"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_suggestion_init() { notifyParentPage("suggestion"); p_suggestion_render(); }
+
+function p_suggestion_render() {
+  const stu = currentUserId();
+  const mine = db("suggestions").filter(s => s.student_id === stu).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
+  const host = document.getElementById("p_suggestion_rows");
+  if (!host) return;
+
+  if (mine.length === 0) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
+      <div class="text-3xl mb-2">💡</div>
+      <p class="font-medium text-sm">คุณยังไม่มีประวัติการเสนอแนะสิ่งของ</p>
+      <p class="text-xs text-gray-400 mt-0.5">กรอกฟอร์มด้านบนเพื่อส่งข้อเสนอแนะสิ่งของใหม่</p>
+    </div>`;
+    return;
+  }
+
+  const badgeMap = {
+    SUBMITTED: `<span class="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0">💡 ส่งข้อเสนอแนะแล้ว</span>`,
+    ACKNOWLEDGED: `<span class="bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0">👁️ เจ้าหน้ารับทราบแล้ว</span>`,
+    PURCHASE_PLAN: `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0">🛒 เพิ่มในแผนจัดซื้อแล้ว</span>`,
+  };
+
+  host.innerHTML = mine.map(s => `
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-all flex items-start justify-between gap-4">
+      <div>
+        <p class="text-sm font-bold text-gray-900">${s.name}</p>
+        <p class="text-xs text-gray-500 mt-1">${s.detail}</p>
+        <p class="text-[10px] text-gray-400 font-mono mt-1.5">ส่งเมื่อ ${s.created_at || "-"}</p>
+      </div>
+      ${badgeMap[s.status] || badgeMap.SUBMITTED}
+    </div>
+  `).join("");
+}
+
+function p_suggestion_submitSuggestion() {
+  const name = document.getElementById("p_suggestion_f-name").value.trim();
+  const detail = document.getElementById("p_suggestion_f-detail").value.trim();
+  if (!name || !detail) {
+    document.getElementById("p_suggestion_err")?.classList.remove("hidden");
+    return;
+  }
+  document.getElementById("p_suggestion_err")?.classList.add("hidden");
+
+  const list = db("suggestions");
+  list.push({
+    id: nextId(list),
+    student_id: currentUserId(),
+    name,
+    detail,
+    status: "SUBMITTED",
+    created_at: "2026-07-23 " + new Date().toTimeString().slice(0,5)
+  });
+  dbSave("suggestions", list);
+
+  document.getElementById("p_suggestion_f-name").value = "";
+  document.getElementById("p_suggestion_f-detail").value = "";
+  toastBanner("ส่งข้อเสนอแนะสำเร็จ ข้อมูลจะส่งถึงเจ้าหน้าที่เพื่อรวบรวมไว้พิจารณาจัดซื้อ");
+  p_suggestion_render();
+}
+</script>
+</body>
+</html>

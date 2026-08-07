@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · cart</title>
+</head>
+<body class="bg-gray-50" onload="p_cart_init()">
+
+<div id="view-cart" class="w-full h-full overflow-y-auto p-6">
+  <div class="max-w-3xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">🛒 ตะกร้าของฉัน</h1>
+        <p class="text-sm text-gray-500 mt-0.5">ตรวจสอบรายการและจำนวนก่อนส่งคำขอยืม</p>
+      </div>
+      <a href="javascript:void(0)" onclick="navigate('item-list')"
+        class="text-sm text-blue-600 hover:underline flex items-center gap-1">+ เพิ่มสิ่งของ</a>
+    </div>
+
+    <!-- Type-mix warning (shown when cart has both material + equipment) -->
+    <div id="p_cart_mix_warning" class="hidden mb-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl p-3.5 text-sm flex items-start gap-2">
+      <span class="text-lg leading-none">ℹ️</span>
+      <div>
+        <p class="font-semibold">ตะกร้ามีทั้งวัสดุและครุภัณฑ์ปนกัน</p>
+        <p class="text-xs text-blue-600 mt-0.5">วัสดุ = เบิกไม่ต้องคืน · ครุภัณฑ์ = ยืมต้องคืน กำหนดคืนจะคำนวณจากครุภัณฑ์เท่านั้น</p>
+      </div>
+    </div>
+
+    <!-- Cart items -->
+    <div id="p_cart_rows" class="space-y-3 mb-5"></div>
+
+    <!-- Summary bar + actions (shown when cart not empty) -->
+    <div id="p_cart_footer" class="hidden bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+      <div id="p_cart_summary" class="flex flex-wrap gap-3 text-sm text-gray-600 mb-4 pb-3 border-b border-gray-100"></div>
+      <div class="flex items-center justify-between gap-3">
+        <a href="javascript:void(0)" onclick="navigate('item-list')"
+          class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2 transition-colors">← เพิ่มสิ่งของ</a>
+        <button id="p_cart_submit-btn" onclick="p_cart_goRequestForm()"
+          class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-6 py-2.5 shadow-sm shadow-blue-200 transition-all">
+          ยืนยันส่งคำขอยืม →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_cart_init() { notifyParentPage("cart"); p_cart_render(); }
+
+function p_cart_render() {
+  const cart = db("cart");
+  const host = document.getElementById("p_cart_rows");
+  const footer = document.getElementById("p_cart_footer");
+  const summaryEl = document.getElementById("p_cart_summary");
+  const mixWarn = document.getElementById("p_cart_mix_warning");
+  const submitBtn = document.getElementById("p_cart_submit-btn");
+
+  // ── Empty state ──────────────────────────────────────────────────────────
+  if (cart.length === 0) {
+    if (footer) footer.classList.add("hidden");
+    if (mixWarn) mixWarn.classList.add("hidden");
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+      <div class="text-5xl mb-3">🛒</div>
+      <p class="text-gray-700 font-semibold text-base">ตะกร้าว่างเปล่า</p>
+      <p class="text-xs text-gray-400 mt-1 mb-5">เลือกสิ่งของจากรายการเพื่อเพิ่มลงตะกร้า</p>
+      <a href="javascript:void(0)" onclick="navigate('item-list')"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5 shadow-sm transition-all">
+        ไปเลือกสิ่งของ →
+      </a>
+    </div>`;
+    return;
+  }
+
+  // ── Render items ──────────────────────────────────────────────────────────
+  const hasEquip = cart.some(c => itemById(c.item_id)?.type === "equipment");
+  const hasMat   = cart.some(c => itemById(c.item_id)?.type === "material");
+  if (mixWarn) mixWarn.classList.toggle("hidden", !(hasEquip && hasMat));
+
+  host.innerHTML = cart.map(c => {
+    const item = itemById(c.item_id);
+    if (!item) return "";
+    const isEquip = item.type === "equipment";
+    const typeBadge = isEquip
+      ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">ครุภัณฑ์</span>`
+      : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100">วัสดุเบิกใช้</span>`;
+    const daysHint = isEquip && item.max_borrow_days
+      ? `<span class="text-[10px] text-gray-400">ยืมได้สูงสุด ${item.max_borrow_days} วัน</span>`
+      : "";
+
+    return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-all">
+      <div class="flex items-center gap-4">
+        <!-- Item icon -->
+        <div class="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-3xl shrink-0">${item.image}</div>
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <p class="font-semibold text-gray-900 text-sm">${item.name}</p>
+            ${typeBadge}
+          </div>
+          <div class="flex items-center gap-3 text-xs text-gray-400">
+            <span>คงเหลือในคลัง: <strong class="text-gray-600">${item.qty_available}</strong></span>
+            ${daysHint}
+          </div>
+          <p id="err-${item.id}" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ จำนวนเกินที่มีในคลัง (สูงสุด ${item.qty_available})</p>
+        </div>
+        <!-- Qty controls -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="p_cart_stepQty(${item.id}, -1)"
+            class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-lg flex items-center justify-center transition-colors">−</button>
+          <input type="number" min="1" max="${item.qty_available}" value="${c.qty}"
+            onchange="p_cart_updateQty(${item.id}, this.value)"
+            class="w-14 border border-gray-300 rounded-lg px-1 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-2 focus:ring-blue-300">
+          <button onclick="p_cart_stepQty(${item.id}, 1)"
+            class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-lg flex items-center justify-center transition-colors">+</button>
+        </div>
+        <!-- Remove -->
+        <button onclick="p_cart_removeItem(${item.id})" title="ลบรายการ"
+          class="shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl p-2 transition-colors">🗑️</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  // ── Summary bar ──────────────────────────────────────────────────────────
+  if (footer) footer.classList.remove("hidden");
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove("opacity-40", "cursor-not-allowed"); }
+
+  if (summaryEl) {
+    const totalItems = cart.reduce((s, c) => s + (c.qty || 1), 0);
+    const equipCount = cart.filter(c => itemById(c.item_id)?.type === "equipment").length;
+    const matCount   = cart.filter(c => itemById(c.item_id)?.type === "material").length;
+    const maxDays    = hasEquip
+      ? Math.max(...cart.filter(c => itemById(c.item_id)?.type === "equipment").map(c => itemById(c.item_id)?.max_borrow_days || 7))
+      : 0;
+
+    summaryEl.innerHTML = [
+      `<span class="flex items-center gap-1.5"><span class="text-base">🛒</span> รวม <strong>${cart.length}</strong> รายการ (<strong>${totalItems}</strong> ชิ้น)</span>`,
+      equipCount > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-400 inline-block"></span> ครุภัณฑ์ ${equipCount} รายการ</span>` : "",
+      matCount   > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-teal-400 inline-block"></span> วัสดุ ${matCount} รายการ</span>` : "",
+      maxDays    > 0 ? `<span class="flex items-center gap-1">⏰ กำหนดคืนภายใน <strong>${maxDays}</strong> วัน</span>` : "",
+    ].filter(Boolean).join("");
+  }
+}
+
+function p_cart_stepQty(id, delta) {
+  const cart = db("cart");
+  const c = cart.find(x => x.item_id === id);
+  if (!c) return;
+  const item = itemById(id);
+  const newQty = Math.min(item.qty_available, Math.max(1, (c.qty || 1) + delta));
+  c.qty = newQty;
+  dbSave("cart", cart);
+  p_cart_render();
+}
+
+function p_cart_updateQty(id, val) {
+  const qty = Math.max(1, parseInt(val) || 1);
+  const item = itemById(id);
+  const errEl = document.getElementById("err-" + id);
+  const cart = db("cart");
+  const c = cart.find(x => x.item_id === id);
+  if (qty > item.qty_available) {
+    if (errEl) errEl.classList.remove("hidden");
+    c.qty = item.qty_available;
+  } else {
+    if (errEl) errEl.classList.add("hidden");
+    c.qty = qty;
+  }
+  dbSave("cart", cart);
+  p_cart_render();
+}
+
+function p_cart_removeItem(id) {
+  let cart = db("cart");
+  cart = cart.filter(c => c.item_id !== id);
+  dbSave("cart", cart);
+  toastBanner("ลบรายการออกจากตะกร้าแล้ว");
+  p_cart_render();
+}
+
+function p_cart_goRequestForm() {
+  if (db("cart").length === 0) return;
+  navigate("request-form");
+}
+</script>
+</body>
+</html>

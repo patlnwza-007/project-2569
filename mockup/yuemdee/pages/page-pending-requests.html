@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · pending-requests</title>
+</head>
+<body class="bg-gray-50" onload="p_pending_requests_init()">
+
+<div id="view-pending-requests" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-5xl mx-auto">
+    <div class="mb-5">
+      <h1 class="text-2xl font-bold text-gray-900">✅ คำขอยืมที่รออนุมัติ</h1>
+      <p class="text-sm text-gray-500 mt-0.5">พิจารณาอนุมัติหรือปฏิเสธคำขอยืมของนักศึกษาแต่ละรายการ (ปฏิเสธต้องระบุเหตุผลเสมอ)</p>
+    </div>
+
+    <div id="p_pending_requests_rows" class="space-y-3"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_pending_requests_init() { notifyParentPage("pending-requests"); p_pending_requests_render(); }
+
+function p_pending_requests_render() {
+  const reqs = db("requests").filter(r => r.status === "PENDING");
+  const host = document.getElementById("p_pending_requests_rows");
+
+  if (reqs.length === 0) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+      <div class="text-5xl mb-3">✅</div>
+      <p class="text-gray-700 font-semibold text-base">ไม่มีคำขอรออนุมัติในขณะนี้</p>
+      <p class="text-xs text-gray-400 mt-1">คำขอยืมใหม่จากนักศึกษาจะแสดงที่นี่เพื่อรอการอนุมัติ</p>
+    </div>`;
+    return;
+  }
+
+  host.innerHTML = reqs.map(r => {
+    const stu = studentById(r.student_id);
+    let hasStockIssue = false;
+    const units = db("units");
+
+    const itemBadges = r.items.map(it => {
+      const i = itemById(it.item_id);
+      const isShort = i && i.qty_available < it.qty;
+      if (isShort) hasStockIssue = true;
+
+      const availUnits = units.filter(u => u.item_id === it.item_id && u.status === "AVAILABLE");
+      const unitSelector = (i && i.type === 'equipment' && availUnits.length > 0)
+        ? `<div class="mt-1.5 flex items-center gap-2 text-xs text-gray-700 bg-blue-50/60 p-2 rounded-xl border border-blue-100">
+            <span class="font-semibold text-blue-900 shrink-0">🏷️ เลือกรหัสชิ้นที่จะจ่าย:</span>
+            <select id="assign_unit_${r.id}_${it.item_id}" class="border border-blue-300 rounded-lg px-2 py-1 text-xs font-mono bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+              ${availUnits.map(u => `<option value="${u.asset_tag}">${u.asset_tag} (พร้อมส่งมอบ)</option>`).join("")}
+            </select>
+          </div>`
+        : (i && i.type === 'equipment')
+        ? `<p class="text-[11px] text-red-600 font-semibold mt-1">⚠️ ไม่มีครุภัณฑ์รหัสพร้อมส่งมอบในคลัง</p>`
+        : '';
+
+      return `<div class="my-1.5">
+        <div class="flex items-center gap-2 text-sm text-gray-800">
+          <span class="text-base">${i?.image || "📦"}</span>
+          <span class="font-medium">${i?.name || "?"}</span>
+          <span class="text-gray-500 font-mono text-xs">×${it.qty}</span>
+          <span class="text-xs ${isShort ? 'bg-red-100 text-red-700 font-bold' : 'bg-gray-100 text-gray-500'} px-2 py-0.5 rounded-full">
+            ${isShort ? `⚠️ สต็อกไม่พอ (เหลือ ${i?.qty_available || 0})` : `คงเหลือ ${i?.qty_available || 0}`}
+          </span>
+        </div>
+        ${unitSelector}
+      </div>`;
+    }).join("");
+
+    const warnBox = hasStockIssue
+      ? `<p class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 mt-2 font-medium">⚠️ คำขอนี้มีสิ่งของที่สต็อกในคลังไม่เพียงพอ หากอนุมัติ สต็อกจะหมดทันที</p>`
+      : "";
+
+    return `<div class="bg-white rounded-2xl border ${hasStockIssue ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200'} shadow-sm p-4 hover:shadow-md transition-all flex items-start justify-between gap-4">
+      <div class="flex-1 min-w-0">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <span class="text-xs text-gray-400 font-mono">คำขอ #${r.id}</span>
+          <span class="text-xs font-bold text-gray-800">${stu ? stu.name : r.student_id}</span>
+          <span class="text-xs text-gray-400 font-mono">(${r.student_id})</span>
+          <span class="text-xs text-gray-400 ml-auto">ส่งเมื่อ ${r.created_at || "-"}</span>
+        </div>
+        <div class="my-2">${itemBadges}</div>
+        <p class="text-xs text-gray-500">เหตุผล: ${r.reason || "-"}${r.use_date ? ` · วันที่ใช้งาน: <strong>${r.use_date}</strong>` : ""}</p>
+        ${warnBox}
+      </div>
+      <div class="flex flex-col gap-2 shrink-0">
+        <button onclick="p_pending_requests_approveOne(${r.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm">✓ อนุมัติ</button>
+        <button onclick="p_pending_requests_rejectOne(${r.id})" class="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">✕ ปฏิเสธ</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function p_pending_requests_toggleSelectAll(checked) {
+  document.querySelectorAll("#view-pending-requests .sel").forEach(cb => cb.checked = checked);
+}
+
+function p_pending_requests_approveRequest(r) {
+  const items = db("items");
+  const units = db("units");
+
+  r.items.forEach(it => {
+    const item = items.find(i => i.id === it.item_id);
+    if (item) item.qty_available = Math.max(0, item.qty_available - it.qty);
+
+    if (item && item.type === "equipment") {
+      const selectEl = document.getElementById(`assign_unit_${r.id}_${it.item_id}`);
+      const selectedTag = selectEl?.value;
+      const unit = selectedTag
+        ? units.find(u => u.asset_tag === selectedTag)
+        : units.find(u => u.item_id === it.item_id && u.status === "AVAILABLE");
+
+      if (unit) {
+        unit.status = "BORROWED";
+        unit.current_request_id = r.id;
+        unit.note = `ยืมโดย ${studentById(r.student_id)?.name || r.student_id} (คำขอ #${r.id})`;
+      }
+    }
+  });
+
+  dbSave("items", items);
+  dbSave("units", units);
+  r.status = "APPROVED_WAIT_PICKUP";
+  r.approved_at = "2026-07-23 " + new Date().toTimeString().slice(0, 5);
+}
+
+function p_pending_requests_approveOne(id) {
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === id);
+  if (!r || r.status !== "PENDING") { toastBanner("รายการนี้ถูกยกเลิกหรือดำเนินการไปแล้ว ข้ามรายการนี้", "error"); p_pending_requests_render(); return; }
+  if (!confirm(`ยืนยันอนุมัติคำขอ #${id}?`)) return;
+  p_pending_requests_approveRequest(r);
+  dbSave("requests", reqs);
+  toastBanner("อนุมัติคำขอ #" + id + " สำเร็จ สถานะเปลี่ยนเป็นรอรับของ");
+  p_pending_requests_render();
+}
+
+function p_pending_requests_rejectOne(id) {
+  const reason = prompt("ระบุเหตุผลการปฏิเสธคำขอ #" + id + ":");
+  if (reason === null) return;
+  if (!reason.trim()) { toastBanner("ต้องระบุเหตุผลก่อนปฏิเสธ", "error"); return; }
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === id);
+  if (!r || r.status !== "PENDING") { toastBanner("รายการนี้ถูกยกเลิกหรือดำเนินการไปแล้ว ข้ามรายการนี้", "error"); p_pending_requests_render(); return; }
+  r.status = "REJECTED"; r.reject_reason = reason.trim();
+  dbSave("requests", reqs);
+  toastBanner("ปฏิเสธคำขอ #" + id + " เรียบร้อยแล้ว");
+  p_pending_requests_render();
+}
+</script>
+</body>
+</html>

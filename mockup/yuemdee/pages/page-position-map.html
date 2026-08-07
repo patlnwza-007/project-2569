@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · position-map</title>
+</head>
+<body class="bg-gray-50" onload="p_position_map_init()">
+
+<div id="view-position-map" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-4xl mx-auto">
+    <div id="p_position_map_back-link"></div>
+    <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-1">แผนผังตำแหน่งชั้นวาง</h1>
+    <p class="text-sm text-gray-500 mb-6">ตำแหน่งจัดเก็บของสิ่งของ จัดกลุ่มตามตู้/ชั้นวาง</p>
+    <div id="p_position_map_grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_position_map_init() {
+      notifyParentPage("position-map");
+      const highlightId = qparam("id") ? Number(qparam("id")) : null;
+      document.getElementById("p_position_map_back-link").innerHTML = highlightId
+        ? `<a href="javascript:void(0)" onclick="navigate('item-detail', {id: ${highlightId}})" class="text-sm text-blue-600 hover:underline">← กลับไปรายละเอียดสิ่งของ</a>`
+        : `<a href="javascript:void(0)" onclick="navigate('request-list')" class="text-sm text-blue-600 hover:underline">← กลับหน้าหลัก</a>`;
+
+      const positions = db("positions");
+      const items = db("items");
+      const host = document.getElementById("p_position_map_grid");
+      if (positions.length === 0) { host.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-dashed p-10 text-center text-gray-500">ยังไม่มีข้อมูลตำแหน่งจัดเก็บ</div>`; return; }
+
+      host.innerHTML = positions.map(p => {
+        const posItems = items.filter(i => i.position_id === p.id);
+        return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+          <p class="font-bold text-blue-700 mb-2">📍 ${p.name}</p>
+          ${posItems.length === 0 ? `<p class="text-xs text-gray-400">ไม่มีสิ่งของในตำแหน่งนี้</p>` :
+            `<div class="flex flex-col gap-1.5">${posItems.map(i => `
+              <div class="flex items-center gap-2 text-sm px-2 py-1.5 rounded-lg ${i.id === highlightId ? 'bg-yellow-100 ring-2 ring-yellow-400' : 'bg-gray-50'}">
+                <span>${i.image}</span><span class="${i.id === highlightId ? 'font-semibold' : ''}">${i.name}</span>
+              </div>`).join("")}</div>`}
+        </div>`;
+      }).join("");
+    }
+</script>
+</body>
+</html>

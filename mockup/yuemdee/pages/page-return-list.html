@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · return-list</title>
+</head>
+<body class="bg-gray-50" onload="p_return_list_init()">
+
+<div id="view-return-list" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">รับคืนครุภัณฑ์</h1>
+    <p class="text-sm text-gray-500 mb-6">ตรวจสอบสภาพสิ่งของจริงก่อนกดยืนยันรับคืน หรือปฏิเสธหากของไม่ครบ/ชำรุด</p>
+
+    <h2 class="text-sm font-bold text-gray-700 mb-2">🟡 รอตรวจรับคืน</h2>
+    <div id="p_return_list_pending-rows" class="space-y-3 mb-8"></div>
+
+    <h2 class="text-sm font-bold text-gray-700 mb-2">📦 กำลังยืมอยู่ (ยังไม่แจ้งคืน)</h2>
+    <div id="p_return_list_borrowing-rows" class="space-y-2"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_return_list_init() { notifyParentPage("return-list"); p_return_list_render(); }
+
+function p_return_list_render() {
+  const reqs = db("requests");
+  const pend = reqs.filter(r => r.status === "RETURN_PENDING");
+  const borrowing = reqs.filter(r => r.status === "BORROWING");
+
+  const p = document.getElementById("p_return_list_pending-rows");
+  p.innerHTML = pend.length === 0 ? `<p class="text-xs text-gray-400">ไม่มีรายการรอตรวจรับคืน</p>` : pend.map(r => {
+    const stu = studentById(r.student_id);
+    const isDamaged = r.return_condition === "damaged";
+    const condBadge = isDamaged
+      ? `<span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">⚠️ แจ้งชำรุด/สูญหาย</span>`
+      : `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">✅ สภาพปกติ</span>`;
+    const noteBox = r.return_note
+      ? `<p class="text-xs text-gray-700 bg-amber-50/60 border border-amber-200 rounded-lg p-2 mt-2 font-sans">📝 หมายเหตุจากนักศึกษา: "${r.return_note}"</p>`
+      : "";
+
+    const units = db("units");
+    const itemSummaries = r.items.map(it => {
+      const i = itemById(it.item_id);
+      const assignedUnits = units.filter(u => u.item_id === it.item_id && (u.current_request_id === r.id || u.status === "BORROWED")).slice(0, it.qty);
+      const unitTags = assignedUnits.map(u => `<span class="bg-gray-100 text-gray-700 font-mono text-[11px] px-1.5 py-0.5 rounded border border-gray-200">🏷️ ${u.asset_tag}</span>`).join(" ");
+
+      return `<div class="my-1">
+        <span class="text-sm font-medium text-gray-800">${i?.image || '📦'} ${i?.name || '?'} × ${it.qty}</span>
+        ${unitTags ? `<div class="flex flex-wrap gap-1 mt-1">${unitTags}</div>` : ''}
+      </div>`;
+    }).join("");
+
+    return `<div class="bg-white rounded-2xl border ${isDamaged ? 'border-red-300 ring-2 ring-red-100' : 'border-amber-200'} shadow-sm p-4 hover:shadow-md transition-all">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-xs text-gray-400 font-mono">คำขอ #${r.id}</span>
+            <span class="text-xs font-semibold text-gray-700">${stu ? stu.name : r.student_id}</span>
+            ${condBadge}
+          </div>
+          <div>${itemSummaries}</div>
+          <p class="text-xs text-gray-400 mt-1.5">แจ้งคืนเมื่อ ${r.return_notified_at || "-"} · กำหนดคืน ${r.due_date}</p>
+          ${noteBox}
+        </div>
+        <div class="flex flex-col gap-2 shrink-0">
+          <button onclick="p_return_list_confirmReturn(${r.id})" class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm">✓ ยืนยันรับคืน</button>
+          <button onclick="p_return_list_rejectReturn(${r.id})" class="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">✕ ปฏิเสธ</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const b = document.getElementById("p_return_list_borrowing-rows");
+  b.innerHTML = borrowing.length === 0 ? `<p class="text-xs text-gray-400">ไม่มีครุภัณฑ์ที่กำลังถูกยืมอยู่</p>` : borrowing.map(r => {
+    const stu = studentById(r.student_id);
+    const dleft = daysLeft(r.due_date);
+    return `<div class="bg-white rounded-xl border border-gray-200 p-3.5 flex items-center justify-between text-sm hover:shadow-sm transition-all">
+      <div>#${r.id} · <span class="font-medium">${stu ? stu.name : r.student_id}</span> — ${r.items.map(it => itemById(it.item_id)?.name).join(", ")}</div>
+      <span class="${dleft < 0 ? 'text-red-600 font-semibold' : 'text-gray-500'} text-xs">กำหนดคืน ${r.due_date} ${dleft < 0 ? `(เกิน ${Math.abs(dleft)} วัน)` : `(อีก ${dleft} วัน)`}</span>
+    </div>`;
+  }).join("");
+}
+
+function p_return_list_confirmReturn(id) {
+  const reqs = db("requests"); const items = db("items"); const units = db("units");
+  const r = reqs.find(x => x.id === id);
+  if (!r) return;
+
+  const isDamaged = r.return_condition === "damaged";
+  if (!confirm(`ยืนยันตรวจรับคืนคำขอ #${id} เข้าคลัง?${isDamaged ? '\n\n⚠️ คำขอนี้ระบุว่ามีสิ่งของชำรุด ระบบจะบันทึกสถานะชำรุดที่รหัสครุภัณฑ์รายชิ้นอัตโนมัติ' : ''}`)) return;
+
+  r.items.forEach(it => {
+    const item = items.find(i => i.id === it.item_id);
+    const itemUnits = units.filter(u => u.item_id === it.item_id && u.current_request_id === id);
+
+    if (isDamaged) {
+      // Mark assigned unit as damaged
+      itemUnits.forEach(u => {
+        u.status = "DAMAGED";
+        u.note = `ชำรุดจากการยืมโดย ${studentById(r.student_id)?.name || r.student_id} (คำขอ #${id}): ${r.return_note || 'สภาพชำรุด'}`;
+      });
+      // If no explicit unit matched by request id, pick borrowed unit for item
+      if (itemUnits.length === 0) {
+        const borrowedUnit = units.find(u => u.item_id === it.item_id && u.status === "BORROWED");
+        if (borrowedUnit) {
+          borrowedUnit.status = "DAMAGED";
+          borrowedUnit.note = `ชำรุดจากการยืมโดย ${studentById(r.student_id)?.name || r.student_id} (คำขอ #${id}): ${r.return_note || 'สภาพชำรุด'}`;
+        }
+      }
+    } else {
+      // Mark assigned unit as available
+      itemUnits.forEach(u => { u.status = "AVAILABLE"; u.note = ""; });
+      if (itemUnits.length === 0) {
+        const borrowedUnit = units.find(u => u.item_id === it.item_id && u.status === "BORROWED");
+        if (borrowedUnit) { borrowedUnit.status = "AVAILABLE"; borrowedUnit.note = ""; }
+      }
+      if (item) item.qty_available = Math.min(item.qty_total, item.qty_available + it.qty);
+    }
+  });
+
+  r.status = "RETURNED"; r.returned_at = "2026-07-23 " + new Date().toTimeString().slice(0,5);
+  dbSave("requests", reqs); dbSave("items", items); dbSave("units", units);
+
+  toastBanner(isDamaged ? "ตรวจรับคืนเรียบร้อยแล้ว (บันทึกรหัสครุภัณฑ์ชำรุดเข้าคลังสำเร็จ)" : "ยืนยันรับคืนสำเร็จ สิ่งของกลับเข้าคลังแล้ว");
+  p_return_list_render();
+}
+
+function p_return_list_rejectReturn(id) {
+  const reason = prompt("เหตุผลที่ปฏิเสธการรับคืน (เช่น ของไม่ครบ/ชำรุดหนัก):");
+  if (reason === null) return;
+  if (!reason.trim()) { toastBanner("ต้องระบุเหตุผลในการปฏิเสธ", "error"); return; }
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === id);
+  r.status = "BORROWING"; r.return_reject_reason = reason.trim();
+  dbSave("requests", reqs);
+  toastBanner("ปฏิเสธการรับคืน แจ้งเหตุผลกลับไปยังนักศึกษาแล้ว");
+  p_return_list_render();
+}
+</script>
+</body>
+</html>

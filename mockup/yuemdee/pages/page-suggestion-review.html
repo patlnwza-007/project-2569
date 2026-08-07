@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · suggestion-review</title>
+</head>
+<body class="bg-gray-50" onload="p_suggestion_review_init()">
+
+<div id="view-suggestion-review" class="w-full h-full overflow-y-auto p-6">
+  <div class="max-w-3xl mx-auto">
+    <div class="mb-4">
+      <h1 class="text-2xl font-bold text-gray-900">💡 คำเสนอแนะสิ่งของจากนักศึกษา</h1>
+      <p class="text-sm text-gray-500 mt-0.5">รับฟังและรวบรวมข้อเสนอแนะเพื่อนำไปพิจารณาจัดซื้อจัดหาคลังสิ่งของ</p>
+    </div>
+
+    <!-- Status filter toolbar -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-3 mb-4 flex items-center justify-between gap-3 text-sm">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold text-gray-500">กรองสถานะ:</span>
+        <select id="p_suggestion_review_f-status" onchange="p_suggestion_review_render()" class="border border-gray-300 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-300">
+          <option value="">ทั้งหมด</option>
+          <option value="SUBMITTED">ข้อเสนอแนะใหม่</option>
+          <option value="ACKNOWLEDGED">รับทราบแล้ว</option>
+          <option value="PURCHASE_PLAN">เพิ่มในแผนจัดซื้อแล้ว</option>
+        </select>
+      </div>
+      <span id="p_suggestion_review_count" class="text-xs font-mono text-gray-400">0 รายการ</span>
+    </div>
+
+    <div id="p_suggestion_review_rows" class="space-y-3"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_suggestion_review_init() { notifyParentPage("suggestion-review"); p_suggestion_review_render(); }
+
+function p_suggestion_review_render() {
+  const fStatus = document.getElementById("p_suggestion_review_f-status")?.value || "";
+  let list = db("suggestions").sort((a,b) => (b.created_at||"").localeCompare(a.created_at||""));
+  if (fStatus) list = list.filter(s => s.status === fStatus);
+
+  const countEl = document.getElementById("p_suggestion_review_count");
+  if (countEl) countEl.textContent = `${list.length} รายการ`;
+
+  const host = document.getElementById("p_suggestion_review_rows");
+  if (!host) return;
+
+  if (list.length === 0) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">
+      <div class="text-4xl mb-2">💡</div>
+      <p class="font-semibold text-gray-700">ไม่มีคำเสนอแนะในหมวดนี้</p>
+    </div>`;
+    return;
+  }
+
+  const badgeMap = {
+    SUBMITTED: `<span class="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">ข้อเสนอแนะใหม่</span>`,
+    ACKNOWLEDGED: `<span class="bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">👁️ รับทราบแล้ว</span>`,
+    PURCHASE_PLAN: `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">🛒 เพิ่มในแผนจัดซื้อแล้ว</span>`,
+  };
+
+  host.innerHTML = list.map(s => {
+    const stu = studentById(s.student_id);
+    return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-all">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-xs font-semibold text-gray-700">จาก: ${stu ? stu.name : s.student_id}</span>
+            <span class="text-xs text-gray-400 font-mono">(${s.student_id})</span>
+            ${badgeMap[s.status] || badgeMap.SUBMITTED}
+            <span class="text-xs text-gray-400 ml-auto">${s.created_at}</span>
+          </div>
+          <p class="font-bold text-gray-900 text-sm mt-1">สิ่งของ: ${s.name}</p>
+          <p class="text-xs text-gray-600 mt-1 bg-gray-50 p-2.5 rounded-xl border border-gray-100">${s.detail}</p>
+        </div>
+        <div class="flex flex-col gap-2 shrink-0">
+          ${s.status === 'SUBMITTED' ? `
+            <button onclick="p_suggestion_review_markAcknowledge(${s.id})"
+              class="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold rounded-xl px-3 py-1.5 transition-colors">
+              ✓ รับทราบ
+            </button>
+          ` : ''}
+          ${s.status !== 'PURCHASE_PLAN' ? `
+            <button onclick="p_suggestion_review_addToPurchasePlan(${s.id})"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl px-3 py-1.5 transition-colors shadow-sm">
+              🛒 เพิ่มเข้าแผนจัดซื้อ
+            </button>
+          ` : `
+            <span class="text-[11px] text-emerald-600 font-semibold text-center">✓ ย้ายเข้าแผนจัดซื้อแล้ว</span>
+          `}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function p_suggestion_review_markAcknowledge(id) {
+  const list = db("suggestions");
+  const s = list.find(x => x.id === id);
+  if (s) {
+    s.status = "ACKNOWLEDGED";
+    dbSave("suggestions", list);
+    toastBanner("บันทึกรับทราบข้อเสนอแนะเรียบร้อยแล้ว");
+    p_suggestion_review_render();
+  }
+}
+
+function p_suggestion_review_addToPurchasePlan(id) {
+  const suggestions = db("suggestions");
+  const s = suggestions.find(x => x.id === id);
+  if (!s) return;
+
+  // Change status in suggestions
+  s.status = "PURCHASE_PLAN";
+  dbSave("suggestions", suggestions);
+
+  // Automatically add to purchase wishlist if not already exists
+  const purchases = db("purchases");
+  const exists = purchases.some(p => p.name === s.name);
+  if (!exists) {
+    purchases.push({
+      id: nextId(purchases),
+      name: s.name,
+      detail: `จากข้อเสนอแนะของนักศึกษา (${studentById(s.student_id)?.name || s.student_id}): ${s.detail}`,
+      created_by: "STAFF",
+      created_at: "2026-07-23 " + new Date().toTimeString().slice(0,5),
+    });
+    dbSave("purchases", purchases);
+  }
+
+  toastBanner("ย้ายข้อเสนอแนะเข้าแผนรายการจัดซื้อเรียบร้อยแล้ว");
+  p_suggestion_review_render();
+}
+</script>
+</body>
+</html>
