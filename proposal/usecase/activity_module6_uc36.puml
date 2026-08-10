@@ -1,0 +1,94 @@
+@startuml activity_module6_uc36
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc36_damaged_equipment.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-36 · ดูรายการครุภัณฑ์เสียหาย — Activity Diagram\npartition หน้าจอ = frontend:DamagedEquipment (ตรงกับ state diagram) · รายการเติมอัตโนมัติจาก UC-19 (คนละรอบเวลา)
+
+note over
+  **หมายเหตุ — จุดเริ่มของรายการ:** รายการในหน้านี้ถูกเติมเข้ามาโดยอัตโนมัติจาก UC-19
+  (เจ้าหน้าที่ยืนยันรับคืนแล้วพบว่าเสียหาย) ไดอะแกรมนี้จึงเริ่มที่เจ้าหน้าที่เปิดเมนู
+  "ครุภัณฑ์เสียหาย" เพื่อดู/จัดการรายการที่มีอยู่แล้วเท่านั้น ไม่วาดขั้นตอนฝั่ง UC-19 ซ้ำ
+end note
+
+|frontend:DamagedEquipment|
+start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
+:เปิดเมนู "ครุภัณฑ์เสียหาย" (staff:damaged_equipment_list);
+
+|backend|
+:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:ดึงรหัสครุภัณฑ์รายชิ้นทั้งหมดที่มีสถานะ "ครุภัณฑ์เสียหาย";
+
+|frontend:DamagedEquipment|
+if (มีครุภัณฑ์เสียหายอยู่หรือไม่?) then (ไม่มี)
+  :แสดงข้อความ "ไม่มีครุภัณฑ์เสียหายในขณะนี้";
+else (มี)
+  :แสดงรายการรหัสครุภัณฑ์ พร้อมชื่อสิ่งของ ตำแหน่งจัดเก็บ และหมายเหตุความเสียหาย;
+  :เจ้าหน้าที่เลือกดำเนินการต่อรายการ (staff:damaged_equipment_update_status);
+
+  if (เลือกดำเนินการอะไร?) then (ส่งซ่อม)
+    |backend|
+    :เปลี่ยนสถานะรหัสครุภัณฑ์เป็น "ส่งซ่อม" (write);
+  elseif (ซ่อมเสร็จแล้ว) then
+    |backend|
+    :เปลี่ยนสถานะรหัสครุภัณฑ์เป็น "พร้อมให้ยืม" (write);
+    :นับจำนวนคงเหลือของสิ่งของกลับเข้าคลัง;
+  else (จัดการเพิ่มเติม เช่น ปลดระวาง)
+    |frontend:DamagedEquipment|
+    :ส่งต่อไปหน้าเปลี่ยนสถานะครุภัณฑ์รายชิ้น (UC-24);
+    stop
+  endif
+
+  fork
+    |frontend:DamagedEquipment|
+    :แสดงผลการอัปเดตสถานะให้เจ้าหน้าที่ (main flow);
+  fork again
+    |backend|
+    :เขียน audit log (อัปเดตสถานะครุภัณฑ์เสียหาย) ผ่าน signal;
+  end fork
+endif
+
+stop
+
+legend right
+  |<back:white>    </back>| frontend:DamagedEquipment — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
+endlegend
+
+@enduml

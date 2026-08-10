@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · damaged-equipment</title>
+</head>
+<body class="bg-gray-50" onload="p_damaged_equipment_init()">
+
+<div id="view-damaged-equipment" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">⚠️ ครุภัณฑ์เสียหาย</h1>
+    <p class="text-sm text-gray-500 mb-6">รายการรหัสครุภัณฑ์รายชิ้นที่ถูกเปลี่ยนสถานะเป็น "ครุภัณฑ์เสียหาย" — เกิดขึ้นอัตโนมัติเมื่อเจ้าหน้าที่ตรวจรับคืนแล้วพบว่าสิ่งของชำรุด (จากหน้ารับคืนครุภัณฑ์) หรือเจ้าหน้าที่กำหนดเองผ่านหน้าเปลี่ยนสถานะรายชิ้น</p>
+
+    <div id="p_damaged_equipment_summary" class="mb-5"></div>
+    <div id="p_damaged_equipment_rows" class="space-y-3"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_damaged_equipment_init() { notifyParentPage("damaged-equipment"); p_damaged_equipment_render(); }
+
+function p_damaged_equipment_render() {
+  const units = db("units").filter(u => u.status === "DAMAGED");
+  const summaryEl = document.getElementById("p_damaged_equipment_summary");
+  const host = document.getElementById("p_damaged_equipment_rows");
+
+  summaryEl.innerHTML = `<div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm font-semibold inline-flex items-center gap-2">
+    ⚠️ พบครุภัณฑ์เสียหายทั้งหมด ${units.length} ชิ้น
+  </div>`;
+
+  if (units.length === 0) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+      <div class="text-5xl mb-3">✅</div>
+      <p class="text-gray-700 font-semibold text-base">ไม่มีครุภัณฑ์เสียหายในขณะนี้</p>
+      <p class="text-xs text-gray-400 mt-1">เมื่อตรวจรับคืนแล้วพบของชำรุด รายการจะแสดงที่นี่โดยอัตโนมัติ</p>
+    </div>`;
+    return;
+  }
+
+  host.innerHTML = units.map(u => {
+    const item = itemById(u.item_id);
+    const pos = item ? positionById(item.position_id) : null;
+
+    return `<div class="bg-white rounded-2xl border border-red-200 shadow-sm p-4 hover:shadow-md transition-all">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-xl">${item?.image || "📦"}</span>
+            <span class="text-sm font-bold text-gray-900">${item?.name || "ไม่พบสิ่งของ"}</span>
+            <span class="font-mono text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">🏷️ ${u.asset_tag}</span>
+            <span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">⚠️ ครุภัณฑ์เสียหาย</span>
+          </div>
+          <p class="text-xs text-gray-500">ตำแหน่งจัดเก็บ: ${pos ? pos.name : "-"}</p>
+          ${u.note ? `<p class="text-xs text-red-600 font-medium mt-1.5 bg-red-50/60 border border-red-100 rounded-lg p-2">📝 หมายเหตุ: ${u.note}</p>` : ""}
+        </div>
+        <div class="flex flex-col gap-2 shrink-0">
+          <button onclick="p_damaged_equipment_setStatus('${u.asset_tag}', 'MAINTENANCE')" class="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">🛠️ ส่งซ่อม</button>
+          <button onclick="p_damaged_equipment_setStatus('${u.asset_tag}', 'AVAILABLE')" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">✅ ซ่อมเสร็จแล้ว</button>
+          ${item ? `<a href="javascript:void(0)" onclick="navigate('item-status-change', {id: ${item.id}})" class="text-center text-xs text-blue-600 hover:underline px-4 py-1">จัดการเพิ่มเติม →</a>` : ""}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function p_damaged_equipment_setStatus(assetTag, newStatus) {
+  const label = newStatus === "MAINTENANCE" ? "ส่งซ่อม" : "ซ่อมเสร็จแล้ว (พร้อมใช้งาน)";
+  if (!confirm(`ยืนยันเปลี่ยนสถานะรหัส ${assetTag} เป็น "${label}"?`)) return;
+
+  const units = db("units");
+  const u = units.find(x => x.asset_tag === assetTag);
+  if (!u) return;
+  u.status = newStatus;
+  if (newStatus === "AVAILABLE") u.note = "";
+  dbSave("units", units);
+
+  const items = db("items");
+  const item = items.find(i => i.id === u.item_id);
+  if (item) {
+    const availUnits = units.filter(x => x.item_id === item.id && x.status === "AVAILABLE").length;
+    item.qty_available = availUnits;
+    item.base_status = availUnits === 0 && item.qty_total > 0 ? "ไม่พร้อมใช้งาน" : "พร้อมให้ยืม";
+    dbSave("items", items);
+  }
+
+  toastBanner(`อัปเดตสถานะรหัส ${assetTag} เป็น "${label}" สำเร็จ`);
+  p_damaged_equipment_render();
+}
+</script>
+</body>
+</html>

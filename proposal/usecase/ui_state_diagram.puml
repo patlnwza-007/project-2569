@@ -209,7 +209,7 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
   note right of StaffDashboard
     แสดง 4 องค์ประกอบ: (1) การ์ดสรุปจำนวนยืม-คืนปัจจุบัน
     (2) กราฟแท่งสถานะการยืมทั้งหมด (3) กราฟโดนัทสัดส่วนนักศึกษา
-    ปกติ/ถูกระงับสิทธิ์ (4) รายการสิ่งของถูกยืมมากที่สุด 3 อันดับแรก
+    ปกติ/ถูกระงับสิทธิ์
   end note
 
   state "คำขอยืมที่รออนุมัติ\n(UC-18)" as PendingRequests
@@ -224,7 +224,17 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
     แสดง: รายการรอตรวจรับคืน (สถานะ "รอยืนยันการคืน") + วันครบกำหนดคืน
     ปุ่ม: ยืนยันรับคืน (→ "คืนสำเร็จ" + คืนจำนวนคงเหลือเข้าคลังอัตโนมัติ) /
     ปฏิเสธ (สภาพพัสดุมีปัญหา — บังคับระบุเหตุผล คงสถานะ "กำลังยืม" ไว้)
-    กฎ: หากพบว่าชำรุดจากการยืม ส่งต่อไปเปลี่ยนสถานะครุภัณฑ์ได้ (UC-24)
+    กฎ: หากพบว่าเสียหายจากการยืม ระบบเปลี่ยนสถานะรหัสครุภัณฑ์ชิ้นนั้นเป็น
+    "ครุภัณฑ์เสียหาย" โดยอัตโนมัติทันที (ข้อมูลไปโผล่ที่เมนู "ครุภัณฑ์เสียหาย" UC-36
+    คนละรอบเวลา ไม่ใช่ extend เชิง UML — ผู้ใช้ไม่ได้ถูกพาไปหน้านั้นทันที)
+  end note
+
+  state "ครุภัณฑ์เสียหาย\n(UC-36)" as DamagedEquipment
+  note right of DamagedEquipment
+    แสดง: รหัสครุภัณฑ์รายชิ้นที่มีสถานะ "ครุภัณฑ์เสียหาย" พร้อมชื่อสิ่งของ
+    ตำแหน่งจัดเก็บ และหมายเหตุความเสียหาย
+    ปุ่ม: ส่งซ่อม / ซ่อมเสร็จแล้ว (กลับมาพร้อมให้ยืม)
+    ว่าง: "ไม่มีครุภัณฑ์เสียหายในขณะนี้"
   end note
 
   state "ประวัติการยืม-คืนทั้งระบบ\n(UC-20)" as AllHistory
@@ -321,7 +331,11 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
   PendingRequests --> StaffDashboard : อนุมัติ/ปฏิเสธสำเร็จ\n(ทีละรายการ/หลายรายการ) / กลับ
 
   StaffDashboard --> ReturnList : เมนู "รับคืนครุภัณฑ์"
-  ReturnList --> StaffDashboard : ยืนยัน/ปฏิเสธการรับคืน / กลับ
+  ReturnList --> StaffDashboard : ยืนยัน/ปฏิเสธการรับคืน (สภาพปกติ) / กลับ
+
+  StaffDashboard --> DamagedEquipment : เมนู "ครุภัณฑ์เสียหาย" (UC-36)
+  DamagedEquipment --> StaffDashboard : กลับ
+  DamagedEquipment --> ItemStatusChange : จัดการเพิ่มเติม\n(เช่น ปลดระวาง, UC-24)
 
   StaffDashboard --> AllHistory : เมนูประวัติทั้งระบบ
   AllHistory --> StaffDashboard : กลับ
@@ -335,9 +349,7 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
   ItemOverview --> ItemDelete : เลือกลบทีละ/หลายชิ้น (UC-23)
   ItemDelete --> ItemOverview : ลบสำเร็จ / กลับ
   ItemOverview --> ItemStatusChange : เปลี่ยนสถานะครุภัณฑ์ (UC-24)
-  ItemStatusChange --> ItemOverview : บันทึกสำเร็จ / กลับ
-  ReturnList --> ItemStatusChange : ตรวจรับคืนแล้วพบว่าชำรุด\n→ ส่งต่อเปลี่ยนสถานะครุภัณฑ์ (UC-24)
-  ItemStatusChange --> ReturnList : บันทึกสถานะชำรุดสำเร็จ\n(กรณีมาจากการตรวจรับคืน)
+  ItemStatusChange --> ItemOverview : บันทึกสำเร็จ / กลับ\n(ปุ่ม "← กลับภาพรวมคลัง" ปลายทางคงที่ แม้เข้ามาจาก DamagedEquipment)
   StaffDashboard --> WarehouseSettings : เมนูตั้งค่าคลัง (UC-26)
   WarehouseSettings --> StaffDashboard : กลับ
 
@@ -360,7 +372,7 @@ state "เจ้าหน้าที่ (Staff)" as Staff {
   ReportExport --> StaffDashboard : ดาวน์โหลดสำเร็จ / กลับ
 }
 
-' ═════════ โซนผู้ดูแลระบบ (Admin — UC-33 ถึง UC-36) ═════════
+' ═════════ โซนผู้ดูแลระบบ (Admin — UC-33 ถึง UC-35) ═════════
 state "ผู้ดูแลระบบ (Admin)" as Admin {
   state "รายชื่อบัญชีผู้ใช้งาน\nแยกตามบทบาท" as UserList
   note right of UserList
@@ -380,13 +392,7 @@ state "ผู้ดูแลระบบ (Admin)" as Admin {
     ปุ่ม: ยกเลิก Override (กลับไปใช้บทบาทอัตโนมัติจาก UBU SSO)
   end note
 
-  state "กำหนดบทบาทแบบกลุ่มผ่านไฟล์\n(extend UC-35)" as RoleOverrideBulk
-  note right of RoleOverrideBulk
-    แสดง: ปุ่มดาวน์โหลด template + อัปโหลดไฟล์ CSV (อีเมล + บทบาท)
-    ผิดพลาด: รูปแบบผิด/มีแถวข้อมูลผิดพลาด → แจ้งรายการที่ผิด
-  end note
-
-  state "ส่งออกรายชื่อบุคลากร CSV\n(UC-36)" as PersonnelExport
+  state "ส่งออกรายชื่อบุคลากร CSV\n(UC-35)" as PersonnelExport
   note right of PersonnelExport
     แสดง: ปุ่ม "ส่งออกไฟล์" เดียว → ได้ไฟล์ CSV รายชื่อบุคลากร
     ทั้งหมดพร้อมบทบาทปัจจุบันของแต่ละคน
@@ -403,18 +409,14 @@ state "ผู้ดูแลระบบ (Admin)" as Admin {
   UserDetail --> RoleOverride : กด "กำหนดบทบาทเฉพาะบุคคล"\n(include UC-33)
   RoleOverride --> UserDetail : บันทึกบทบาทสำเร็จ /\nยกเลิก Override (กลับไปใช้บทบาทจาก UBU SSO) / กลับ
 
-  ' ---------- UC-35 extend UC-34 — ใช้เฉพาะเมื่อเลือกทำแบบกลุ่มผ่านไฟล์ ----------
-  RoleOverride --> RoleOverrideBulk : เลือกกำหนดแบบกลุ่มผ่านไฟล์ CSV แทน\n(extend UC-35)
-  RoleOverrideBulk --> RoleOverride : นำเข้าสำเร็จ / กลับ
-
-  ' ---------- UC-36 ส่งออกรายชื่อบุคลากร ----------
-  UserList --> PersonnelExport : เมนู "ส่งออกรายชื่อบุคลากร" (UC-36)
+  ' ---------- UC-35 ส่งออกรายชื่อบุคลากร ----------
+  UserList --> PersonnelExport : เมนู "ส่งออกรายชื่อบุคลากร" (UC-35)
   PersonnelExport --> UserList : ดาวน์โหลดสำเร็จ / กลับ
 }
 
 ' ═════════ ข้ามโซน — กำหนดบทบาทหลังเข้าสู่ระบบ (UC-16) ═════════
-Login --> RequestList : ล็อกอินสำเร็จ\nบทบาท = นักศึกษา\n(UBU SSO หรือ Role Override UC-34/35)
-Login --> StaffDashboard : ล็อกอินสำเร็จ\nบทบาท = เจ้าหน้าที่\n(UBU SSO หรือ Role Override UC-34/35)
+Login --> RequestList : ล็อกอินสำเร็จ\nบทบาท = นักศึกษา\n(UBU SSO หรือ Role Override UC-34)
+Login --> StaffDashboard : ล็อกอินสำเร็จ\nบทบาท = เจ้าหน้าที่\n(UBU SSO หรือ Role Override UC-34)
 Login --> UserList : ล็อกอินสำเร็จ\nบทบาท = ผู้ดูแลระบบ
 
 RequestList --> Login : ออกจากระบบ
@@ -429,15 +431,15 @@ note bottom of Student
 end note
 
 note bottom of Staff
-  ครอบคลุม UC-17 ถึง UC-32 (16 use case ของเจ้าหน้าที่)
+  ครอบคลุม UC-17 ถึง UC-32 และ UC-36 (17 use case ของเจ้าหน้าที่)
   Auto-expire: หากอนุมัติแล้วนักศึกษาไม่ยืนยันรับของ (UC-08)
   ภายใน 2 วัน ระบบดึงของกลับคลังและเปลี่ยนคำขอเป็น
   "หมดอายุ" อัตโนมัติ (background job ไม่ผ่านหน้าจอนี้)
 end note
 
 note bottom of Admin
-  ครอบคลุม UC-33 ถึง UC-36 (4 use case ของผู้ดูแลระบบ)
-  - Role Override (UC-34/35) มีผลเหนือกว่าบทบาทเริ่มต้นจาก
+  ครอบคลุม UC-33 ถึง UC-35 (3 use case ของผู้ดูแลระบบ)
+  - Role Override (UC-34) มีผลเหนือกว่าบทบาทเริ่มต้นจาก
     UBU SSO เสมอ จนกว่าแอดมินจะยกเลิก
   - การเพิกถอนสิทธิ์หรือลบบัญชีทำผ่าน UC-33
 end note

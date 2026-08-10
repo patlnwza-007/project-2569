@@ -53,7 +53,7 @@ function p_item_status_change_init() {
   const unitBadges = {
     AVAILABLE: `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">✅ พร้อมใช้งาน</span>`,
     BORROWED: `<span class="bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">📦 กำลังถูกยืม</span>`,
-    DAMAGED: `<span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">⚠️ ชำรุด</span>`,
+    DAMAGED: `<span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">⚠️ ครุภัณฑ์เสียหาย</span>`,
     MAINTENANCE: `<span class="bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">🛠️ ส่งซ่อม</span>`,
   };
 
@@ -70,7 +70,7 @@ function p_item_status_change_init() {
         <select id="u_status_${u.asset_tag.replace(/-/g,'_')}" class="border border-gray-300 rounded-lg text-xs px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
           <option value="AVAILABLE" ${u.status==='AVAILABLE'?'selected':''}>พร้อมใช้งาน</option>
           <option value="BORROWED" ${u.status==='BORROWED'?'selected':''}>กำลังถูกยืม</option>
-          <option value="DAMAGED" ${u.status==='DAMAGED'?'selected':''}>ชำรุด</option>
+          <option value="DAMAGED" ${u.status==='DAMAGED'?'selected':''}>ครุภัณฑ์เสียหาย</option>
           <option value="MAINTENANCE" ${u.status==='MAINTENANCE'?'selected':''}>ส่งซ่อมคลัง</option>
         </select>
         <button onclick="p_item_status_change_saveUnit('${u.asset_tag}', ${id})" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-semibold rounded-lg px-3.5 py-1.5 transition-all shadow-sm">

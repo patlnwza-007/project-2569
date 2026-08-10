@@ -269,6 +269,7 @@ const MENU = {
     { key: "staff-dashboard", label: "แดชบอร์ด", icon: "📊" },
     { key: "pending-requests", label: "คำขอรออนุมัติ", icon: "✅" },
     { key: "return-list", label: "รับคืนครุภัณฑ์", icon: "↩️" },
+    { key: "damaged-equipment", label: "ครุภัณฑ์เสียหาย", icon: "⚠️" },
     { key: "all-history", label: "ประวัติทั้งระบบ", icon: "📜" },
     { key: "item-overview", label: "จัดการคลังสิ่งของ", icon: "📦" },
     { key: "warehouse-settings", label: "ตั้งค่าคลัง", icon: "⚙️" },

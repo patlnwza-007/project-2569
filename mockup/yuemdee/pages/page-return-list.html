@@ -114,7 +114,7 @@ function p_return_list_confirmReturn(id) {
   if (!r) return;
 
   const isDamaged = r.return_condition === "damaged";
-  if (!confirm(`ยืนยันตรวจรับคืนคำขอ #${id} เข้าคลัง?${isDamaged ? '\n\n⚠️ คำขอนี้ระบุว่ามีสิ่งของชำรุด ระบบจะบันทึกสถานะชำรุดที่รหัสครุภัณฑ์รายชิ้นอัตโนมัติ' : ''}`)) return;
+  if (!confirm(`ยืนยันตรวจรับคืนคำขอ #${id} เข้าคลัง?${isDamaged ? '\n\n⚠️ คำขอนี้ระบุว่ามีสิ่งของชำรุด ระบบจะเปลี่ยนสถานะรหัสครุภัณฑ์รายชิ้นเป็น "ครุภัณฑ์เสียหาย" อัตโนมัติ และแสดงในเมนู "ครุภัณฑ์เสียหาย"' : ''}`)) return;
 
   r.items.forEach(it => {
     const item = items.find(i => i.id === it.item_id);
@@ -148,7 +148,7 @@ function p_return_list_confirmReturn(id) {
   r.status = "RETURNED"; r.returned_at = "2026-07-23 " + new Date().toTimeString().slice(0,5);
   dbSave("requests", reqs); dbSave("items", items); dbSave("units", units);
 
-  toastBanner(isDamaged ? "ตรวจรับคืนเรียบร้อยแล้ว (บันทึกรหัสครุภัณฑ์ชำรุดเข้าคลังสำเร็จ)" : "ยืนยันรับคืนสำเร็จ สิ่งของกลับเข้าคลังแล้ว");
+  toastBanner(isDamaged ? "ตรวจรับคืนเรียบร้อยแล้ว (บันทึกสถานะครุภัณฑ์เสียหายสำเร็จ ดูได้ที่เมนู \"ครุภัณฑ์เสียหาย\")" : "ยืนยันรับคืนสำเร็จ สิ่งของกลับเข้าคลังแล้ว");
   p_return_list_render();
 }
 

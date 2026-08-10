@@ -68,7 +68,7 @@ else (ไม่ถูกระงับ)
 endif
 
 |backend|
-:ตรวจสอบ Role Override เฉพาะบุคคล (UC-34/UC-35);
+:ตรวจสอบ Role Override เฉพาะบุคคล (UC-34);
 if (มีการกำหนด Role Override หรือไม่?) then (มี)
   :ใช้บทบาทที่ถูกกำหนด (Role Override) แทนบทบาทเริ่มต้นจาก UBU SSO;
 else (ไม่มี)
