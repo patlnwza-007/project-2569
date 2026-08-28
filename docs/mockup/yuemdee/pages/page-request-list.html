@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · request-list</title>
+</head>
+<body class="bg-gray-50" onload="p_request_list_init()">
+
+<div id="view-request-list" class="w-full h-full overflow-y-auto p-6">
+  <div class="max-w-5xl mx-auto">
+
+    <!-- Greeting Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <span id="p_request_list_greeting_icon">👋</span>
+          <span>สวัสดี, <span id="p_request_list_student-name" class="text-blue-600"></span></span>
+        </h1>
+        <p class="text-sm text-gray-500 mt-0.5">ติดตามคำขอยืม-คืนทั้งหมดของคุณได้ที่นี่</p>
+      </div>
+      <a href="javascript:void(0)" onclick="navigate('item-list')"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-5 py-2.5 shadow-sm shadow-blue-200 transition-all">
+        <span>+</span> ยืมสิ่งของใหม่
+      </a>
+    </div>
+
+    <!-- Urgent Alert Banner -->
+    <div id="p_request_list_alert" class="hidden mb-5"></div>
+
+    <!-- Summary Cards -->
+    <div id="p_request_list_summary" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6"></div>
+
+    <!-- Active Requests Section -->
+    <div id="p_request_list_active_section" class="mb-6 hidden">
+      <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse inline-block"></span>
+        รายการที่ต้องดำเนินการ
+      </h2>
+      <div id="p_request_list_active_rows" class="space-y-3"></div>
+    </div>
+
+    <!-- History Section -->
+    <div id="p_request_list_history_section" class="hidden">
+      <button onclick="p_request_list_toggleHistory()" id="p_request_list_history_toggle"
+        class="w-full flex items-center justify-between text-sm font-bold text-gray-500 hover:text-gray-800 mb-3 transition-colors">
+        <span class="flex items-center gap-2">
+          <span>📜</span> ประวัติการยืม-คืน
+          <span id="p_request_list_history_count" class="bg-gray-200 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full">0</span>
+        </span>
+        <span id="p_request_list_history_chevron" class="text-gray-400">▼</span>
+      </button>
+      <div id="p_request_list_history_rows" class="space-y-2 hidden"></div>
+    </div>
+
+    <!-- All Requests (when no stu) -->
+    <div id="p_request_list_rows" class="space-y-3"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_request_list_init() {
+  notifyParentPage("request-list");
+  const stu = currentStudent() || (db("students") ? db("students")[0] : null);
+  const nameEl = document.getElementById("p_request_list_student-name");
+  if (nameEl) nameEl.textContent = stu ? stu.name : "สมชาย ใจดี";
+  p_request_list_render();
+}
+
+let p_request_list_history_open = false;
+
+function p_request_list_toggleHistory() {
+  p_request_list_history_open = !p_request_list_history_open;
+  const rows = document.getElementById("p_request_list_history_rows");
+  const chevron = document.getElementById("p_request_list_history_chevron");
+  if (rows) rows.classList.toggle("hidden", !p_request_list_history_open);
+  if (chevron) chevron.textContent = p_request_list_history_open ? "▲" : "▼";
+}
+
+function p_request_list_render() {
+  const stu = currentStudent() || (db("students") ? db("students")[0] : null);
+  const host = document.getElementById("p_request_list_rows");
+  const alertEl = document.getElementById("p_request_list_alert");
+  const summaryEl = document.getElementById("p_request_list_summary");
+  const activeSection = document.getElementById("p_request_list_active_section");
+  const activeRows = document.getElementById("p_request_list_active_rows");
+  const histSection = document.getElementById("p_request_list_history_section");
+  const histRows = document.getElementById("p_request_list_history_rows");
+  const histCount = document.getElementById("p_request_list_history_count");
+
+  if (!stu) return;
+  if (host) host.innerHTML = "";
+
+  const requests = db("requests")
+    .filter(r => r.student_id === stu.id)
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+
+  const ACTIVE_STATUSES = ["PENDING", "APPROVED_WAIT_PICKUP", "BORROWING", "RETURN_PENDING"];
+  const DONE_STATUSES   = ["RETURNED", "ISSUED", "REJECTED", "CANCELLED", "EXPIRED"];
+
+  const activeRequests = requests.filter(r => ACTIVE_STATUSES.includes(r.status));
+  const doneRequests   = requests.filter(r => DONE_STATUSES.includes(r.status));
+
+  // ─── Alert Banner ───────────────────────────────────────────────────────
+  const urgentAlerts = [];
+
+  // Check queue readiness for student
+  db("items").forEach(i => {
+    const q = db("queue").filter(x => x.item_id === i.id);
+    const idx = q.findIndex(x => x.student_id === stu.id);
+    if (idx === 0 && i.qty_available > 0) {
+      urgentAlerts.push(`🎉 สิ่งของ <strong>${i.name}</strong> คืนเข้าคลังแล้ว (ถึงคิวคุณ) — <a href="javascript:void(0)" onclick="navigate('queue-list')" class="underline font-bold text-emerald-900">กดส่งคำขอยืมที่นี่ →</a>`);
+    }
+  });
+
+  activeRequests.forEach(r => {
+    if (r.status === "APPROVED_WAIT_PICKUP") {
+      urgentAlerts.push(`📦 คำขอ <strong>#${r.id}</strong> ได้รับการอนุมัติแล้ว — กรุณายืนยันรับของ ภายใน 2 วัน`);
+    } else if (r.status === "BORROWING" && r.due_date) {
+      const dl = daysLeft(r.due_date);
+      if (dl < 0) urgentAlerts.push(`🔴 คำขอ <strong>#${r.id}</strong> เกินกำหนดคืน ${Math.abs(dl)} วันแล้ว — กรุณานำส่งของคืนโดยด่วน`);
+      else if (dl <= 2) urgentAlerts.push(`⚠️ คำขอ <strong>#${r.id}</strong> ใกล้ถึงกำหนดคืน — อีก ${dl} วัน (${r.due_date})`);
+    }
+  });
+
+  if (alertEl) {
+    if (urgentAlerts.length > 0) {
+      const isOverdue = urgentAlerts.some(a => a.startsWith("🔴"));
+      const colorCls = isOverdue
+        ? "bg-red-50 border-red-300 text-red-800"
+        : "bg-amber-50 border-amber-300 text-amber-800";
+      alertEl.className = `border rounded-2xl p-4 mb-5 ${colorCls}`;
+      alertEl.innerHTML = `
+        <div class="font-bold text-sm mb-2">${isOverdue ? "🚨 มีรายการเร่งด่วน" : "⚠️ แจ้งเตือน"}</div>
+        <ul class="list-disc list-inside space-y-1 text-xs">
+          ${urgentAlerts.map(a => `<li>${a}</li>`).join("")}
+        </ul>`;
+      alertEl.classList.remove("hidden");
+    } else {
+      alertEl.classList.add("hidden");
+    }
+  }
+
+  // ─── Summary Cards ───────────────────────────────────────────────────────
+  const counts = {
+    PENDING:             requests.filter(r => r.status === "PENDING").length,
+    APPROVED_WAIT_PICKUP:requests.filter(r => r.status === "APPROVED_WAIT_PICKUP").length,
+    BORROWING:           requests.filter(r => r.status === "BORROWING").length,
+    OVERDUE:             requests.filter(r => r.status === "BORROWING" && daysLeft(r.due_date) < 0).length,
+    RETURN_PENDING:      requests.filter(r => r.status === "RETURN_PENDING").length,
+    RETURNED:            requests.filter(r => r.status === "RETURNED" || r.status === "ISSUED").length,
+    queue:               db("queue").filter(q => q.student_id === stu.id).length,
+  };
+
+  const summaryCards = [
+    { label: "รออนุมัติ",      count: counts.PENDING,              icon: "🕐", bg: "bg-amber-50",   border: "border-amber-200", text: "text-amber-700",  nav: null },
+    { label: "รอรับของ",       count: counts.APPROVED_WAIT_PICKUP, icon: "📦", bg: "bg-blue-50",    border: "border-blue-200",  text: "text-blue-700",   nav: null },
+    { label: "กำลังยืม",      count: counts.BORROWING,            icon: "🔄", bg: "bg-indigo-50",  border: "border-indigo-200",text: "text-indigo-700", nav: null },
+    { label: "เกินกำหนดคืน",   count: counts.OVERDUE,              icon: "🚨", bg: "bg-red-50",     border: "border-red-200",   text: "text-red-700",    nav: "notify-return" },
+    { label: "รอยืนยันคืน",   count: counts.RETURN_PENDING,       icon: "🔁", bg: "bg-orange-50",  border: "border-orange-200",text: "text-orange-700", nav: "notify-return" },
+    { label: "คืน/เบิกสำเร็จ",count: counts.RETURNED,             icon: "✅", bg: "bg-emerald-50", border: "border-emerald-200",text:"text-emerald-700",nav: "history" },
+    { label: "คิวที่จอง",     count: counts.queue,                icon: "⏳", bg: "bg-purple-50",  border: "border-purple-200",text: "text-purple-700", nav: "queue-list" },
+  ];
+
+  if (summaryEl) {
+    summaryEl.innerHTML = summaryCards.map(c => `
+      <div class="group ${c.bg} ${c.border} border rounded-2xl p-3.5 cursor-pointer hover:shadow-md transition-all ${c.nav ? `onclick="navigate('${c.nav}')"` : ""}" ${c.nav ? `onclick="navigate('${c.nav}')"` : ""}>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xl">${c.icon}</span>
+          <span class="text-2xl font-extrabold ${c.text} font-mono leading-none">${c.count}</span>
+        </div>
+        <p class="text-xs font-semibold text-gray-600 leading-tight">${c.label}</p>
+      </div>`).join("");
+  }
+
+  // ─── Empty State (no requests at all) ────────────────────────────────────
+  if (requests.length === 0) {
+    if (activeSection) activeSection.classList.add("hidden");
+    if (histSection) histSection.classList.add("hidden");
+    if (host) host.innerHTML = p_request_list_emptyState("ยังไม่มีรายการยืม", "กดปุ่ม '+ ยืมสิ่งของใหม่' เพื่อเริ่มยืมได้เลย");
+    return;
+  }
+
+
+
+  // ─── Active Requests ──────────────────────────────────────────────────────
+  if (activeSection && activeRows) {
+    if (activeRequests.length > 0) {
+      activeSection.classList.remove("hidden");
+      activeRows.innerHTML = activeRequests.map(r => p_request_list_renderCard(r, false)).join("");
+    } else {
+      activeSection.classList.add("hidden");
+    }
+  }
+
+  // ─── History Requests ─────────────────────────────────────────────────────
+  if (histSection && histRows && histCount) {
+    if (doneRequests.length > 0) {
+      histSection.classList.remove("hidden");
+      histCount.textContent = doneRequests.length;
+      histRows.innerHTML = doneRequests.map(r => p_request_list_renderCard(r, true)).join("");
+    } else {
+      histSection.classList.add("hidden");
+    }
+  }
+}
+
+function p_request_list_stepProgress(status) {
+  // Steps: PENDING → APPROVED_WAIT_PICKUP → BORROWING → RETURN_PENDING → RETURNED
+  const steps = [
+    { key: "PENDING",              label: "รออนุมัติ" },
+    { key: "APPROVED_WAIT_PICKUP", label: "รับของ" },
+    { key: "BORROWING",            label: "กำลังยืม" },
+    { key: "RETURN_PENDING",       label: "แจ้งคืน" },
+    { key: "RETURNED",             label: "สำเร็จ" },
+  ];
+
+  // Material flow: PENDING → APPROVED_WAIT_PICKUP → ISSUED
+  const materialFlow = ["PENDING", "APPROVED_WAIT_PICKUP", "ISSUED"];
+  const isMaterial = status === "ISSUED";
+
+  if (["REJECTED", "CANCELLED", "EXPIRED"].includes(status)) {
+    const colorMap = { REJECTED: "text-red-600 bg-red-50 border-red-200", CANCELLED: "text-gray-500 bg-gray-50 border-gray-200", EXPIRED: "text-gray-400 bg-gray-50 border-gray-200" };
+    const labelMap = { REJECTED: "❌ ถูกปฏิเสธ", CANCELLED: "🚫 ยกเลิกแล้ว", EXPIRED: "⌛ หมดอายุแล้ว" };
+    return `<div class="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full border ${colorMap[status]}">${labelMap[status]}</div>`;
+  }
+
+  if (isMaterial) {
+    return `<div class="flex items-center gap-1 text-xs mt-1 flex-wrap">
+      ${["ส่งคำขอ","รออนุมัติ","เบิกสำเร็จ"].map((label, idx) => {
+        const active = idx <= 2;
+        return `<span class="px-2 py-0.5 rounded-full font-semibold ${active ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400"}">${label}</span>${idx < 2 ? '<span class="text-gray-300">›</span>' : ""}`;
+      }).join("")}
+    </div>`;
+  }
+
+  const orderedSteps = steps;
+  const activeIdx = orderedSteps.findIndex(s => s.key === status);
+
+  return `<div class="flex items-center gap-1 mt-2 flex-wrap">
+    ${orderedSteps.map((s, idx) => {
+      let cls;
+      if (idx < activeIdx) cls = "bg-emerald-500 text-white";
+      else if (idx === activeIdx) cls = "bg-blue-600 text-white ring-2 ring-blue-200";
+      else cls = "bg-gray-100 text-gray-400";
+      return `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}">${s.label}</span>${idx < orderedSteps.length - 1 ? '<span class="text-gray-300 text-xs">›</span>' : ""}`;
+    }).join("")}
+  </div>`;
+}
+
+function p_request_list_renderCard(r, isHistory) {
+  const units = db("units");
+  const assignedUnits = units.filter(u => u.current_request_id === r.id);
+  const assetTagsBadge = assignedUnits.length > 0
+    ? `<div class="mt-1 flex flex-wrap gap-1">${assignedUnits.map(u => `<span class="bg-blue-100 text-blue-800 font-mono text-[10px] px-2 py-0.5 rounded font-bold">🏷️ ${u.asset_tag}</span>`).join("")}</div>`
+    : "";
+
+  const itemNames = r.items.map(it => {
+    const i = itemById(it.item_id);
+    return i ? `<span class="inline-flex items-center gap-1">${i.image} <span class="font-medium">${i.name}</span> <span class="text-gray-400 font-mono">×${it.qty}</span></span>` : "";
+  }).filter(Boolean).join("<br>");
+
+  const isEquip = r.items.some(it => itemById(it.item_id)?.type === "equipment");
+  let actions = "";
+  let extraInfo = "";
+  let urgentCls = "";
+
+  if (r.status === "PENDING") {
+    actions = `<button onclick="p_request_list_cancelRequest(${r.id})" class="text-xs bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg px-3 py-1.5 transition-colors">ยกเลิกคำขอ</button>`;
+  } else if (r.status === "APPROVED_WAIT_PICKUP") {
+    urgentCls = "border-blue-400 ring-2 ring-blue-100";
+    actions = `<a href="javascript:void(0)" onclick="navigate('confirm-pickup', {rid: ${r.id}})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 inline-block font-semibold transition-colors">ยืนยันรับของ →</a>`;
+    extraInfo = `<p class="text-xs text-blue-600 font-medium mt-1.5">📦 กรุณายืนยันรับของภายใน 2 วันหลังอนุมัติ</p>`;
+  } else if (r.status === "BORROWING") {
+    const dl = daysLeft(r.due_date);
+    const isOverdue = dl < 0;
+    const isNear = dl >= 0 && dl <= 2;
+    const fine = calculateOverdueFine(r);
+    urgentCls = isOverdue ? "border-red-400 ring-2 ring-red-100" : isNear ? "border-amber-400 ring-2 ring-amber-100" : "";
+    extraInfo = `<p class="text-xs mt-1.5 font-medium ${isOverdue ? "text-red-600" : isNear ? "text-amber-600" : "text-gray-500"}">
+      ⏰ กำหนดคืน: ${r.due_date}
+      ${isOverdue ? `<span class="ml-1 bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px]">เกินกำหนด ${Math.abs(dl)} วัน</span>` :
+        isNear ? `<span class="ml-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px]">อีก ${dl} วัน</span>` :
+        `<span class="ml-1 text-gray-400">(อีก ${dl} วัน)</span>`}
+    </p>
+    ${fine > 0 ? `<p class="text-xs font-bold text-red-600 mt-1 bg-red-50 p-1.5 rounded-lg border border-red-100">💸 ค่าปรับค้างชำระ: ${fine} บาท (${getOverdueDays(r)} วัน × ${getFineRatePerDay()} บาท/วัน)</p>` : ""}`;
+    actions = `<a href="javascript:void(0)" onclick="navigate('notify-return', {rid: ${r.id}})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 inline-block font-semibold transition-colors">แจ้งคืน →</a>`;
+  } else if (r.status === "RETURN_PENDING") {
+    extraInfo = `<p class="text-xs text-amber-600 mt-1.5 font-medium">🔁 รอเจ้าหน้าที่ตรวจสอบและยืนยันการรับคืน</p>`;
+  } else if (r.status === "REJECTED") {
+    extraInfo = `<p class="text-xs text-red-500 mt-1.5">❌ เหตุผล: ${r.reject_reason || "-"}</p>`;
+  } else if (r.status === "RETURNED") {
+    const evaluated = db("eval_responses").some(e => e.request_id === r.id);
+    if (!evaluated) {
+      actions = `<a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}})" class="text-xs bg-amber-400 hover:bg-amber-500 text-amber-950 font-semibold rounded-lg px-3 py-2 inline-block transition-colors">⭐ ประเมิน</a>`;
+    }
+    extraInfo = `<p class="text-xs text-emerald-600 mt-1.5 font-medium">✅ คืนสำเร็จ</p>`;
+  } else if (r.status === "ISSUED") {
+    extraInfo = `<p class="text-xs text-emerald-600 mt-1.5 font-medium">✅ เบิกของสำเร็จ</p>`;
+  }
+
+  const cardBg = isHistory ? "bg-gray-50/70" : "bg-white";
+  const borderCls = urgentCls || "border-gray-200";
+
+  return `<div class="${cardBg} rounded-2xl border ${borderCls} shadow-sm hover:shadow-md transition-all p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex-1 min-w-0">
+        <!-- Top badges row -->
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          ${badgeHtml(r.status)}
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md ${isEquip ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : "bg-teal-50 text-teal-700 border border-teal-100"}">${isEquip ? "ครุภัณฑ์" : "วัสดุเบิกใช้"}</span>
+          <span class="text-xs text-gray-400 font-mono">คำขอ #${r.id}</span>
+        </div>
+        <!-- Item list -->
+        <div class="text-sm text-gray-800 mb-1">${itemNames}</div>
+        ${assetTagsBadge}
+        <!-- Meta info -->
+        <p class="text-xs text-gray-400">เหตุผล: ${r.reason || "-"} · ส่งคำขอ ${r.created_at || "-"}</p>
+        ${extraInfo}
+        <!-- Step progress -->
+        ${p_request_list_stepProgress(r.status)}
+      </div>
+      <!-- Action button -->
+      <div class="shrink-0">${actions}</div>
+    </div>
+  </div>`;
+}
+
+function p_request_list_cancelRequest(id) {
+  if (!confirm("ยืนยันยกเลิกคำขอยืมนี้หรือไม่?")) return;
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === id);
+  if (r && r.status === "PENDING") {
+    r.status = "CANCELLED";
+    dbSave("requests", reqs);
+    toastBanner("ยกเลิกคำขอยืมสำเร็จ");
+    p_request_list_render();
+  } else {
+    toastBanner("คำขอนี้ถูกดำเนินการไปแล้ว ไม่สามารถยกเลิกได้", "error");
+  }
+}
+
+function p_request_list_emptyState(title, sub) {
+  return `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+    <div class="text-5xl mb-3">🗂️</div>
+    <p class="text-gray-700 font-semibold text-base">${title}</p>
+    <p class="text-xs text-gray-400 mt-1">${sub}</p>
+    <a href="javascript:void(0)" onclick="navigate('item-list')" class="inline-flex items-center gap-2 mt-5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5 shadow-sm transition-all">
+      + ยืมสิ่งของใหม่
+    </a>
+  </div>`;
+}
+</script>
+</body>
+</html>

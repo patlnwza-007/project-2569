@@ -1,0 +1,23 @@
+# Sensitive environment credentials
+.env
+.env.local
+
+# Python / Virtualenv
+.venv/
+venv/
+ENV/
+*.pyc
+__pycache__/
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Databases
+*.sqlite3
+
+# Tailwind CSS Build cache
+theme/static/css/dist/*.css
+!theme/static/css/dist/.gitkeep

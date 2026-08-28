@@ -6,7 +6,130 @@
   <component name="ChangeListManager">
     <list default="true" id="272740e4-d00a-4c8a-9aad-3e8563fdbf04" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proposal/usecase/use_case_description.md" beforeDir="false" afterPath="$PROJECT_DIR$/proposal/usecase/use_case_description.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/example/UI_django_example.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/example/UI_react_example.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/example/activity_diagram_example.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/example/mockup_example.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/example/proposal_ch1_example.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/example/ui_state_diagram_example.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/example/usecase_example.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/UI_django_frontend.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/UI_react_frontend.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/activity_diagram_generate_guide.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/mockup_generate_guide.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/present_plan.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/proposal_ch1_generate_guide.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/slide_content_generator.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/slide_generate_guide.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/slide_offline_generate.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/ui_state_diagram_generate_guide.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/guide/usecase_generate_guide.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/UI_django_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/UI_react_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/activity_diagram_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/mockup_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/page_description_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/proposal_template_ch1.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/template_slides.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/template_usecase_description.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/ui_state_diagram_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator/template/usecase_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/page_description.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-all-history.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-bulk-import.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-cart.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-confirm-pickup.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-damaged-equipment.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-evaluation-form.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-evaluation.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-history.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-item-delete.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-item-detail.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-item-form.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-item-list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-item-overview.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-item-status-change.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-login.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-notify-return.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-pending-requests.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-personnel-export.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-position-map.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-profile.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-purchase-add.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-queue-list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-report-export.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-request-form.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-request-list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-return-list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-role-override.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-staff-dashboard.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-student-list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-student-permission.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-suggestion-review.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-suggestion.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-user-detail.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-user-list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-warehouse-settings.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/pages/page-welcome.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mockup/yuemdee/shared.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/.idea/proposal.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/proposal.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module10_uc33.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module10_uc34.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module10_uc35.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module1_uc14.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module1_uc16.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module2_uc01.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module2_uc02.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module2_uc03.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module2_uc04.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc05.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc06.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc07.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc08.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc09.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc10.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc11.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module3_uc12.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module4_uc13.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module4_uc29.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module4_uc30.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module5_uc15.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module5_uc32.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module6_uc17.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module6_uc18.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module6_uc19.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module6_uc20.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module6_uc36.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module7_uc21.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module7_uc22.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module7_uc23.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module7_uc24.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module7_uc25.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module7_uc26.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module8_uc27.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module8_uc28.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/activity_module9_uc31.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/ui_state_diagram.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/use_case_description.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module1.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module10.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module2.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module3.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module4.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module5.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module6.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module7.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module8.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_module9.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal/usecase/usecase_overview.puml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/uborrowu_vs_yuemdee_changes.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/yuemdee_functional_requirements.md" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,14 +155,17 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/pat/project-2569&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>

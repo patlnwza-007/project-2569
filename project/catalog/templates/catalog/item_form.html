@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    
+    <!-- Page Header -->
+    <div class="flex items-center justify-between bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <i data-lucide="{% if is_edit %}edit-3{% else %}plus-circle{% endif %}" class="w-7 h-7 text-blue-600"></i>
+                {{ title }}
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">กรอกข้อมูลวัสดุ/ครุภัณฑ์เพื่อนำเข้าสู่ระบบคลังพัสดุ YuemDee</p>
+        </div>
+
+        <a href="{% url 'catalog:item_list' %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition-colors">
+            &larr; ย้อนกลับ
+        </a>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Item Type Selection -->
+            <div class="p-4 rounded-xl bg-blue-50/50 border border-blue-200">
+                <label for="{{ form.item_type.id_for_label }}" class="block text-sm font-bold text-blue-900 mb-1">
+                    ประเภทสิ่งของ <span class="text-red-500">*</span>
+                </label>
+                {{ form.item_type }}
+                <p class="text-xs text-blue-600 mt-1.5">
+                    <strong>วัสดุ:</strong> เบิกไปใช้งานแล้วหมดไป (ไม่ต้องคืน) | 
+                    <strong>ครุภัณฑ์:</strong> ยืมใช้งานแล้วต้องนำกลับมาส่งคืน
+                </p>
+                {% if form.item_type.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.item_type.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Code Field -->
+                <div>
+                    <label for="{{ form.code.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                        รหัสสิ่งของ/ครุภัณฑ์ <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.code }}
+                    {% if form.code.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.code.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Category Field -->
+                <div>
+                    <label for="{{ form.category.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                        หมวดหมู่สิ่งของ
+                    </label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.category.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Name Field -->
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                    ชื่อวัสดุ/ครุภัณฑ์ <span class="text-red-500">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Description Field -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                    รายละเอียดและสเปกสิ่งของ
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.description.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Max Borrow Days (For Equipment only) -->
+            <div id="max_borrow_days_container">
+                <label for="{{ form.max_borrow_days.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                    ยืมได้สูงสุด (จำนวนวัน - เฉพาะครุภัณฑ์)
+                </label>
+                {{ form.max_borrow_days }}
+                {% if form.max_borrow_days.errors %}
+                <p class="mt-1 text-xs text-red-600">{{ form.max_borrow_days.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Image File Upload & URL Field -->
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.image.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                            อัปโหลดไฟล์รูปภาพ (จากเครื่อง/มือถือ)
+                        </label>
+                        {{ form.image }}
+                        {% if form.image.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.image.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.image_url.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                            หรือวางลิงก์รูปภาพ (Image URL)
+                        </label>
+                        {{ form.image_url }}
+                        {% if form.image_url.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.image_url.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <!-- Location Field -->
+                <div>
+                    <label for="{{ form.location.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                        ตำแหน่งชั้นวาง (Position Map)
+                    </label>
+                    {{ form.location }}
+                    {% if form.location.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.location.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Total Quantity -->
+                <div>
+                    <label for="{{ form.total_quantity.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                        จำนวนทั้งหมดในคลัง <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.total_quantity }}
+                    {% if form.total_quantity.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.total_quantity.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Available Quantity -->
+                <div>
+                    <label for="{{ form.available_quantity.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">
+                        จำนวนพร้อมใช้งานปัจจุบัน <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.available_quantity }}
+                    {% if form.available_quantity.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.available_quantity.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Is Active Toggle -->
+            <div class="flex items-center gap-2 pt-2">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" class="text-sm font-semibold text-gray-700">
+                    เปิดใช้งานสิ่งของนี้ในคลัง (พร้อมให้บริการ)
+                </label>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                <a href="{% url 'catalog:item_list' %}" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition-colors">
+                    ยกเลิก
+                </a>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
+                    {% if is_edit %}บันทึกการแก้ไข{% else %}บันทึกเพิ่มสิ่งของใหม่{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemTypeSelect = document.getElementById('id_item_type');
+    const maxBorrowContainer = document.getElementById('max_borrow_days_container');
+
+    function toggleMaxBorrowDays() {
+        if (!itemTypeSelect || !maxBorrowContainer) return;
+        if (itemTypeSelect.value === 'MATERIAL') {
+            maxBorrowContainer.style.display = 'none';
+        } else {
+            maxBorrowContainer.style.display = 'block';
+        }
+    }
+
+    if (itemTypeSelect) {
+        itemTypeSelect.addEventListener('change', toggleMaxBorrowDays);
+        toggleMaxBorrowDays();
+    }
+});
+</script>
+{% endblock %}

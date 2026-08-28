@@ -1,0 +1,82 @@
+@startuml activity_module8_uc28
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_student_manage_student_borrow_permission.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-28 · จัดการสิทธิ์การยืมของนักศึกษา — Activity Diagram\npartition หน้าจอ = frontend:StudentList → frontend:StudentPermission
+
+' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+' หมายเหตุ: UC นี้ <<include>> UC-27 (ดูและค้นหารายชื่อนักศึกษา) — ขั้นตอนแรก "เลือกนักศึกษาจากรายชื่อ" คือผลของ UC-27
+' จึงแสดงเป็นกิจกรรมปกติขั้นตอนแรกในไดอะแกรมนี้ ไม่ต้องวาดไดอะแกรมของ UC-27 ซ้ำ
+
+|frontend:StudentList|
+start
+:เลือกนักศึกษาเป้าหมายจากรายชื่อ (ผลจาก UC-27 · <<include>>);
+
+|frontend:StudentPermission|
+:เปิดหน้าจัดการสิทธิ์การยืมของนักศึกษาที่เลือก;
+
+|backend|
+:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:ดึงข้อมูลรายละเอียด + สถานะสิทธิ์การยืมปัจจุบันของนักศึกษา (ORM);
+
+|frontend:StudentPermission|
+:แสดงหน้าจัดการสิทธิ์การยืม พร้อมสถานะปัจจุบันของนักศึกษา;
+:เลือกดำเนินการ — กดระงับสิทธิ์ (Block) หรือกดปลดบล็อก (Unblock);
+
+|backend|
+:บันทึกสถานะสิทธิ์การยืมล่าสุดของนักศึกษา (write);
+
+fork
+  |frontend:StudentPermission|
+  :แสดงผลการอัปเดตสถานะสิทธิ์ให้เจ้าหน้าที่ (main flow);
+fork again
+  |backend|
+  :เขียน audit log (เปลี่ยนแปลงสิทธิ์การยืมของนักศึกษา) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
+  หมายเหตุ: UC-28 <<include>> UC-27 — เจ้าหน้าที่ต้องเลือกนักศึกษาจากรายชื่อ/ค้นหา (UC-27) ก่อนจึงเข้าสู่ flow นี้ได้
+  หมายเหตุ: สถานะสิทธิ์ (block/unblock) ที่อัปเดตมีผลต่อการส่งคำขอยืมครั้งถัดไปของนักศึกษา (UC-06)
+endlegend
+
+@enduml
