@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YuemDee · ระบบยืม-คืนพัสดุออนไลน์ (Mockup Shell)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .nav-link.active { background-color: #eff6ff; color: #1d4ed8; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+  #main-frame { border: 0; width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden">
+
+<div id="app" class="h-screen flex flex-col">
+  <!-- Top bar -->
+  <header class="h-14 shrink-0 bg-blue-700 text-white flex items-center justify-between px-4 shadow-sm z-10">
+    <div class="flex items-center gap-2 cursor-pointer" onclick="navigate(getRole() ? HOME_PAGE[getRole()] : 'welcome')">
+      <span class="text-xl">📦</span>
+      <span class="font-bold tracking-tight">YuemDee</span>
+      <span class="hidden md:inline text-blue-200 text-xs font-normal">ระบบยืม-คืนพัสดุออนไลน์</span>
+    </div>
+    <div id="topbar-right" class="flex items-center gap-3 text-sm"></div>
+  </header>
+
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="w-60 shrink-0 bg-white border-r border-gray-200 overflow-y-auto hidden md:block"></nav>
+
+    <!-- Main content: หน้าจอจริงของแต่ละ state โหลดจาก pages/page-<state>.html -->
+    <main class="flex-1 overflow-hidden bg-gray-50 relative">
+      <iframe id="main-frame" name="main-frame" title="เนื้อหาหน้าจอปัจจุบัน"></iframe>
+    </main>
+  </div>
+
+  <!-- Footer reset -->
+  <footer class="shrink-0 bg-white border-t border-gray-200 px-4 py-1.5 flex justify-between items-center z-10">
+    <span class="text-xs text-gray-400">YuemDee Mockup — ไม่เชื่อมต่อฐานข้อมูล/เซิร์ฟเวอร์จริง</span>
+    <button onclick="if(confirm('รีเซ็ตข้อมูลตัวอย่างทั้งหมดกลับสู่ค่าเริ่มต้น?')) resetAllData()" class="text-xs text-gray-400 hover:text-red-600 underline">↺ รีเซ็ตข้อมูลตัวอย่าง</button>
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+/* ============================================================================
+ * YuemDee · index.html (shell) — topbar/sidebar ของจริง + iframe แสดงเนื้อหา
+ * ตามโครง §2 ของ generator/guide/mockup_generate_guide.md
+ * ฟังก์ชันในไฟล์นี้ใช้เฉพาะใน shell เท่านั้น (ไม่ถูกโหลดโดยไฟล์ใน pages/)
+ * ==========================================================================*/
+
+function renderShell() {
+  const role = getRole();
+  const topbarRight = document.getElementById("topbar-right");
+  const sidebar = document.getElementById("sidebar");
+  const isAuthPage = window.currentPageKey === "welcome" || window.currentPageKey === "login";
+
+  if (!role || isAuthPage) {
+    topbarRight.innerHTML = "";
+    sidebar.innerHTML = "";
+    sidebar.style.display = "none";
+    return;
+  }
+
+  sidebar.style.display = "";
+  const userName = role === "student" ? currentStudent()?.name : (role === "staff" ? currentStaff().name : SEED_ADMINS[0].name);
+  topbarRight.innerHTML = `
+    <span class="hidden sm:inline bg-yellow-400 text-blue-900 text-xs font-bold px-2 py-1 rounded-full">${ROLE_LABEL[role]}</span>
+    <span class="hidden sm:inline">${userName}</span>
+    <div class="relative">
+      <button onclick="document.getElementById('role-switch-menu').classList.toggle('hidden')" class="bg-blue-600 hover:bg-blue-800 rounded-lg px-2 py-1 text-xs">สลับบทบาท ▾</button>
+      <div id="role-switch-menu" class="hidden absolute right-0 mt-1 w-40 bg-white text-gray-700 rounded-lg shadow-lg border border-gray-200 text-sm overflow-hidden z-50">
+        <button onclick="switchRole('student')" class="w-full text-left px-3 py-2 hover:bg-blue-50">🎓 นักศึกษา</button>
+        <button onclick="switchRole('staff')" class="w-full text-left px-3 py-2 hover:bg-blue-50">👷 เจ้าหน้าที่</button>
+        <button onclick="switchRole('admin')" class="w-full text-left px-3 py-2 hover:bg-blue-50">👑 ผู้ดูแลระบบ</button>
+      </div>
+    </div>
+    <button onclick="logout()" class="bg-white/10 hover:bg-white/20 rounded-lg px-2 py-1 text-xs">ออกจากระบบ</button>
+  `;
+
+  sidebar.innerHTML = `<div class="py-3">` + (MENU[role] || []).map(m =>
+    `<a data-key="${m.key}" href="pages/page-${m.key}.html" target="main-frame" onclick="navigate('${m.key}'); return false;" class="nav-link flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 border-l-4 border-transparent">
+      <span>${m.icon}</span><span>${m.label}</span>
+    </a>`
+  ).join("") + `</div>`;
+}
+
+function setActiveMenu(key) {
+  document.querySelectorAll(".nav-link").forEach(a => {
+    a.classList.toggle("active", a.dataset.key === key);
+  });
+}
+
+function switchRole(role) {
+  setRole(role);
+  const menuEl = document.getElementById("role-switch-menu");
+  if (menuEl) menuEl.classList.add("hidden");
+  renderShell();
+  navigate(HOME_PAGE[role]);
+}
+
+function logout() {
+  localStorage.removeItem(LS_PREFIX + "current_role");
+  localStorage.removeItem(LS_PREFIX + "current_user");
+  navigate("welcome");
+}
+
+/* ----------------------------------------------------------------------------
+ * navigate() เวอร์ชันของ shell — ประกาศทับ navigate() ทั่วไปใน shared.js
+ * (shared.js โหลดก่อนหน้านี้แล้ว, function declaration ตัวหลังชนะ)
+ * หน้าที่จริง: เปลี่ยน src ของ <iframe> ไปยัง pages/page-<key>.html พร้อม query
+ * param, บังคับ auth guard (ยังไม่ล็อกอิน → เด้งกลับ welcome เสมอ), แล้วอัปเดต
+ * topbar/sidebar ให้ตรงกับหน้าที่กำลังแสดง
+ * ---------------------------------------------------------------------------- */
+function navigate(pageKey, params = {}) {
+  window.currentParams = params || {};
+
+  const role = getRole();
+  if (!role && pageKey !== "welcome" && pageKey !== "login") {
+    pageKey = "welcome";
+  }
+  window.currentPageKey = pageKey;
+
+  const qs = params && Object.keys(params).length ? "?" + new URLSearchParams(params).toString() : "";
+  document.getElementById("main-frame").src = "pages/page-" + pageKey + ".html" + qs;
+
+  renderShell();
+  setActiveMenu(pageKey);
+}
+
+// หน้าลูกใน iframe เรียก notifyParentPage() ตอนโหลดเสร็จเสมอ (อยู่ใน shared.js)
+// เป็นช่องทางหลักที่ shell ใช้รู้ว่าหน้าเปลี่ยนไปแล้ว เพราะตอนนี้หน้าลูก
+// นำทางด้วย location.href ของตัวเอง (ไม่เรียก window.parent.navigate() ข้าม frame
+// ซึ่งโดน same-origin policy บล็อกภายใต้ file://) — ต้อง renderShell() ใหม่ทุกครั้งที่นี่
+// ไม่ใช่แค่ setActiveMenu() เพราะ shell.navigate() ของฝั่ง shell เองจะไม่ถูกเรียกเลย
+// เมื่อผู้ใช้กดปุ่มนำทางที่อยู่ภายในหน้าลูก (sidebar ถึงหายไปหลังล็อกอิน/เปลี่ยนหน้า)
+window.addEventListener("message", (ev) => {
+  if (ev.data && ev.data.type === "yuemdee-page") {
+    window.currentPageKey = ev.data.page;
+    renderShell();
+    setActiveMenu(ev.data.page);
+  }
+});
+
+// Initial Boot
+const initialRole = getRole();
+if (initialRole) {
+  navigate(HOME_PAGE[initialRole]);
+} else {
+  navigate("welcome");
+}
+</script>
+</body>
+</html>

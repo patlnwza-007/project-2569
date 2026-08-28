@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · warehouse-settings</title>
+</head>
+<body class="bg-gray-50" onload="p_warehouse_settings_init()">
+
+<div id="view-warehouse-settings" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">ตั้งค่าคลัง</h1>
+    <p class="text-sm text-gray-500 mb-4">จัดการหมวดหมู่สิ่งของ สถานะสิ่งของ และตำแหน่งตู้/ชั้นวาง</p>
+    <div class="flex gap-4 border-b border-gray-200 mb-4 text-sm">
+      <button class="tab active pb-2" data-t="categories" onclick="p_warehouse_settings_switchTab('categories')">หมวดหมู่</button>
+      <button class="tab pb-2" data-t="item_statuses" onclick="p_warehouse_settings_switchTab('item_statuses')">สถานะสิ่งของ</button>
+      <button class="tab pb-2" data-t="positions" onclick="p_warehouse_settings_switchTab('positions')">ตำแหน่ง</button>
+      <button class="tab pb-2" data-t="fines" onclick="p_warehouse_settings_switchTab('fines')">💸 อัตราค่าปรับ</button>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+      <div id="p_warehouse_settings_input_box" class="flex gap-2 mb-4">
+        <input id="p_warehouse_settings_new-name" placeholder="เพิ่มรายการใหม่..." class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        <button onclick="p_warehouse_settings_addItem()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg px-4 py-2">เพิ่ม</button>
+      </div>
+      <div id="p_warehouse_settings_rows" class="space-y-2"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+let tab = "categories";
+    const LABEL_FIELD = { categories: "name", item_statuses: null, positions: "name" };
+    function p_warehouse_settings_init() { notifyParentPage("warehouse-settings"); p_warehouse_settings_render(); }
+    function p_warehouse_settings_switchTab(t) {
+      tab = t;
+      document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.t === t));
+      p_warehouse_settings_render();
+    }
+    function p_warehouse_settings_usageCount(t, val) {
+      if (t === "categories") return db("items").filter(i => i.category_id === val).length;
+      if (t === "positions") return db("items").filter(i => i.position_id === val).length;
+      if (t === "item_statuses") return db("items").filter(i => i.base_status === val).length;
+    }
+    function p_warehouse_settings_render() {
+      const host = document.getElementById("p_warehouse_settings_rows");
+      const inputBox = document.getElementById("p_warehouse_settings_input_box");
+      if (tab === "fines") {
+        if (inputBox) inputBox.classList.add("hidden");
+        const currentRate = getFineRatePerDay();
+        host.innerHTML = `<div class="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+          <h3 class="font-bold text-gray-800 text-sm">💸 กำหนดอัตราค่าปรับกรณีส่งคืนครุภัณฑ์เกินกำหนด (Overdue Fine)</h3>
+          <p class="text-xs text-gray-600">ระบบจะนำอัตราค่าปรับนี้ไปคำนวณเงินปรับกรณีนักศึกษาส่งคืนช้ากว่าวันครบกำหนดโดยอัตโนมัติ (จำนวนวันเกิน × อัตราค่าปรับ)</p>
+          <div class="flex items-center gap-3">
+            <label class="text-xs font-bold text-gray-700">อัตราค่าปรับ:</label>
+            <input type="number" id="p_fine_rate_input" value="${currentRate}" min="0" class="w-28 border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-bold text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            <span class="text-xs text-gray-600 font-semibold">บาท / วัน</span>
+            <button onclick="p_warehouse_settings_saveFineRate()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg px-4 py-2">บันทึกอัตราค่าปรับ</button>
+          </div>
+        </div>`;
+      } else {
+        if (inputBox) inputBox.classList.remove("hidden");
+        if (tab === "item_statuses") {
+          const list = db("item_statuses");
+          host.innerHTML = list.map((s, idx) => `<div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+            <span>${s}</span>
+            <div class="flex items-center gap-2 text-xs text-gray-400"><span>ใช้งานอยู่ ${p_warehouse_settings_usageCount('item_statuses', s)} ชิ้น</span>
+            <button onclick="p_warehouse_settings_removeStatus(${idx})" class="text-red-500 hover:underline">ลบ</button></div>
+          </div>`).join("");
+        } else {
+          const list = db(tab);
+          host.innerHTML = list.map(x => `<div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+            <span>${x.name}</span>
+            <div class="flex items-center gap-2 text-xs text-gray-400"><span>ใช้งานอยู่ ${p_warehouse_settings_usageCount(tab, x.id)} ชิ้น</span>
+            <button onclick="p_warehouse_settings_removeEntity(${x.id})" class="text-red-500 hover:underline">ลบ</button></div>
+          </div>`).join("");
+        }
+      }
+    }
+    function p_warehouse_settings_saveFineRate() {
+      const val = Number(document.getElementById("p_fine_rate_input").value);
+      if (isNaN(val) || val < 0) { toastBanner("กรุณาระบุอัตราค่าปรับเป็นตัวเลขที่ถูกต้อง", "error"); return; }
+      const s = db("settings") || {};
+      s.fine_rate_per_day = val;
+      dbSave("settings", s);
+      toastBanner(`บันทึกอัตราค่าปรับเรียบร้อย: ${val} บาท/วัน`);
+    }
+    function p_warehouse_settings_addItem() {
+      const val = document.getElementById("p_warehouse_settings_new-name").value.trim();
+      if (!val) return;
+      if (tab === "item_statuses") {
+        const list = db("item_statuses"); list.push(val); dbSave("item_statuses", list);
+      } else {
+        const list = db(tab); list.push({ id: nextId(list), name: val }); dbSave(tab, list);
+      }
+      document.getElementById("p_warehouse_settings_new-name").value = "";
+      toastBanner("เพิ่มรายการสำเร็จ");
+      p_warehouse_settings_render();
+    }
+    function p_warehouse_settings_removeEntity(id) {
+      const count = p_warehouse_settings_usageCount(tab, id);
+      if (count > 0) { toastBanner(`ไม่สามารถลบได้ เนื่องจากมีสิ่งของ ${count} ชิ้นใช้งานอยู่`, "error"); return; }
+      let list = db(tab); list = list.filter(x => x.id !== id); dbSave(tab, list);
+      toastBanner("ลบสำเร็จ"); p_warehouse_settings_render();
+    }
+    function p_warehouse_settings_removeStatus(idx) {
+      const list = db("item_statuses");
+      const val = list[idx];
+      const count = p_warehouse_settings_usageCount("item_statuses", val);
+      if (count > 0) { toastBanner(`ไม่สามารถลบได้ เนื่องจากมีสิ่งของ ${count} ชิ้นใช้งานอยู่`, "error"); return; }
+      list.splice(idx, 1); dbSave("item_statuses", list);
+      toastBanner("ลบสำเร็จ"); p_warehouse_settings_render();
+    }
+</script>
+</body>
+</html>

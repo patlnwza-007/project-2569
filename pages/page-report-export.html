@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<title>YuemDee · report-export</title>
+</head>
+<body class="bg-gray-50" onload="p_report_export_init()">
+
+<div id="view-report-export" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">ส่งออกรายงาน</h1>
+    <p class="text-sm text-gray-500 mb-4">เลือกช่วงวันที่ (สำหรับรายงานที่อ้างอิงวันที่) แล้วเลือกรูปแบบรายงานที่ต้องการ</p>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-5 flex gap-3 items-end">
+      <div><label class="text-xs font-semibold text-gray-500">ตั้งแต่วันที่</label><input id="p_report_export_from" type="date" class="mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+      <div><label class="text-xs font-semibold text-gray-500">ถึงวันที่</label><input id="p_report_export_to" type="date" class="mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+    </div>
+    <div id="p_report_export_reports" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6"></div>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center justify-between">
+      <div><p class="text-sm font-semibold text-gray-800">ส่งออกข้อมูลคลังทั้งหมด (CSV)</p><p class="text-xs text-gray-400">รายชื่อวัสดุ/ครุภัณฑ์ทั้งหมดพร้อมสถานะปัจจุบัน</p></div>
+      <button onclick="p_report_export_exportCSV()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">ดาวน์โหลด CSV</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_report_export_init() {
+  notifyParentPage("report-export");
+  p_report_export_render();
+}
+
+const REPORTS = [
+  { id: 1, name: "สรุปสถานะการยืม-คืนรายเดือน", filter: r => true },
+  { id: 2, name: "ของชำรุด", isDamaged: true, filter: () => true },
+  { id: 3, name: "รายงานคนค้างส่ง", isOverdue: true, filter: r => r.status === "BORROWING" && daysLeft(r.due_date) < 0 },
+  { id: 4, name: "คำเสนอแนะสิ่งของ", isSuggestion: true, filter: () => true },
+];
+
+function p_report_export_render() {
+  const host = document.getElementById("p_report_export_reports");
+  if (host) {
+    host.innerHTML = REPORTS.map(r => `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center justify-between hover:shadow-md transition-all">
+      <p class="text-sm font-semibold text-gray-800">📄 ${r.name}</p>
+      <button onclick="p_report_export_genReport(${r.id})" class="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-semibold rounded-lg px-3 py-1.5 transition-colors">ดาวน์โหลด PDF</button>
+    </div>`).join("");
+  }
+}
+
+    function p_report_export_inRange(dateStr) {
+      const from = document.getElementById("p_report_export_from").value, to = document.getElementById("p_report_export_to").value;
+      if (!dateStr) return true;
+      const d = dateStr.slice(0,10);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    }
+
+    function p_report_export_genReport(id) {
+      const rep = REPORTS.find(r => r.id === id);
+      let rows = [];
+      if (rep.isDamaged) {
+        const damagedUnits = db("units").filter(u => u.status === "DAMAGED");
+        const damagedItems = db("items").filter(i => i.base_status === "ชำรุด");
+        damagedUnits.forEach(u => {
+          const item = itemById(u.item_id);
+          rows.push(`[ชิ้น] รหัสครุภัณฑ์: ${u.asset_tag} — ${item ? item.name : 'สิ่งของ'} — หมายเหตุ: ${u.note || 'ชำรุด'}`);
+        });
+        damagedItems.forEach(i => {
+          rows.push(`[รายการ] ${i.name} — สถานะพื้นฐาน: ชำรุด (จำนวนทั้งหมด ${i.qty_total} ชิ้น)`);
+        });
+      } else if (rep.isOverdue) {
+        const overdues = db("requests").filter(r => r.status === "BORROWING" && daysLeft(r.due_date) < 0);
+        overdues.forEach(r => {
+          const student = studentById(r.student_id);
+          const days = Math.abs(daysLeft(r.due_date));
+          rows.push(`ผู้ยืม: ${student ? student.name : r.student_id} (${r.student_id}) — คำขอ #${r.id} — กำหนดคืน: ${r.due_date} (เกินกำหนด ${days} วัน)`);
+        });
+      } else if (rep.isSuggestion) {
+        rows = db("suggestions").map(s => `${s.name} — โดย ${studentById(s.student_id)?.name || s.student_id || 'นักศึกษา'} — สถานะ: ${STATUS_LABEL[s.status]||s.status}${s.detail ? ' (' + s.detail + ')' : ''}`);
+      } else {
+        rows = db("requests").filter(r => p_report_export_inRange(r.created_at)).filter(rep.filter).map(r => `#${r.id} ${studentById(r.student_id)?.name||r.student_id} — สถานะ: ${STATUS_LABEL[r.status]||r.status} — วันที่สร้าง: ${r.created_at}`);
+      }
+
+      if (rows.length === 0) { toastBanner("ไม่มีข้อมูลในช่วงที่เลือก ไม่สร้างไฟล์ว่าง", "error"); return; }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text("YuemDee - " + rep.name, 14, 16);
+      doc.setFontSize(9);
+      let y = 28;
+      rows.forEach(line => {
+        const wrapped = doc.splitTextToSize(String(line), 180);
+        wrapped.forEach(w => { if (y > 280) { doc.addPage(); y = 16; } doc.text(w, 14, y); y += 6; });
+      });
+      doc.save(`report_${rep.id}_${rep.name.replace(/\s+/g,'_')}.pdf`);
+      toastBanner("สร้างรายงาน PDF สำเร็จ (ดาวน์โหลดแล้ว)");
+    }
+
+    function p_report_export_exportCSV() {
+      const items = db("items");
+      let csv = "id,name,type,category,position,qty_total,qty_available,status\n";
+      items.forEach(i => { csv += `${i.id},"${i.name}",${i.type},"${categoryById(i.category_id)?.name||''}","${positionById(i.position_id)?.name||''}",${i.qty_total},${i.qty_available},"${i.base_status}"\n`; });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "inventory_export.csv"; a.click();
+      toastBanner("ส่งออกไฟล์ CSV สำเร็จ");
+    }
+</script>
+</body>
+</html>

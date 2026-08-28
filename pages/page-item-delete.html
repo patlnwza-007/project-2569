@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · item-delete</title>
+</head>
+<body class="bg-gray-50" onload="p_item_delete_init()">
+
+<div id="view-item-delete" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-3xl mx-auto">
+    <a href="javascript:void(0)" onclick="navigate('item-overview')" class="text-sm text-blue-600 hover:underline">← กลับภาพรวมคลัง</a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-1">ลบวัสดุออกจากระบบ</h1>
+    <p class="text-sm text-gray-500 mb-6">เลือกได้ทีละรายการหรือหลายรายการ — วัสดุที่มีคำขอยืมค้างอยู่จะไม่สามารถลบได้</p>
+    <div id="p_item_delete_rows" class="space-y-2 mb-4"></div>
+    <button onclick="p_item_delete_deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-5 py-2">ลบรายการที่เลือก</button>
+    <div id="p_item_delete_result" class="mt-3"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_item_delete_init() { notifyParentPage("item-delete"); p_item_delete_render(); }
+    function p_item_delete_render() {
+      const materials = db("items").filter(i => i.type === "material");
+      const host = document.getElementById("p_item_delete_rows");
+      if (materials.length === 0) { host.innerHTML = `<p class="text-xs text-gray-400">ไม่มีวัสดุในระบบ</p>`; return; }
+      host.innerHTML = materials.map(i => `<label class="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3 text-sm cursor-pointer hover:bg-gray-50">
+        <input type="checkbox" class="sel" value="${i.id}"><span>${i.image}</span><span>${i.name}</span><span class="text-xs text-gray-400 ml-auto">คงเหลือ ${i.qty_available}/${i.qty_total}</span>
+      </label>`).join("");
+    }
+    function p_item_delete_hasPendingRequest(itemId) {
+      return db("requests").some(r => ["PENDING","APPROVED_WAIT_PICKUP"].includes(r.status) && r.items.some(it => it.item_id === itemId));
+    }
+    function p_item_delete_deleteSelected() {
+      const ids = [...document.querySelectorAll("#view-item-delete .sel:checked")].map(c => Number(c.value));
+      if (ids.length === 0) { toastBanner("กรุณาเลือกรายการก่อน", "error"); return; }
+      if (!confirm(`ยืนยันการลบ ${ids.length} รายการ?`)) return;
+      let items = db("items");
+      const blocked = [], deleted = [];
+      ids.forEach(id => {
+        if (p_item_delete_hasPendingRequest(id)) blocked.push(itemById(id).name);
+        else deleted.push(id);
+      });
+      items = items.filter(i => !deleted.includes(i.id));
+      dbSave("items", items);
+      document.getElementById("p_item_delete_result").innerHTML = `
+        ${deleted.length ? `<p class="text-green-700 text-sm">ลบสำเร็จ ${deleted.length} รายการ</p>` : ""}
+        ${blocked.length ? `<p class="text-red-600 text-sm mt-1">ไม่สามารถลบได้ (มีคำขอยืมค้างอยู่): ${blocked.join(", ")}</p>` : ""}`;
+      toastBanner(`ลบสำเร็จ ${deleted.length} รายการ${blocked.length ? `, ข้าม ${blocked.length} รายการ` : ""}`);
+      p_item_delete_render();
+    }
+</script>
+</body>
+</html>

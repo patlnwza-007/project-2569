@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · item-overview</title>
+</head>
+<body class="bg-gray-50" onload="p_item_overview_init()">
+
+<div id="view-item-overview" class="w-full h-full overflow-y-auto p-6">
+<div class="max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h1 class="text-2xl font-bold text-gray-800">ภาพรวมสถานะคลัง</h1>
+      <div class="flex gap-2">
+        <a href="javascript:void(0)" onclick="navigate('bulk-import')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">นำเข้าแบบชุด (CSV)</a>
+        <a href="javascript:void(0)" onclick="navigate('item-form')" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">+ เพิ่มสิ่งของ</a>
+      </div>
+    </div>
+    <p class="text-sm text-gray-500 mb-4">จำนวนสิ่งของทั้งหมด <span id="p_item_overview_count" class="font-semibold"></span> รายการ</p>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex flex-wrap gap-3">
+      <input id="p_item_overview_q" oninput="p_item_overview_render()" placeholder="ค้นหาชื่อ..." class="flex-1 min-w-[180px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <select id="p_item_overview_f-cat" onchange="p_item_overview_render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">หมวดหมู่ทั้งหมด</option></select>
+      <select id="p_item_overview_f-type" onchange="p_item_overview_render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">ประเภททั้งหมด</option><option value="material">วัสดุ</option><option value="equipment">ครุภัณฑ์</option></select>
+      <select id="p_item_overview_f-status" onchange="p_item_overview_render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">สถานะทั้งหมด</option><option value="available">พร้อมให้ยืม</option><option value="empty">กำลังยืมหมด</option><option value="unavailable">ไม่พร้อมใช้งาน</option></select>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500"><tr>
+          <th class="text-left px-4 py-2">สิ่งของ</th><th class="text-left px-4 py-2">หมวดหมู่</th><th class="text-left px-4 py-2">ประเภท</th>
+          <th class="text-left px-4 py-2">คงเหลือ</th><th class="text-left px-4 py-2">สถานะ</th><th class="text-left px-4 py-2">จัดการ</th></tr></thead>
+        <tbody id="p_item_overview_rows"></tbody>
+      </table>
+      <div id="p_item_overview_empty" class="hidden p-10 text-center text-gray-500">ไม่พบข้อมูล</div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_item_overview_init() {
+  notifyParentPage("item-overview");
+  const catSelect = document.getElementById("p_item_overview_f-cat");
+  if (catSelect) {
+    catSelect.innerHTML = '<option value="">หมวดหมู่ทั้งหมด</option>' + db("categories").map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+  }
+  p_item_overview_render();
+}
+    function p_item_overview_render() {
+      const q = document.getElementById("p_item_overview_q").value.trim().toLowerCase();
+      const fCat = document.getElementById("p_item_overview_f-cat").value, fType = document.getElementById("p_item_overview_f-type").value, fStatus = document.getElementById("p_item_overview_f-status").value;
+      let items = db("items");
+      document.getElementById("p_item_overview_count").textContent = items.length;
+      if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
+      if (fCat) items = items.filter(i => i.category_id === Number(fCat));
+      if (fType) items = items.filter(i => i.type === fType);
+      if (fStatus === "available") items = items.filter(i => i.base_status === "พร้อมให้ยืม" && i.qty_available > 0);
+      if (fStatus === "empty") items = items.filter(i => i.base_status === "พร้อมให้ยืม" && i.qty_available === 0);
+      if (fStatus === "unavailable") items = items.filter(i => i.base_status !== "พร้อมให้ยืม");
+      document.getElementById("p_item_overview_empty").classList.toggle("hidden", items.length !== 0);
+      document.getElementById("p_item_overview_rows").innerHTML = items.map(i => {
+        const cat = categoryById(i.category_id);
+        const unavailable = i.base_status !== "พร้อมให้ยืม";
+        const empty = !unavailable && i.qty_available === 0;
+        const statusBadge = unavailable ? `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-200 text-gray-600">ไม่พร้อมใช้งาน</span>`
+          : empty ? `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700">กำลังยืมหมด</span>`
+          : `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700">พร้อมให้ยืม</span>`;
+        return `<tr class="hover:bg-gray-50 border-t border-gray-100">
+          <td class="px-4 py-2">${i.image} ${i.name}</td>
+          <td class="px-4 py-2 text-xs text-gray-500">${cat?cat.name:""}</td>
+          <td class="px-4 py-2 text-xs">${i.type==='equipment'?'ครุภัณฑ์':'วัสดุ'}</td>
+          <td class="px-4 py-2 font-mono text-xs">${i.qty_available}/${i.qty_total}</td>
+          <td class="px-4 py-2">${statusBadge}</td>
+          <td class="px-4 py-2">
+            <a href="javascript:void(0)" onclick="navigate('item-form', {id: ${i.id}})" class="text-blue-600 text-xs hover:underline mr-2">แก้ไข</a>
+            ${i.type==='equipment' ? `<a href="javascript:void(0)" onclick="navigate('item-status-change', {id: ${i.id}})" class="text-yellow-600 text-xs hover:underline mr-2">เปลี่ยนสถานะ</a>` : `<a href="javascript:void(0)" onclick="navigate('item-delete', {id: ${i.id}})" class="text-red-600 text-xs hover:underline">ลบ</a>`}
+          </td>
+        </tr>`;
+      }).join("");
+    }
+</script>
+</body>
+</html>

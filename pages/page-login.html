@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · เข้าสู่ระบบ</title>
+</head>
+<body class="bg-gray-50" onload="notifyParentPage('login')">
+
+<div id="view-login" class="w-full h-full overflow-y-auto p-6 bg-gray-50 flex items-center justify-center">
+<div class="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full">
+    <div class="text-center mb-6">
+      <div class="text-4xl mb-2">🔐</div>
+      <h1 class="text-lg font-bold text-gray-800">เข้าสู่ระบบด้วย UBU Single Sign-On (@ubu.ac.th)</h1>
+      <p class="text-xs text-gray-500 mt-1">ระบบจริง: redirect ไปยืนยันตัวตนกับบริการ UBU Single Sign-On ของมหาวิทยาลัย<br>(จำลอง: เลือกบัญชีทดสอบด้านล่างแทนการเชื่อมต่อ SSO จริง)</p>
+    </div>
+
+    <p class="text-xs font-semibold text-gray-500 mb-2">เลือกบัญชีทดสอบ (UBU SSO)</p>
+    <div class="flex flex-col gap-2 mb-4">
+      <button onclick="p_login_loginAs('student')" class="flex items-center gap-3 border border-gray-300 rounded-xl px-4 py-3 text-sm hover:bg-blue-50 hover:border-blue-300 text-left">
+        <span class="text-xl">🎓</span>
+        <span><span class="font-semibold block">s001@ubu.ac.th</span><span class="text-xs text-gray-500">สมชาย ใจดี — นักศึกษา (UBU SSO Default)</span></span>
+      </button>
+      <button onclick="p_login_loginAs('staff')" class="flex items-center gap-3 border border-gray-300 rounded-xl px-4 py-3 text-sm hover:bg-blue-50 hover:border-blue-300 text-left">
+        <span class="text-xl">👷</span>
+        <span><span class="font-semibold block">staff1@ubu.ac.th</span><span class="text-xs text-gray-500">อ.สมหญิง ดูแลดี — เจ้าหน้าที่ (UBU SSO Default)</span></span>
+      </button>
+      <button onclick="p_login_loginAsOverride()" class="flex items-center gap-3 border border-gray-300 rounded-xl px-4 py-3 text-sm hover:bg-blue-50 hover:border-blue-300 text-left">
+        <span class="text-xl">🌟</span>
+        <span><span class="font-semibold block">s004@ubu.ac.th</span><span class="text-xs text-gray-500">SSO=นักศึกษา แต่มี Role Override → เจ้าหน้าที่</span></span>
+      </button>
+      <button onclick="p_login_loginAs('admin')" class="flex items-center gap-3 border border-gray-300 rounded-xl px-4 py-3 text-sm hover:bg-blue-50 hover:border-blue-300 text-left">
+        <span class="text-xl">👑</span>
+        <span><span class="font-semibold block">admin1@ubu.ac.th</span><span class="text-xs text-gray-500">ผู้ดูแลระบบ</span></span>
+      </button>
+    </div>
+
+    <p class="text-xs font-semibold text-gray-500 mb-2">ทดสอบเงื่อนไขปฏิเสธ (Alternative Flow)</p>
+    <div class="flex flex-col gap-2">
+      <button onclick="p_login_rejectNotWhitelist()" class="border border-red-200 text-red-600 rounded-xl px-4 py-2 text-xs hover:bg-red-50 text-left">
+        ❌ ทดลองบัญชีที่ไม่พบบทบาทใน SSO: outsider@ubu.ac.th
+      </button>
+      <button onclick="p_login_rejectBlocked()" class="border border-red-200 text-red-600 rounded-xl px-4 py-2 text-xs hover:bg-red-50 text-left">
+        🚫 ทดลองบัญชีที่ถูกระงับสิทธิ์: s002@ubu.ac.th (สมหญิง มีดี)
+      </button>
+    </div>
+
+    <div id="p_login_login-error" class="hidden mt-4 border border-red-300 bg-red-50 text-red-700 text-sm rounded-lg px-3 py-2"></div>
+
+    <a href="javascript:void(0)" onclick="navigate('welcome')" class="block text-center text-xs text-gray-400 mt-6 hover:underline">← กลับหน้าแรก</a>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_login_goHome() { navigate(getRole() ? HOME_PAGE[getRole()] : "welcome"); }
+    function p_login_loginAs(role) { setRole(role); p_login_goHome(); }
+    function p_login_loginAsOverride() {
+      // ระบบจริง: ตรวจ Whitelist ก่อน (พบเป็น student) แล้วเช็ค Role Override ทับ (UC-34) → ได้ staff
+      setRole("staff", "T001");
+      p_login_goHome();
+    }
+    function p_login_rejectNotWhitelist() {
+      const box = document.getElementById("p_login_login-error");
+      box.classList.remove("hidden");
+      box.textContent = "ปฏิเสธการเข้าสู่ระบบ: อีเมล outsider@gmail.com ไม่อยู่ในรายชื่อผู้มีสิทธิ์ใช้งาน (Whitelist)";
+    }
+    function p_login_rejectBlocked() {
+      const box = document.getElementById("p_login_login-error");
+      box.classList.remove("hidden");
+      box.textContent = "ปฏิเสธการเข้าสู่ระบบ: บัญชี s002@ubu.ac.th ถูกระงับสิทธิ์ (Block) โดยผู้ดูแลระบบ — เหตุผล: ค้างคืนครุภัณฑ์เกินกำหนดหลายครั้ง";
+    }
+</script>
+</body>
+</html>

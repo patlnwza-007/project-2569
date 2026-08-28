@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · personnel-export</title>
+</head>
+<body class="bg-gray-50" onload="p_personnel_export_init()">
+
+<div id="view-personnel-export" class="w-full h-full overflow-y-auto p-6">
+<h1 class="text-xl font-bold mb-1">ส่งออกรายชื่อบุคลากร (CSV)</h1>
+  <p class="text-xs text-gray-500 mb-4">ส่งออกรายชื่อผู้ใช้งานทั้งหมดพร้อมบทบาทปัจจุบันของแต่ละคน</p>
+  <button onclick="p_personnel_export_exportCSV()" class="bg-blue-600 text-white text-sm px-4 py-2 rounded">📤 ส่งออกไฟล์ CSV</button>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+function p_personnel_export_init() {
+  notifyParentPage("personnel-export");
+}
+
+function p_personnel_export_exportCSV() {
+      const overrides = db("role_overrides").filter(o => o.active);
+      const overrideMap = {}; overrides.forEach(o => overrideMap[o.email] = o.role);
+      let rows = [];
+      db("whitelist_student").forEach(email => rows.push([email, overrideMap[email] || "student"]));
+      db("whitelist_staff").forEach(email => rows.push([email, overrideMap[email] || "staff"]));
+      let csv = "email,role\n" + rows.map(r => r.join(",")).join("\n") + "\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "personnel_export.csv"; a.click();
+      toastBanner("ส่งออกไฟล์สำเร็จ");
+    }
+</script>
+</body>
+</html>
