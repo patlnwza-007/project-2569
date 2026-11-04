@@ -55,7 +55,7 @@ function p_item_delete_init() { notifyParentPage("item-delete"); p_item_delete_r
       </label>`).join("");
     }
     function p_item_delete_hasPendingRequest(itemId) {
-      return db("requests").some(r => ["PENDING","APPROVED_WAIT_PICKUP"].includes(r.status) && r.items.some(it => it.item_id === itemId));
+      return db("requests").some(r => ["PENDING","BORROWING"].includes(r.status) && r.items.some(it => it.item_id === itemId));
     }
     function p_item_delete_deleteSelected() {
       const ids = [...document.querySelectorAll("#view-item-delete .sel:checked")].map(c => Number(c.value));

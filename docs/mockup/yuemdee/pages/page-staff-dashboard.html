@@ -65,33 +65,33 @@
 <script>
 function p_staff_dashboard_init() {
   notifyParentPage("staff-dashboard");
-  const reqs = db("requests");
-  const students = db("students");
+  const reqs = db("requests") || [];
+  const students = db("students") || (db("users") || []).filter(u => u.role === "STUDENT");
 
   const pending = reqs.filter(r => r.status === "PENDING").length;
-  const borrowing = reqs.filter(r => r.status === "BORROWING").length;
-  const returnPending = reqs.filter(r => r.status === "RETURN_PENDING").length;
-  const overdue = reqs.filter(r => r.status === "BORROWING" && daysLeft(r.due_date) < 0).length;
+  const borrowing = reqs.filter(r => r.status === "BORROWING" || r.status === "RETURN_PENDING").length;
+  const overdue = reqs.filter(r => (r.status === "BORROWING" || r.status === "RETURN_PENDING") && daysLeft(r.due_date) < 0).length;
+  const returnedCount = reqs.filter(r => r.status === "RETURNED" || r.status === "ISSUED").length;
 
   // ── Urgent Action Banner ────────────────────────────────────────────────
   const bannerEl = document.getElementById("p_staff_dashboard_action_banner");
   if (bannerEl) {
-    if (pending > 0 || returnPending > 0 || overdue > 0) {
+    if (pending > 0 || borrowing > 0 || overdue > 0) {
       bannerEl.className = "mb-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4";
       bannerEl.innerHTML = `
         <div>
           <div class="flex items-center gap-2 font-bold text-sm">
-            <span>⚡ รายการที่รอการดำเนินการจากเจ้าหน้าที่</span>
+            <span>⚡ รายการรอดำเนินการ</span>
           </div>
           <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-blue-100 mt-1">
             ${pending > 0 ? `<span>• คำขอรออนุมัติ: <strong class="text-white">${pending}</strong> รายการ</span>` : ""}
-            ${returnPending > 0 ? `<span>• ครุภัณฑ์รอตรวจรับคืน: <strong class="text-white">${returnPending}</strong> รายการ</span>` : ""}
-            ${overdue > 0 ? `<span>• ครุภัณฑ์เกินกำหนดคืน: <strong class="text-amber-300">${overdue}</strong> รายการ</span>` : ""}
+            <span>• รายการรอรับคืน: <strong class="text-white">${borrowing}</strong> รายการ</span>
+            ${overdue > 0 ? `<span>• เกินกำหนดคืน: <strong class="text-amber-300">${overdue}</strong> รายการ</span>` : ""}
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          ${pending > 0 ? `<a href="javascript:void(0)" onclick="navigate('pending-requests')" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all">ไปอนุมัติคำขอ →</a>` : ""}
-          ${returnPending > 0 ? `<a href="javascript:void(0)" onclick="navigate('return-list')" class="bg-white text-blue-700 hover:bg-blue-50 text-xs font-semibold px-3 py-2 rounded-xl transition-all">ไปรับคืนครุภัณฑ์ →</a>` : ""}
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          ${pending > 0 ? `<a href="javascript:void(0)" onclick="navigate('pending-requests')" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-xs">📋 ไปคำขอรออนุมัติ (${pending}) →</a>` : ""}
+          <a href="javascript:void(0)" onclick="navigate('return-list')" class="bg-white text-blue-700 hover:bg-blue-50 text-xs font-semibold px-3 py-2 rounded-xl transition-all">↩️ ไปรับคืนครุภัณฑ์ (${borrowing}) →</a>
         </div>`;
       bannerEl.classList.remove("hidden");
     } else {
@@ -101,10 +101,10 @@ function p_staff_dashboard_init() {
 
   // ── KPIs Grid ────────────────────────────────────────────────────────────
   const kpis = [
-    { label: "รออนุมัติ", val: pending, bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: "🕐" },
-    { label: "กำลังยืมอยู่", val: borrowing, bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", icon: "📦" },
-    { label: "รอยืนยันการคืน", val: returnPending, bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", icon: "↩️" },
-    { label: "คำขอทั้งหมด", val: reqs.length, bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", icon: "📋" },
+    { label: "คำขอรออนุมัติ", val: pending, bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: "📋" },
+    { label: "กำลังยืมอยู่ (รอส่งคืน)", val: borrowing, bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", icon: "📦" },
+    { label: "เกินกำหนดคืน", val: overdue, bg: "bg-red-50", text: "text-red-700", border: "border-red-200", icon: "🔴" },
+    { label: "คืน/เบิกสำเร็จแล้ว", val: returnedCount, bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", icon: "✅" },
   ];
 
   document.getElementById("p_staff_dashboard_kpis").innerHTML = kpis.map(k => `
@@ -120,15 +120,14 @@ function p_staff_dashboard_init() {
 
   // ── Status Distribution Bar Chart ───────────────────────────────────────
   const chartItems = [
-    { key: "PENDING", label: "รออนุมัติ", count: reqs.filter(r => r.status === "PENDING").length, color: "bg-blue-500" },
-    { key: "APPROVED_WAIT_PICKUP", label: "อนุมัติแล้ว/รอรับของ", count: reqs.filter(r => r.status === "APPROVED_WAIT_PICKUP").length, color: "bg-blue-500" },
-    { key: "BORROWING", label: "กำลังยืม", count: reqs.filter(r => r.status === "BORROWING").length, color: "bg-blue-500" },
-    { key: "RETURN_PENDING", label: "รอยืนยันการคืน", count: reqs.filter(r => r.status === "RETURN_PENDING").length, color: "bg-blue-500" },
-    { key: "RETURNED", label: "คืนสำเร็จ", count: reqs.filter(r => r.status === "RETURNED").length, color: "bg-blue-500" },
-    { key: "ISSUED", label: "เบิกสำเร็จ", count: reqs.filter(r => r.status === "ISSUED").length, color: "bg-blue-500" },
-    { key: "REJECTED", label: "ถูกปฏิเสธ", count: reqs.filter(r => r.status === "REJECTED").length, color: "bg-blue-500" },
-    { key: "CANCELLED", label: "ยกเลิกแล้ว", count: reqs.filter(r => r.status === "CANCELLED").length, color: "bg-blue-500" },
-    { key: "OVERDUE", label: "🔴 คืนเกินกำหนด", count: reqs.filter(r => r.status === "BORROWING" && daysLeft(r.due_date) < 0).length, color: "bg-red-500" },
+    { key: "PENDING", label: "คำขอรออนุมัติ", count: reqs.filter(r => r.status === "PENDING").length, color: "bg-amber-500" },
+    { key: "BORROWING", label: "กำลังยืม", count: reqs.filter(r => r.status === "BORROWING" || r.status === "RETURN_PENDING").length, color: "bg-blue-500" },
+    { key: "RETURNED", label: "คืนสำเร็จ", count: reqs.filter(r => r.status === "RETURNED").length, color: "bg-emerald-500" },
+    { key: "ISSUED", label: "เบิกสำเร็จ", count: reqs.filter(r => r.status === "ISSUED").length, color: "bg-teal-500" },
+    { key: "REJECTED", label: "ถูกปฏิเสธ", count: reqs.filter(r => r.status === "REJECTED").length, color: "bg-gray-400" },
+    { key: "CANCELLED", label: "ยกเลิกแล้ว", count: reqs.filter(r => r.status === "CANCELLED").length, color: "bg-gray-400" },
+    { key: "EXPIRED", label: "หมดอายุ", count: reqs.filter(r => r.status === "EXPIRED").length, color: "bg-gray-300" },
+    { key: "OVERDUE", label: "🔴 คืนเกินกำหนด", count: reqs.filter(r => (r.status === "BORROWING" || r.status === "RETURN_PENDING") && daysLeft(r.due_date) < 0).length, color: "bg-red-500" },
   ];
 
   const maxVal = Math.max(1, ...chartItems.map(c => c.count));

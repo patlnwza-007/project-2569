@@ -1,0 +1,230 @@
+@startuml YuemDee_ERD
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+' ==========================================
+' ENTITIES DEFINITIONS (Final Production-Ready Schema)
+' ==========================================
+
+entity "Student (นักศึกษา)" as student {
+  * id : VARCHAR(20) <<PK>>
+  --
+  * name : VARCHAR(100)
+  * email : VARCHAR(100) <<UK>> (@ubu.ac.th)
+  phone : VARCHAR(20)
+  * first_login : DATETIME
+  * last_login : DATETIME
+  blocked : BOOLEAN
+  block_reason : TEXT
+}
+
+entity "Staff (เจ้าหน้าที่คลัง)" as staff {
+  * id : VARCHAR(20) <<PK>>
+  --
+  * name : VARCHAR(100)
+  * email : VARCHAR(100) <<UK>>
+}
+
+entity "Admin (ผู้ดูแลระบบ)" as admin {
+  * id : VARCHAR(20) <<PK>>
+  --
+  * name : VARCHAR(100)
+  * email : VARCHAR(100) <<UK>>
+}
+
+entity "RoleOverride (สิทธิ์ข้ามบทบาท)" as role_override {
+  * id : INT <<PK>>
+  --
+  * email : VARCHAR(100) <<UK>>
+  * role : ENUM (student / staff / admin)
+  reason : TEXT
+  active : BOOLEAN
+}
+
+entity "AdminBlockedEmail (ระงับสิทธิ์เข้าใช้งาน)" as admin_blocked_email {
+  * id : INT <<PK>>
+  --
+  * email : VARCHAR(100) <<UK>>
+  reason : TEXT
+  * blocked_by : VARCHAR(20) <<FK>>
+  * blocked_at : DATETIME
+}
+
+entity "Category (หมวดหมู่สิ่งของ)" as category {
+  * id : INT <<PK>>
+  --
+  * name : VARCHAR(100)
+}
+
+entity "Position (ตำแหน่งตู้/ชั้นวาง)" as position {
+  * id : INT <<PK>>
+  --
+  * name : VARCHAR(100)
+}
+
+entity "Item (ชนิดสิ่งของ/พัสดุ)" as item {
+  * id : INT <<PK>>
+  --
+  * name : VARCHAR(150)
+  * type : ENUM (material / equipment)
+  * category_id : INT <<FK>>
+  * position_id : INT <<FK>>
+  * qty_total : INT
+  * qty_available : INT
+  max_borrow_days : INT
+  base_status : VARCHAR(50)
+  image : VARCHAR(255)
+}
+
+entity "Unit (ครุภัณฑ์รายชิ้น)" as unit {
+  * asset_tag : VARCHAR(50) <<PK>>
+  --
+  * item_id : INT <<FK>>
+  * status : ENUM (AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE)
+  note : TEXT
+  rating : FLOAT
+}
+
+entity "UnitReview (รีวิวครุภัณฑ์รายชิ้น)" as unit_review {
+  * id : INT <<PK>>
+  --
+  * asset_tag : VARCHAR(50) <<FK>>
+  * student_name : VARCHAR(100)
+  * rating : INT (1-5)
+  comment : TEXT
+  * created_at : DATETIME
+}
+
+entity "BorrowRequest (คำขอยืม/เบิก)" as borrow_request {
+  * id : INT <<PK>>
+  --
+  * student_id : VARCHAR(20) <<FK>>
+  approved_by : VARCHAR(20) <<FK>>
+  * reason : TEXT
+  due_date : DATE
+  * status : ENUM (PENDING / APPROVED_WAIT_PICKUP / REJECTED / EXPIRED / BORROWING / ISSUED / CANCELLED / COMPLETED)
+  * created_at : DATETIME
+  approved_at : DATETIME
+  picked_up_at : DATETIME
+  reject_reason : TEXT
+  pickup_photo : TEXT
+}
+
+entity "BorrowItem (รายการยืม)" as borrow_item {
+  * id : INT <<PK>>
+  --
+  * borrow_request_id : INT <<FK>>
+  * item_id : INT <<FK>>
+  asset_tag : VARCHAR(50) <<FK>>
+  * qty : INT
+  returned_qty : INT
+}
+
+entity "ReturnRequest (ใบแจ้งส่งคืนพัสดุ)" as return_request {
+  * id : INT <<PK>>
+  --
+  * borrow_request_id : INT <<FK>>
+  * student_id : VARCHAR(20) <<FK>>
+  inspected_by : VARCHAR(20) <<FK>>
+  * status : ENUM (RETURN_PENDING / RETURNED / REJECTED)
+  return_photo : TEXT
+  custom_fine : DECIMAL(10,2)
+  fine_paid : BOOLEAN
+  fine_reason : TEXT
+  note : TEXT
+  * created_at : DATETIME
+  returned_at : DATETIME
+}
+
+entity "ReturnItem (รายการคืนพัสดุ)" as return_item {
+  * id : INT <<PK>>
+  --
+  * return_request_id : INT <<FK>>
+  * borrow_item_id : INT <<FK>>
+  asset_tag : VARCHAR(50) <<FK>>
+  * qty_returned : INT
+  condition_status : ENUM (NORMAL / DAMAGED / LOST)
+}
+
+entity "Queue (คิวจองสิ่งของ)" as queue {
+  * id : INT <<PK>>
+  --
+  * item_id : INT <<FK>>
+  asset_tag : VARCHAR(50) <<FK>>
+  * student_id : VARCHAR(20) <<FK>>
+  * status : ENUM (WAITING / NOTIFIED / EXPIRED / CANCELLED)
+  * joined_at : DATETIME
+  notified_at : DATETIME
+  expired_at : DATETIME
+}
+
+entity "Suggestion (ข้อเสนอแนะพัสดุใหม่)" as suggestion {
+  * id : INT <<PK>>
+  --
+  * student_id : VARCHAR(20) <<FK>>
+  * name : VARCHAR(150)
+  * detail : TEXT
+  * status : ENUM (SUBMITTED / ACKNOWLEDGED / PURCHASE_PLAN)
+  * created_at : DATETIME
+}
+
+entity "PurchasePlan (แผนจัดซื้อพัสดุ)" as purchase_plan {
+  * id : INT <<PK>>
+  --
+  * name : VARCHAR(150)
+  detail : TEXT
+  * created_by : VARCHAR(20) <<FK>>
+  * created_at : DATETIME
+}
+
+entity "SystemSetting (การตั้งค่ากลางระบบ)" as system_setting {
+  * id : INT <<PK>>
+  --
+  fine_rate_per_day : DECIMAL(8,2)
+}
+
+entity "Evaluation (ผลตอบแบบประเมิน)" as evaluation {
+  * id : INT <<PK>>
+  --
+  * borrow_request_id : INT <<FK>>
+  * student_id : VARCHAR(20) <<FK>>
+  * rating : INT (1-5 ดาว)
+  comment : TEXT
+  * created_at : DATETIME
+}
+
+' ==========================================
+' RELATIONSHIPS & CARDINALITIES
+' ==========================================
+
+admin ||--o{ admin_blocked_email : "สั่งระงับสิทธิ์ (blocks)"
+
+category ||--o{ item : "จัดหมวดหมู่ (contains)"
+position ||--o{ item : "ตำแหน่งจัดเก็บ (located_at)"
+item ||--o{ unit : "มีชิ้นย่อย (has_units)"
+unit ||--o{ unit_review : "มีรีวิว (has_reviews)"
+
+student ||--o{ borrow_request : "ยื่นคำขอยืม (submits)"
+staff ||--o{ borrow_request : "อนุมัติคำขอยืม (approves)"
+borrow_request ||--|{ borrow_item : "ประกอบด้วยรายการยืม (contains_items)"
+item ||--o{ borrow_item : "ถูกยืมในรายการ (ordered_in)"
+unit ||--o{ borrow_item : "ระบุชิ้นยืม (assigned_to)"
+
+borrow_request ||--o{ return_request : "แจ้งส่งคืน (has_returns)"
+staff ||--o{ return_request : "ตรวจรับคืน (inspects)"
+return_request ||--|{ return_item : "ประกอบด้วยรายการคืน (contains_return_items)"
+borrow_item ||--o{ return_item : "อ้างอิงรายการยืม (returned_via)"
+unit ||--o{ return_item : "ระบุชิ้นคืน (returned_unit)"
+
+item ||--o{ queue : "มีคิวจอง (has_queues)"
+unit ||--o{ queue : "มีคิวจองรายชิ้น (unit_queues)"
+student ||--o{ queue : "ต่อคิว (joins_queue)"
+
+student ||--o{ suggestion : "เสนอแนะ (proposes)"
+staff ||--o{ purchase_plan : "จัดการแผนจัดซื้อ (manages)"
+
+borrow_request ||--o| evaluation : "ได้รับการประเมิน (evaluated_by)"
+student ||--o{ evaluation : "ตอบแบบประเมิน (answers)"
+
+@enduml

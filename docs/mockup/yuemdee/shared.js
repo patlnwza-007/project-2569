@@ -1,7 +1,7 @@
 /* ============================================================================
  * YuemDee · shared.js
- * มัสาก data + localStorage helpers + session/role helpers ใช้ร่วมกันทุกหน้า
- * ระบบจริง: Django ORM + django-allauth (Google OAuth) + session (UBU Single Sign-On)
+ * Mock data + localStorage helpers + session/role helpers ใช้ร่วมกันทุกหน้า
+ * ระบบจริง: Django ORM + session (UBU Single Sign-On @ubu.ac.th)
  *
  * ใช้ร่วมกันโดย: index.html (shell) และทุกไฟล์ใน pages/*.html
  * โหลดผ่าน: <script src="shared.js"></script> (จาก index.html) หรือ
@@ -20,31 +20,88 @@ const SEED_CATEGORIES = [
   { id: 5, name: "เสียง/ไมโครโฟน" },
 ];
 
+const SEED_ROOMS = [
+  {
+    id: 1,
+    code: "EN6-101",
+    name: "ห้องคลังพัสดุกลาง (Central Storage & Counter)",
+    building: "อาคารวิศวกรรมศาสตร์ 6 (EN6)",
+    floor: "ชั้น 1",
+    location_detail: "ทางเข้าทิศเหนือ ติดโถงลิฟต์กลาง ตรงข้ามห้องธุรการ",
+    type: "storage",
+    image: "🏢",
+    counter_name: "เคาน์เตอร์เจ้าหน้าที่ตรวจรับของ",
+    door_name: "ประตูทางเข้าหลัก (ทิศเหนือ)",
+    cabinets: ["ตู้ A1", "ตู้ A2", "ตู้ B1"]
+  },
+  {
+    id: 2,
+    code: "EN6-205",
+    name: "ห้องปฏิบัติการระบบไฟฟ้าและอิเล็กทรอนิกส์ (EE Lab)",
+    building: "อาคารวิศวกรรมศาสตร์ 6 (EN6)",
+    floor: "ชั้น 2",
+    location_detail: "ปีกตะวันออก ติดบันไดหนีไฟ ตรงข้ามห้องพักอาจารย์",
+    type: "lab",
+    image: "🔬",
+    counter_name: "โต๊ะผู้ดูแลห้องปฏิบัติการ",
+    door_name: "ประตูทางเข้าห้องแล็บ",
+    cabinets: ["ตู้ E1", "ตู้ E2"]
+  },
+  {
+    id: 3,
+    code: "EN6-302",
+    name: "ห้องสตูดิโอและโสตทัศนูปกรณ์ (Media Studio)",
+    building: "อาคารวิศวกรรมศาสตร์ 6 (EN6)",
+    floor: "ชั้น 3",
+    location_detail: "ปีกตะวันตก โซนห้องเก็บเสียง",
+    type: "studio",
+    image: "🎥",
+    counter_name: "โต๊ะควบคุมมิกเซอร์และระบบเสียง",
+    door_name: "ประตูกันเสียงห้องสตู",
+    cabinets: ["ตู้ M1", "ตู้ M2"]
+  }
+];
+
 const SEED_POSITIONS = [
-  { id: 1, name: "ตู้ A1 ชั้น 1" },
-  { id: 2, name: "ตู้ A1 ชั้น 2" },
-  { id: 3, name: "ตู้ A2 ชั้น 1" },
-  { id: 4, name: "ตู้ B1 ชั้น 1" },
-  { id: 5, name: "ตู้ B2 ชั้น 1" },
+  // ห้อง EN6-101: คลังกลาง
+  { id: 1, room_id: 1, cabinet: "ตู้ A1", shelf: 2, shelf_name: "ชั้นที่ 2 (ชั้นกลาง)", name: "ห้อง EN6-101 · ตู้ A1 ชั้น 2" },
+  { id: 2, room_id: 1, cabinet: "ตู้ A2", shelf: 2, shelf_name: "ชั้นที่ 2 (ชั้นกลาง)", name: "ห้อง EN6-101 · ตู้ A2 ชั้น 2" },
+  { id: 3, room_id: 1, cabinet: "ตู้ A1", shelf: 1, shelf_name: "ชั้นที่ 1 (ล่างสุด)", name: "ห้อง EN6-101 · ตู้ A1 ชั้น 1" },
+  { id: 4, room_id: 1, cabinet: "ตู้ B1", shelf: 2, shelf_name: "ชั้นที่ 2 (ชั้นกลาง)", name: "ห้อง EN6-101 · ตู้ B1 ชั้น 2" },
+  { id: 8, room_id: 1, cabinet: "ตู้ B1", shelf: 1, shelf_name: "ชั้นที่ 1 (ล่างสุด)", name: "ห้อง EN6-101 · ตู้ B1 ชั้น 1" },
+  { id: 9, room_id: 1, cabinet: "ตู้ A2", shelf: 1, shelf_name: "ชั้นที่ 1 (ล่างสุด)", name: "ห้อง EN6-101 · ตู้ A2 ชั้น 1" },
+
+  // ห้อง EN6-205: แล็บไฟฟ้า
+  { id: 5, room_id: 2, cabinet: "ตู้ E1", shelf: 2, shelf_name: "ชั้นที่ 2 (ชั้นกลาง)", name: "ห้อง EN6-205 · ตู้ E1 ชั้น 2" },
+  { id: 10, room_id: 2, cabinet: "ตู้ E1", shelf: 1, shelf_name: "ชั้นที่ 1 (ล่างสุด)", name: "ห้อง EN6-205 · ตู้ E1 ชั้น 1" },
+  { id: 11, room_id: 2, cabinet: "ตู้ E2", shelf: 2, shelf_name: "ชั้นที่ 2 (ชั้นกลาง)", name: "ห้อง EN6-205 · ตู้ E2 ชั้น 2" },
+
+  // ห้อง EN6-302: สตูดิโอมีเดีย
+  { id: 6, room_id: 3, cabinet: "ตู้ M1", shelf: 3, shelf_name: "ชั้นที่ 3 (บนสุด)", name: "ห้อง EN6-302 · ตู้ M1 ชั้น 3" },
+  { id: 7, room_id: 3, cabinet: "ตู้ M1", shelf: 2, shelf_name: "ชั้นที่ 2 (ชั้นกลาง)", name: "ห้อง EN6-302 · ตู้ M1 ชั้น 2" },
+  { id: 12, room_id: 3, cabinet: "ตู้ M2", shelf: 1, shelf_name: "ชั้นที่ 1 (ล่างสุด)", name: "ห้อง EN6-302 · ตู้ M2 ชั้น 1" },
 ];
 
 const SEED_ITEM_STATUSES = ["พร้อมให้ยืม", "ชำรุด", "เลิกใช้งาน", "ปลดระวาง"]; // สถานะพื้นฐานของสิ่งของ (ตั้งค่าได้ที่ WarehouseSettings)
 
-// type: "material" (วัสดุ/เบิก ไม่มีคืน) | "equipment" (ครุภัณฑ์ ต้องคืน)
+// type: "material" (วัสดุสิ้นเปลือง เบิกใช้แล้วหมดไป ไม่ต้องคืน) | "durable_material" (วัสดุคงทน ยืม-คืน นับจำนวนรวม) | "equipment" (ครุภัณฑ์ ยืม-คืน มีรหัสประจำชิ้น)
 const SEED_ITEMS = [
-  { id: 1, name: "โปรเจกเตอร์ Epson EB-X400", type: "equipment", category_id: 1, position_id: 1, qty_total: 3, qty_available: 1, max_borrow_days: 7, base_status: "พร้อมให้ยืม", image: "📽️" },
-  { id: 2, name: "กล้อง DSLR Canon EOS 200D", type: "equipment", category_id: 1, position_id: 1, qty_total: 2, qty_available: 1, max_borrow_days: 5, base_status: "พร้อมให้ยืม", image: "📷" },
-  { id: 3, name: "ขาตั้งกล้อง Tripod", type: "equipment", category_id: 1, position_id: 2, qty_total: 5, qty_available: 2, max_borrow_days: 5, base_status: "พร้อมให้ยืม", image: "🎥" },
-  { id: 4, name: "สาย HDMI 5 เมตร", type: "material", category_id: 4, position_id: 3, qty_total: 20, qty_available: 12, max_borrow_days: null, base_status: "พร้อมให้ยืม", image: "🔌" },
-  { id: 5, name: "มัลติมิเตอร์", type: "equipment", category_id: 2, position_id: 3, qty_total: 4, qty_available: 4, max_borrow_days: 3, base_status: "พร้อมให้ยืม", image: "🔧" },
-  { id: 6, name: "หัวแร้งบัดกรี", type: "equipment", category_id: 2, position_id: 3, qty_total: 6, qty_available: 3, max_borrow_days: 3, base_status: "พร้อมให้ยืม", image: "🛠️" },
-  { id: 7, name: "กระดาษ A4 80 แกรม", type: "material", category_id: 3, position_id: 4, qty_total: 100, qty_available: 45, max_borrow_days: null, base_status: "พร้อมให้ยืม", image: "📄" },
-  { id: 8, name: "ปากกาเคมี", type: "material", category_id: 3, position_id: 4, qty_total: 50, qty_available: 10, max_borrow_days: null, base_status: "พร้อมให้ยืม", image: "🖊️" },
-  { id: 9, name: "ไมโครโฟนไร้สาย", type: "equipment", category_id: 5, position_id: 5, qty_total: 3, qty_available: 0, max_borrow_days: 3, base_status: "พร้อมให้ยืม", image: "🎤" },
-  { id: 10, name: "ลำโพงพกพา Bluetooth", type: "equipment", category_id: 5, position_id: 5, qty_total: 4, qty_available: 2, max_borrow_days: 5, base_status: "พร้อมให้ยืม", image: "🔊" },
-  { id: 11, name: "ชุดเครื่องมือช่าง", type: "equipment", category_id: 2, position_id: 3, qty_total: 3, qty_available: 1, max_borrow_days: 5, base_status: "พร้อมให้ยืม", image: "🧰" },
-  { id: 12, name: "แบตเตอรี่ AA", type: "material", category_id: 4, position_id: 4, qty_total: 60, qty_available: 60, max_borrow_days: null, base_status: "พร้อมให้ยืม", image: "🔋" },
-  { id: 13, name: "เครื่องฉายทึบแสง (Overhead)", type: "equipment", category_id: 1, position_id: 2, qty_total: 1, qty_available: 0, max_borrow_days: 7, base_status: "ไม่พร้อมใช้งาน", image: "📽️" },
+  { id: 1, name: "โปรเจกเตอร์ Epson EB-X400", type: "equipment", category_id: 1, category: "โสตทัศนูปกรณ์", position_id: 1, location: "ห้อง EN6-101 · ตู้ A1 ชั้น 2", qty_total: 3, qty_available: 2, max_borrow_days: 7, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "📽️", price: 18500, unit: "เครื่อง" },
+  { id: 2, name: "กล้อง DSLR Canon EOS 200D", type: "equipment", category_id: 1, category: "โสตทัศนูปกรณ์", position_id: 6, location: "ห้อง EN6-302 · ตู้ M1 ชั้น 3", qty_total: 2, qty_available: 1, max_borrow_days: 5, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "📷", price: 23900, unit: "เครื่อง" },
+  { id: 3, name: "ขาตั้งกล้อง Tripod", type: "equipment", category_id: 1, category: "โสตทัศนูปกรณ์", position_id: 2, location: "ห้อง EN6-101 · ตู้ A2 ชั้น 2", qty_total: 5, qty_available: 4, max_borrow_days: 5, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "🎥", price: 2500, unit: "ตัว" },
+  { id: 4, name: "สาย HDMI 5 เมตร", type: "durable_material", category_id: 4, category: "อุปกรณ์ไฟฟ้า", position_id: 3, location: "ห้อง EN6-101 · ตู้ A1 ชั้น 1", qty_total: 20, qty_available: 12, max_borrow_days: 7, fine_rate_per_day: 10, base_status: "พร้อมให้ยืม", image: "🔌", price: 350, unit: "เส้น" },
+  { id: 5, name: "มัลติมิเตอร์", type: "equipment", category_id: 2, category: "เครื่องมือช่าง", position_id: 5, location: "ห้อง EN6-205 · ตู้ E1 ชั้น 2", qty_total: 4, qty_available: 3, max_borrow_days: 3, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "🔧", price: 1200, unit: "เครื่อง" },
+  { id: 6, name: "หัวแร้งบัดกรี", type: "equipment", category_id: 2, category: "เครื่องมือช่าง", position_id: 5, location: "ห้อง EN6-205 · ตู้ E1 ชั้น 2", qty_total: 6, qty_available: 6, max_borrow_days: 3, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "🛠️", price: 450, unit: "ชุด" },
+  { id: 7, name: "กระดาษ A4 80 แกรม", type: "material", category_id: 3, category: "เครื่องเขียน/วัสดุสิ้นเปลือง", position_id: 4, location: "ห้อง EN6-101 · ตู้ B1 ชั้น 2", qty_total: 100, qty_available: 45, max_borrow_days: null, fine_rate_per_day: null, base_status: "พร้อมให้ยืม", image: "📄", price: 135, unit: "รีม" },
+  { id: 8, name: "ปากกาเคมี", type: "material", category_id: 3, category: "เครื่องเขียน/วัสดุสิ้นเปลือง", position_id: 4, location: "ห้อง EN6-101 · ตู้ B1 ชั้น 2", qty_total: 50, qty_available: 10, max_borrow_days: null, fine_rate_per_day: null, base_status: "พร้อมให้ยืม", image: "🖊️", price: 30, unit: "ด้าม" },
+  { id: 9, name: "ไมโครโฟนไร้สาย", type: "equipment", category_id: 5, category: "เสียง/ไมโครโฟน", position_id: 7, location: "ห้อง EN6-302 · ตู้ M1 ชั้น 2", qty_total: 3, qty_available: 0, max_borrow_days: 3, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "🎤", price: 6500, unit: "ชุด" },
+  { id: 10, name: "ลำโพงพกพา Bluetooth", type: "equipment", category_id: 5, category: "เสียง/ไมโครโฟน", position_id: 7, location: "ห้อง EN6-302 · ตู้ M1 ชั้น 2", qty_total: 4, qty_available: 2, max_borrow_days: 5, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "🔊", price: 3200, unit: "ตัว" },
+  { id: 11, name: "ชุดเครื่องมือช่าง", type: "equipment", category_id: 2, category: "เครื่องมือช่าง", position_id: 5, location: "ห้อง EN6-205 · ตู้ E1 ชั้น 2", qty_total: 3, qty_available: 1, max_borrow_days: 5, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "🧰", price: 4500, unit: "ชุด" },
+  { id: 12, name: "แบตเตอรี่ AA", type: "material", category_id: 4, category: "อุปกรณ์ไฟฟ้า", position_id: 4, location: "ห้อง EN6-101 · ตู้ B1 ชั้น 2", qty_total: 60, qty_available: 60, max_borrow_days: null, fine_rate_per_day: null, base_status: "พร้อมให้ยืม", image: "🔋", price: 120, unit: "แพ็ค" },
+  { id: 13, name: "เครื่องฉายทึบแสง (Overhead)", type: "equipment", category_id: 1, category: "โสตทัศนูปกรณ์", position_id: 2, location: "ห้อง EN6-101 · ตู้ A2 ชั้น 2", qty_total: 1, qty_available: 0, max_borrow_days: 7, fine_rate_per_day: 20, base_status: "ไม่พร้อมใช้งาน", image: "📽️", price: 15000, unit: "เครื่อง" },
+  { id: 14, name: "ปลั๊กพ่วงสายไฟ 10 เมตร", type: "durable_material", category_id: 4, category: "อุปกรณ์ไฟฟ้า", position_id: 3, location: "ห้อง EN6-101 · ตู้ A1 ชั้น 1", qty_total: 15, qty_available: 10, max_borrow_days: 7, fine_rate_per_day: 10, base_status: "พร้อมให้ยืม", image: "🔌", price: 490, unit: "ชุด" },
+  { id: 15, name: "สายแปลงสัญญาณ Type-C to HDMI/VGA", type: "durable_material", category_id: 4, category: "อุปกรณ์ไฟฟ้า", position_id: 3, location: "ห้อง EN6-101 · ตู้ A1 ชั้น 1", qty_total: 10, qty_available: 8, max_borrow_days: 5, fine_rate_per_day: 10, base_status: "พร้อมให้ยืม", image: "💻", price: 590, unit: "อัน" },
+  { id: 16, name: "จอคอมพิวเตอร์ Dell 24 นิ้ว (Full HD)", type: "equipment", category_id: 1, category: "โสตทัศนูปกรณ์", position_id: 1, location: "ห้อง EN6-101 · ตู้ A1 ชั้น 2", qty_total: 3, qty_available: 1, max_borrow_days: 14, fine_rate_per_day: 20, base_status: "พร้อมให้ยืม", image: "🖥️", price: 6900, unit: "เครื่อง" },
 ];
 
 const SEED_STUDENTS = [
@@ -67,20 +124,48 @@ const SEED_WHITELIST_STAFF = ["staff1@ubu.ac.th"];
 const SEED_ADMIN_BLOCKED_EMAILS = []; // บัญชีที่ถูกแอดมินระงับสิทธิ์การเข้าสู่ระบบทั้งหมด (ต่างจาก student.blocked ที่จำกัดเฉพาะการยืม)
 
 const SEED_ROLE_OVERRIDES = [
-  { email: "s004@ubu.ac.th", role: "staff", reason: "หัวหน้าห้อง ได้รับมอบหมายช่วยงานคลัง", active: true },
+  { email: "s004@ubu.ac.th", role: "staff", active: true },
 ];
 
-// สถานะคำขอ: PENDING, APPROVED_WAIT_PICKUP, REJECTED, EXPIRED, BORROWING,
-// RETURN_PENDING, RETURNED, ISSUED, CANCELLED
+// สถานะคำขอ: PENDING (รอตรวจของหน้าเคาน์เตอร์), BORROWING (กำลังยืม), REJECTED,
+// RETURNED (คืนสำเร็จ), ISSUED, CANCELLED
 const SEED_REQUESTS = [
-  { id: 101, student_id: "S001", items: [{ item_id: 1, qty: 1 }, { item_id: 4, qty: 2 }], reason: "นำเสนองานกลุ่มวิชาโครงงาน", use_date: "2026-07-30", status: "PENDING", created_at: "2026-07-23 08:30", approved_at: null, reject_reason: "" },
-  { id: 102, student_id: "S001", items: [{ item_id: 3, qty: 1 }], reason: "ถ่ายวิดีโอสัมมนา", use_date: "2026-07-25", status: "APPROVED_WAIT_PICKUP", created_at: "2026-07-21 09:00", approved_at: "2026-07-22 10:00", reject_reason: "" },
-  { id: 103, student_id: "S002", items: [{ item_id: 2, qty: 1 }], reason: "ถ่ายภาพกิจกรรมชมรม", use_date: "2026-07-10", status: "EXPIRED", created_at: "2026-07-01 09:00", approved_at: "2026-07-02 09:00", reject_reason: "" },
-  { id: 104, student_id: "S001", items: [{ item_id: 5, qty: 1 }], reason: "ตรวจวงจรไฟฟ้าโครงงานจบ", use_date: "2026-07-18", status: "BORROWING", created_at: "2026-07-15 09:00", approved_at: "2026-07-15 13:00", picked_up_at: "2026-07-16 09:00", due_date: "2026-07-31", reject_reason: "" },
-  { id: 105, student_id: "S001", items: [{ item_id: 6, qty: 1 }], reason: "ซ่อมอุปกรณ์ชมรมอิเล็กทรอนิกส์", use_date: "2026-07-05", status: "BORROWING", created_at: "2026-07-04 09:00", approved_at: "2026-07-04 13:00", picked_up_at: "2026-07-05 09:00", due_date: "2026-07-08", reject_reason: "" },
-  { id: 106, student_id: "S001", items: [{ item_id: 10, qty: 1 }], reason: "จัดกิจกรรมเสียงตามสาย", use_date: "2026-07-10", status: "RETURN_PENDING", created_at: "2026-07-08 09:00", approved_at: "2026-07-08 13:00", picked_up_at: "2026-07-09 09:00", due_date: "2026-07-20", reject_reason: "" },
-  { id: 107, student_id: "S001", items: [{ item_id: 3, qty: 1 }], reason: "ถ่ายรูปรับปริญญา", use_date: "2026-06-10", status: "RETURNED", created_at: "2026-06-05 09:00", approved_at: "2026-06-05 13:00", picked_up_at: "2026-06-06 09:00", due_date: "2026-06-13", returned_at: "2026-06-12 15:00", reject_reason: "" },
-  { id: 108, student_id: "S001", items: [{ item_id: 7, qty: 5 }], reason: "พิมพ์รายงาน", use_date: null, status: "ISSUED", created_at: "2026-06-01 09:00", approved_at: "2026-06-01 13:00", picked_up_at: "2026-06-01 15:00", reject_reason: "" },
+  {
+    id: 105,
+    student_id: "S001",
+    items: [
+      { item_id: 16, qty: 1, asset_tag: "UBU-EQ-016-01", current_location: "ตึก EN6 ชั้น 2 ห้องพักสาขา EN6-204 (โต๊ะโครงงาน 1)", moved_at: "2026-07-22 10:15" },
+      { item_id: 16, qty: 1, asset_tag: "UBU-EQ-016-02", current_location: "หอพักนักศึกษาใน ม.อุบลฯ (ย้ายชั่วคราวหนีน้ำท่วม)", moved_at: "2026-07-23 08:20" },
+      { item_id: 14, qty: 2, current_location: "ตึก EN6 ชั้น 2 ห้องพักสาขา EN6-204", moved_at: "2026-07-22 10:15" }
+    ],
+    reason: "ยืมจอคอมพิวเตอร์ 2 จอและปลั๊กพ่วงสำหรับตั้งโต๊ะทำโครงงานจบในห้องสาขา",
+    use_date: "2026-07-22",
+    status: "BORROWING",
+    created_at: "2026-07-22 09:00",
+    approved_at: "2026-07-22 09:30",
+    due_date: "2026-08-05",
+    reject_reason: ""
+  },
+  { id: 101, student_id: "S001", items: [{ item_id: 1, qty: 1, initial_photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300" }, { item_id: 4, qty: 2 }, { item_id: 3, qty: 1 }], reason: "นำเสนองานกลุ่มวิชาโครงงานและบันทึกสัมมนา", use_date: "2026-07-30", status: "PENDING", created_at: "2026-07-23 08:30", approved_at: null, reject_reason: "", pickup_photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300" },
+  { id: 103, student_id: "S002", items: [{ item_id: 2, qty: 1, asset_tag: "UBU-EQ-002-01", current_location: "ห้องสโมสรนักศึกษา ชั้น 1 ตึก EN6", moved_at: "2026-07-10 10:00" }], reason: "ถ่ายภาพกิจกรรมชมรม", use_date: "2026-07-10", status: "EXPIRED", created_at: "2026-07-01 09:00", approved_at: "2026-07-02 09:00", reject_reason: "" },
+  {
+    id: 104,
+    student_id: "S001",
+    items: [
+      { item_id: 5, qty: 1, asset_tag: "UBU-EQ-005-01", initial_photo: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300", current_location: "ตึก EN6 ชั้น 2 ห้องพักสาขา EN6-204", moved_at: "2026-07-16 09:30", returned: false },
+      { item_id: 6, qty: 1, asset_tag: "UBU-EQ-006-01", initial_photo: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=300", current_location: "ตึก EN6 ชั้น 2 ห้องพักสาขา EN6-204", moved_at: "2026-07-16 09:30", returned: true, returned_qty: 1 },
+      { item_id: 10, qty: 1, asset_tag: "UBU-EQ-010-01", initial_photo: "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=300", current_location: "หอพักสุขใจ ซ.2 ต.เมืองศรีไค (ย้ายหนีน้ำท่วม)", moved_at: "2026-07-22 18:45", returned: false }
+    ],
+    reason: "ตรวจวัดและประกอบชุดวงจรทดสอบเสียงโครงงานจบ",
+    use_date: "2026-07-16",
+    status: "BORROWING",
+    created_at: "2026-07-15 09:00",
+    approved_at: "2026-07-15 13:00",
+    due_date: "2026-07-20",
+    reject_reason: ""
+  },
+  { id: 107, student_id: "S001", items: [{ item_id: 3, qty: 1 }], reason: "ถ่ายรูปรับปริญญา", use_date: "2026-06-10", status: "RETURNED", created_at: "2026-06-05 09:00", approved_at: "2026-06-05 13:00", due_date: "2026-06-13", returned_at: "2026-06-12 15:00", reject_reason: "" },
+  { id: 108, student_id: "S001", items: [{ item_id: 7, qty: 5 }], reason: "พิมพ์รายงาน", use_date: null, status: "ISSUED", created_at: "2026-06-01 09:00", approved_at: "2026-06-01 13:00", reject_reason: "" },
   { id: 109, student_id: "S002", items: [{ item_id: 9, qty: 1 }], reason: "อัดเสียงพากย์", use_date: "2026-07-01", status: "REJECTED", created_at: "2026-06-28 09:00", approved_at: null, reject_reason: "อุปกรณ์ไม่เพียงพอในช่วงเวลาที่ขอ" },
   { id: 110, student_id: "S001", items: [{ item_id: 8, qty: 3 }], reason: "งานประดิษฐ์ป้ายชมรม", use_date: null, status: "CANCELLED", created_at: "2026-07-05 09:00", approved_at: null, reject_reason: "" },
 ];
@@ -99,6 +184,39 @@ const SEED_SUGGESTIONS = [
 
 const SEED_PURCHASES = [
   { id: 1, name: "เครื่องพิมพ์ 3 มิติ", detail: "สำหรับสนับสนุนงานโครงงานนักศึกษาสายวิศวกรรม", created_by: "T001", created_at: "2026-07-05 09:00" },
+];
+
+const SEED_DAMAGE_REPORTS = [
+  {
+    id: 1,
+    student_id: "S001",
+    student_name: "สมชาย ใจดี",
+    equipment_id: 16,
+    durable_material_id: null,
+    asset_tag: "UBU-EQ-016-01",
+    item_name: "จอคอมพิวเตอร์ Dell 24 นิ้ว (Full HD)",
+    origin_location: "ห้อง EN6-101 · ตู้ B2 ชั้น 2",
+    location: "ห้องแล็บโปรเจกต์ EN6-304",
+    symptom: "หน้าจอไม่แสดงผล / ภาพกระพริบ — สาย HDMI หลวม ภาพติดๆ ดับๆ",
+    photo: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300",
+    status: "PENDING",
+    created_at: "2026-07-23 10:30"
+  },
+  {
+    id: 2,
+    student_id: "S003",
+    student_name: "วิชัย ตั้งใจ",
+    equipment_id: 1,
+    durable_material_id: null,
+    asset_tag: "UBU-EQ-001-03",
+    item_name: "โปรเจกเตอร์ Epson EB-X400",
+    origin_location: "ห้อง EN6-101 · ตู้ A1 ชั้น 1",
+    location: "ห้อง EN6-101 · ตู้ A1 ชั้น 1",
+    symptom: "เครื่องทำงานผิดปกติ / มีเสียงดัง / ร้อนจัด — หลอดภาพแสงดรอปและพัดลมดังผิดปกติ",
+    photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
+    status: "IN_PROGRESS",
+    created_at: "2026-07-20 14:15"
+  }
 ];
 
 const SEED_EVAL_FORM = {
@@ -125,7 +243,7 @@ const SEED_UNITS = [
     ] 
   },
   { 
-    asset_tag: "UBU-EQ-001-02", item_id: 1, status: "BORROWED", current_request_id: 104, note: "ยืมโดย S001", rating: 3, 
+    asset_tag: "UBU-EQ-001-02", item_id: 1, status: "AVAILABLE", note: "", rating: 3, 
     reviews: [
       { student_name: "วิชัย ตั้งใจ", rating: 3, comment: "พัดลมระบายอากาศเสียงดังนิดหน่อย และความสว่างดรอปลงเล็กน้อย แต่ยังพอนำเสนอได้", created_at: "2026-07-01" }
     ] 
@@ -143,7 +261,7 @@ const SEED_UNITS = [
     ] 
   },
   { 
-    asset_tag: "UBU-EQ-002-02", item_id: 2, status: "BORROWED", current_request_id: 106, note: "ยืมโดย S001", rating: 4, 
+    asset_tag: "UBU-EQ-002-02", item_id: 2, status: "AVAILABLE", note: "", rating: 4, 
     reviews: [
       { student_name: "วิชัย ตั้งใจ", rating: 4, comment: "บอดี้มีรอยขีดข่วนตามการใช้งานเล็กน้อย แต่ระบบโฟกัสและชัตเตอร์ทำงานปกติทุกอย่าง", created_at: "2026-07-05" }
     ] 
@@ -160,20 +278,31 @@ const SEED_UNITS = [
       { student_name: "กิตติศักดิ์ มั่นคง", rating: 3, comment: "ตัวล็อกขาด้านซ้ายหลวมนิดหน่อย ต้องกดล็อกแรงขึ้นหน่อยครับ", created_at: "2026-07-02" }
     ] 
   },
-  { asset_tag: "UBU-EQ-003-03", item_id: 3, status: "BORROWED", current_request_id: 102, note: "ยืมโดย S001", rating: 4, reviews: [] },
-  { asset_tag: "UBU-EQ-003-04", item_id: 3, status: "BORROWED", current_request_id: 107, note: "ยืมโดย S001", rating: 5, reviews: [] },
+  { asset_tag: "UBU-EQ-003-03", item_id: 3, status: "AVAILABLE", note: "", rating: 4, reviews: [] },
+  { asset_tag: "UBU-EQ-003-04", item_id: 3, status: "AVAILABLE", note: "", rating: 5, reviews: [] },
   { asset_tag: "UBU-EQ-003-05", item_id: 3, status: "MAINTENANCE", note: "น็อตล็อกขาหลวม ส่งซ่อมคลัง", rating: 3, reviews: [{ student_name: "สมหญิง มีดี", rating: 3, comment: "ตัวล็อกขาหลวมเล็กน้อย", created_at: "2026-06-30" }] },
-  { asset_tag: "UBU-EQ-005-01", item_id: 5, status: "BORROWED", current_request_id: 104, note: "", rating: 5, reviews: [] },
+  { 
+    asset_tag: "UBU-EQ-005-01", item_id: 5, status: "BORROWED", current_request_id: 104, note: "ยืมโดย S001", rating: 5, 
+    reviews: [
+      { student_name: "กิตติศักดิ์ มั่นคง", rating: 5, comment: "ใช้งานได้ดีมาก วัดค่ากระแสและแรงดันได้เสถียร", created_at: "2026-06-28" }
+    ] 
+  },
   { asset_tag: "UBU-EQ-005-02", item_id: 5, status: "AVAILABLE", note: "", rating: 4, reviews: [{ student_name: "สมชาย ใจดี", rating: 4, comment: "วัดแรงดันไฟฟ้าแม่นยำ สายโพรบสภาพดี", created_at: "2026-06-15" }] },
-  { asset_tag: "UBU-EQ-005-03", item_id: 5, status: "AVAILABLE", note: "", rating: 5, reviews: [] },
+  { 
+    asset_tag: "UBU-EQ-005-03", item_id: 5, status: "AVAILABLE", note: "", rating: 5, 
+    reviews: [
+      { student_name: "ธนกฤต วิเศษ", rating: 5, comment: "เครื่องวัดไฟตอบสนองไวมาก หน้าจอแสดงผลชัดเจน อุปกรณ์สายโพรบใหม่เอี่ยม", created_at: "2026-07-10" },
+      { student_name: "ปิยะดา สดใส", rating: 5, comment: "สภาพเครื่องสมบูรณ์ 100% แบตเตอรี่เต็ม นำไปใช้ในแลปวิศวกรรมไฟฟ้าได้ยอดเยี่ยม", created_at: "2026-07-18" }
+    ] 
+  },
   { asset_tag: "UBU-EQ-005-04", item_id: 5, status: "AVAILABLE", note: "", rating: 4, reviews: [] },
-  { asset_tag: "UBU-EQ-006-01", item_id: 6, status: "BORROWED", current_request_id: 105, note: "", rating: 4, reviews: [] },
+  { asset_tag: "UBU-EQ-006-01", item_id: 6, status: "AVAILABLE", note: "", rating: 4, reviews: [] },
   { asset_tag: "UBU-EQ-006-02", item_id: 6, status: "AVAILABLE", note: "", rating: 5, reviews: [{ student_name: "วิชัย ตั้งใจ", rating: 5, comment: "หัวแร้งร้อนเร็ว ทำความร้อนได้สม่ำเสมอดีมาก", created_at: "2026-07-08" }] },
   { asset_tag: "UBU-EQ-006-03", item_id: 6, status: "AVAILABLE", note: "", rating: 5, reviews: [] },
   { asset_tag: "UBU-EQ-006-04", item_id: 6, status: "AVAILABLE", note: "", rating: 4, reviews: [] },
   { asset_tag: "UBU-EQ-006-05", item_id: 6, status: "AVAILABLE", note: "", rating: 5, reviews: [] },
   { asset_tag: "UBU-EQ-006-06", item_id: 6, status: "AVAILABLE", note: "", rating: 4, reviews: [] },
-  { asset_tag: "UBU-EQ-010-01", item_id: 10, status: "BORROWED", current_request_id: 106, note: "", rating: 4, reviews: [] },
+  { asset_tag: "UBU-EQ-010-01", item_id: 10, status: "BORROWED", current_request_id: 104, note: "ยืมโดย S001", rating: 4, reviews: [] },
   { asset_tag: "UBU-EQ-010-02", item_id: 10, status: "AVAILABLE", note: "", rating: 5, reviews: [{ student_name: "สมชาย ใจดี", rating: 5, comment: "ลำโพงเสียงใส เบสแน่น เชื่อมต่อบลูทูธได้เร็วมาก", created_at: "2026-06-25" }] },
   { asset_tag: "UBU-EQ-010-03", item_id: 10, status: "AVAILABLE", note: "", rating: 4, reviews: [] },
   { asset_tag: "UBU-EQ-010-04", item_id: 10, status: "DAMAGED", note: "ดอกลำโพงแตก แจ้งคืนชำรุด", rating: 1, reviews: [{ student_name: "วิชัย ตั้งใจ", rating: 1, comment: "เสียงแตกพร่า ไม่สามารถเร่งเสียงได้", created_at: "2026-07-12" }] },
@@ -181,9 +310,28 @@ const SEED_UNITS = [
   { asset_tag: "UBU-EQ-011-02", item_id: 11, status: "AVAILABLE", note: "", rating: 4, reviews: [] },
   { asset_tag: "UBU-EQ-011-03", item_id: 11, status: "AVAILABLE", note: "", rating: 5, reviews: [] },
   { asset_tag: "UBU-EQ-013-01", item_id: 13, status: "DAMAGED", note: "หลอดไฟขาด รอดำเนินการซ่อม", rating: 1, reviews: [] },
+  { asset_tag: "UBU-EQ-016-01", item_id: 16, status: "BORROWED", current_request_id: 105, note: "ยืมโดย S001", rating: 5, reviews: [{ student_name: "สมชาย ใจดี", rating: 5, comment: "จอภาพคมชัด สีตรง ใช้ทำโครงงานดีมาก", created_at: "2026-07-10" }] },
+  { asset_tag: "UBU-EQ-016-02", item_id: 16, status: "BORROWED", current_request_id: 105, note: "ยืมโดย S001", rating: 5, reviews: [] },
+  { asset_tag: "UBU-EQ-016-03", item_id: 16, status: "AVAILABLE", note: "", rating: 5, reviews: [] },
 ];
 
 /* ------------------------------ localStorage ----------------------------- */
+
+const DB_VERSION = "2026-11-04-overdue-v11";
+
+function checkDbVersion() {
+  try {
+    const currentVer = localStorage.getItem(LS_PREFIX + "db_version");
+    if (currentVer !== DB_VERSION) {
+      const keepKeys = [LS_PREFIX + "current_role", LS_PREFIX + "current_user"];
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(LS_PREFIX) && !keepKeys.includes(k))
+        .forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(LS_PREFIX + "db_version", DB_VERSION);
+    }
+  } catch (e) {}
+}
+checkDbVersion();
 
 function loadData(key, fallback) {
   const raw = localStorage.getItem(LS_PREFIX + key);
@@ -195,6 +343,7 @@ function saveData(key, data) {
 }
 function db(key) {
   const map = {
+    rooms: SEED_ROOMS,
     categories: SEED_CATEGORIES, positions: SEED_POSITIONS, items: SEED_ITEMS, units: SEED_UNITS,
     students: SEED_STUDENTS, staffs: SEED_STAFFS, admins: SEED_ADMINS,
     whitelist_student: SEED_WHITELIST_STUDENT, whitelist_staff: SEED_WHITELIST_STAFF,
@@ -203,16 +352,46 @@ function db(key) {
     eval_form: SEED_EVAL_FORM, eval_responses: SEED_EVAL_RESPONSES,
     cart: [], item_statuses: SEED_ITEM_STATUSES, admin_blocked: SEED_ADMIN_BLOCKED_EMAILS,
     settings: SEED_SETTINGS,
+    damage_reports: SEED_DAMAGE_REPORTS,
   };
   return loadData(key, map[key]);
 }
 function dbSave(key, data) { saveData(key, data); }
-function dbSave(key, data) { saveData(key, data); }
+
+function addDamageReport(report) {
+  const list = db("damage_reports") || [];
+  const newId = nextId(list);
+  const stu = currentStudent();
+  const curUid = currentUserId() || "S001";
+  const sym = report.symptom || report.damage_detail || "";
+  const newReport = {
+    id: newId,
+    user_id: curUid,
+    equipment_id: report.equipment_id !== undefined ? report.equipment_id : null,
+    durable_material_id: report.durable_material_id !== undefined ? report.durable_material_id : null,
+    item_name: report.item_name || "",
+    location: report.location || "",
+    symptom: sym,
+    photo: report.photo || null,
+    status: "PENDING",
+    created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    // Fallback for legacy mockup compatibility:
+    student_id: curUid,
+    student_name: stu ? stu.name : "นักศึกษา",
+    damage_detail: sym,
+    ...report
+  };
+  newReport.symptom = sym;
+  list.unshift(newReport);
+  dbSave("damage_reports", list);
+  return newReport;
+}
 
 function resetAllData() {
   const keepKeys = [LS_PREFIX + "current_role", LS_PREFIX + "current_user"];
   Object.keys(localStorage).filter(k => k.startsWith(LS_PREFIX) && !keepKeys.includes(k))
     .forEach(k => localStorage.removeItem(k));
+  localStorage.setItem(LS_PREFIX + "db_version", DB_VERSION);
   alert("รีเซ็ตข้อมูลตัวอย่างเรียบร้อยแล้ว");
   location.reload();
 }
@@ -251,9 +430,23 @@ function daysLeft(dueDateStr) {
   return Math.round((due - today) / 86400000);
 }
 
-function getFineRatePerDay() {
-  const s = db("settings");
-  return s && s.fine_rate_per_day !== undefined ? Number(s.fine_rate_per_day) : 10;
+function getFineRatePerDay(req) {
+  if (req && Array.isArray(req.items)) {
+    const allItems = db("items");
+    let totalRate = 0;
+    req.items.forEach(it => {
+      if (it.returned) return;
+      const itemObj = allItems.find(x => x.id === Number(it.item_id));
+      if (!itemObj || itemObj.type === "material") return;
+      const rate = itemObj.fine_rate_per_day !== undefined && itemObj.fine_rate_per_day !== null
+        ? Number(itemObj.fine_rate_per_day)
+        : (itemObj.type === "equipment" ? 20 : 10);
+      const unreturnedQty = Math.max(1, (Number(it.qty) || 1) - (Number(it.returned_qty) || 0));
+      totalRate += rate * unreturnedQty;
+    });
+    if (totalRate > 0) return totalRate;
+  }
+  return 20;
 }
 
 function calculateOverdueFine(req) {
@@ -265,7 +458,7 @@ function calculateOverdueFine(req) {
   const left = daysLeft(req.due_date);
   if (left < 0) {
     const overdueDays = Math.abs(left);
-    return overdueDays * getFineRatePerDay();
+    return overdueDays * getFineRatePerDay(req);
   }
   return 0;
 }
@@ -297,15 +490,48 @@ function addUnitReview(assetTag, studentName, rating, comment) {
   }
 }
 
+function isPieceEvaluated(requestId, origItemIdx, assetTag) {
+  const evals = db("eval_responses") || [];
+  return evals.some(e => {
+    if (e.request_id !== Number(requestId)) return false;
+    if (assetTag && e.asset_tag && e.asset_tag === assetTag) return true;
+    if (origItemIdx !== undefined && origItemIdx !== null && e.orig_item_idx === Number(origItemIdx)) return true;
+    return false;
+  });
+}
+
+function getPieceEvaluation(requestId, origItemIdx, assetTag) {
+  const evals = db("eval_responses") || [];
+  return evals.find(e => {
+    if (e.request_id !== Number(requestId)) return false;
+    if (assetTag && e.asset_tag && e.asset_tag === assetTag) return true;
+    if (origItemIdx !== undefined && origItemIdx !== null && e.orig_item_idx === Number(origItemIdx)) return true;
+    return false;
+  });
+}
+
+function getRequestEvaluationProgress(requestId) {
+  const reqs = db("requests") || [];
+  const r = reqs.find(x => x.id === Number(requestId));
+  if (!r) return { evaluated: 0, total: 0, allDone: false };
+  const items = r.items || [];
+  const total = items.length;
+  let evaluated = 0;
+  items.forEach((it, idx) => {
+    if (isPieceEvaluated(r.id, idx, it.asset_tag)) evaluated++;
+  });
+  return { evaluated, total, allDone: total > 0 && evaluated >= total };
+}
+
 const STATUS_LABEL = {
-  PENDING: "รออนุมัติ", APPROVED_WAIT_PICKUP: "อนุมัติแล้ว/รอรับของ", REJECTED: "ปฏิเสธแล้ว",
-  EXPIRED: "หมดอายุ", BORROWING: "กำลังยืม", RETURN_PENDING: "รอยืนยันการคืน",
+  PENDING: "รอเจ้าหน้าที่ตรวจของ", REJECTED: "ปฏิเสธแล้ว",
+  EXPIRED: "หมดอายุ", BORROWING: "กำลังยืม", RETURN_PENDING: "รอเจ้าหน้าที่ตรวจรับคืน",
   RETURNED: "คืนสำเร็จ", ISSUED: "เบิกสำเร็จ", CANCELLED: "ยกเลิกแล้ว",
   APPROVED: "อนุมัติแล้ว",
   SUBMITTED: "ส่งข้อเสนอแนะแล้ว", ACKNOWLEDGED: "เจ้าหน้ารับทราบแล้ว", PURCHASE_PLAN: "เพิ่มในแผนจัดซื้อแล้ว",
 };
 const STATUS_COLOR = {
-  PENDING: "amber", APPROVED_WAIT_PICKUP: "blue", REJECTED: "red", EXPIRED: "gray",
+  PENDING: "amber", REJECTED: "red", EXPIRED: "gray",
   BORROWING: "yellow", RETURN_PENDING: "amber", RETURNED: "green", ISSUED: "green",
   CANCELLED: "gray", APPROVED: "green",
   SUBMITTED: "blue", ACKNOWLEDGED: "indigo", PURCHASE_PLAN: "green",
@@ -316,6 +542,22 @@ function badgeHtml(statusKey) {
   return `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-${color}-100 text-${color}-700">${label}</span>`;
 }
 
+const TYPE_LABEL = {
+  material: "วัสดุสิ้นเปลือง (เบิกใช้)",
+  durable_material: "วัสดุคงทน (ยืม-คืน)",
+  equipment: "ครุภัณฑ์ (ยืม-คืน)",
+};
+function typeBadgeHtml(type) {
+  if (type === "durable_material") {
+    return `<span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200">วัสดุคงทน (ยืม-คืน)</span>`;
+  }
+  if (type === "equipment") {
+    return `<span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">ครุภัณฑ์ (ยืม-คืน)</span>`;
+  }
+  return `<span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200">วัสดุสิ้นเปลือง (เบิกใช้)</span>`;
+}
+
+function roomById(id) { return db("rooms").find(r => r.id === Number(id)); }
 function itemById(id) { return db("items").find(i => i.id === Number(id)); }
 function categoryById(id) { return db("categories").find(c => c.id === Number(id)); }
 function positionById(id) { return db("positions").find(p => p.id === Number(id)); }
@@ -342,15 +584,34 @@ function nextId(arr) { return arr.length ? Math.max(...arr.map(x => x.id)) + 1 :
 
 /* ------------------------- Config: เมนู/หน้าแรกต่อ role ------------------------- */
 
+function getActiveBorrowItemLocation(assetTag, itemId) {
+  const reqs = db("requests") || [];
+  for (const r of reqs) {
+    if (r.status === "BORROWING" || r.status === "RETURN_PENDING") {
+      for (const it of (r.items || [])) {
+        if (!it.returned && ((assetTag && it.asset_tag === assetTag) || (!assetTag && it.item_id === Number(itemId)))) {
+          return {
+            request_id: r.id,
+            student_id: r.student_id,
+            current_location: it.current_location || "",
+            moved_at: it.moved_at || ""
+          };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 const MENU = {
   student: [
     { key: "request-list", label: "หน้าหลัก", icon: "🏠" },
     { key: "profile", label: "โปรไฟล์ส่วนตัว", icon: "👤" },
     { key: "item-list", label: "รายการวัสดุ/ครุภัณฑ์", icon: "📋" },
-    { key: "position-map", label: "แผนผังตำแหน่งชั้นวาง", icon: "🗺️" },
     { key: "cart", label: "ตะกร้า", icon: "🛒" },
     { key: "queue-list", label: "คิวของฉัน", icon: "⏳" },
     { key: "history", label: "ประวัติการยืม", icon: "📜" },
+    { key: "report-damage", label: "แจ้งอุปกรณ์ชำรุด", icon: "🛠️" },
     { key: "suggestion", label: "เสนอแนะสิ่งของ", icon: "💡" },
   ],
   staff: [
@@ -360,11 +621,9 @@ const MENU = {
     { key: "damaged-equipment", label: "ครุภัณฑ์เสียหาย", icon: "⚠️" },
     { key: "all-history", label: "ประวัติทั้งระบบ", icon: "📜" },
     { key: "item-overview", label: "จัดการคลังสิ่งของ", icon: "📦" },
-    { key: "warehouse-settings", label: "ตั้งค่าคลัง", icon: "⚙️" },
     { key: "student-list", label: "จัดการนักศึกษา", icon: "🎓" },
     { key: "suggestion-review", label: "คำเสนอแนะสิ่งของ", icon: "💡" },
     { key: "purchase-add", label: "รายการจัดซื้อ", icon: "🧾" },
-    { key: "evaluation-form", label: "แบบประเมินความพึงพอใจ", icon: "⭐" },
     { key: "report-export", label: "ส่งออกรายงาน", icon: "📤" },
   ],
   admin: [

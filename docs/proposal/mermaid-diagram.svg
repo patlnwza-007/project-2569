@@ -1,0 +1,914 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1731.2160000000001 2181.1666666666665" width="1731.2160000000001" height="2181.1666666666665" style="--bg:#FFFFFF;--fg:#3B3B3B;--line:#3B3B3B;--accent:#005FB8;--muted:#3B3B3BCC;--surface:#F8F8F8;--border:#3B3B3B;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+</defs>
+<polyline class="er-relationship" data-entity1="USER" data-entity2="USER" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="assigned_by / blocked_by" points="99.93333333333334,1394.1999999999998 99.93333333333334,1384.1999999999998 159.86666666666667,1384.1999999999998 159.86666666666667,1394.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="USER" data-entity2="BORROW_REQUEST" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="submits / approves" points="219.79999999999998,1543.1999999999998 502.35600000000005,1543.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="BORROW_REQUEST" data-entity2="BORROW_ITEM" data-cardinality1="one" data-cardinality2="many" data-identifying="true" data-label="contains" points="682.1560000000001,1493.533333333333 704.356,1493.533333333333 704.356,1115.7999999999997 970.234,1115.7999999999997" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="MATERIAL" data-entity2="BORROW_ITEM" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="borrowed_in" points="684.356,1140.1999999999998 694.356,1140.1999999999998 694.356,1069.3999999999999 970.234,1069.3999999999999" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="DURABLE_MATERIAL" data-entity2="BORROW_ITEM" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="borrowed_in" points="684.356,899.8999999999999 694.356,899.8999999999999 694.356,1022.9999999999998 970.234,1022.9999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="EQUIPMENT" data-entity2="BORROW_ITEM" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="borrowed_in" points="684.356,419.9999999999999 714.356,420 714.356,976.5999999999998 970.234,976.5999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="BORROW_REQUEST" data-entity2="RETURN_REQUEST" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="has_returns" points="682.1560000000001,1592.8666666666666 890.234,1592.8666666666666 890.234,1693.4999999999998 974.634,1693.4999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="USER" data-entity2="RETURN_REQUEST" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="inspects" points="219.79999999999998,1580.4499999999998 249.79999999999998,1580.4499999999998 249.79999999999998,1785.4999999999998 974.634,1785.4999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="RETURN_REQUEST" data-entity2="RETURN_ITEM" data-cardinality1="one" data-cardinality2="many" data-identifying="true" data-label="contains_return_items" points="1174.234,1739.4999999999998 1478.4160000000002,1739.4999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="BORROW_ITEM" data-entity2="RETURN_ITEM" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="returned_via" points="1183.034,1084.8666666666666 1193.034,1084.8666666666663 1193.034,1676.833333333333 1478.4160000000002,1676.8333333333333" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="DURABLE_MATERIAL" data-entity2="QUEUE" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="queued_for" points="684.356,707.8999999999999 694.356,707.8999999999999 694.356,326.0999999999999 970.234,326.0999999999999" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="EQUIPMENT" data-entity2="QUEUE" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="queued_for" points="684.356,300.7999999999999 694.356,300.79999999999995 694.356,273.5999999999999 970.234,273.5999999999999" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="USER" data-entity2="QUEUE" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="joins" points="219.79999999999998,1468.6999999999998 239.79999999999998,1468.6999999999998 239.79999999999998,87.29999999999995 890.234,87.29999999999995 890.234,221.0999999999999 970.234,221.0999999999999" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="USER" data-entity2="SUGGESTION" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="proposes" points="219.79999999999998,1654.9499999999998 229.79999999999998,1654.9499999999998 229.79999999999998,2058.1666666666665 511.156,2058.1666666666665" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="SUGGESTION" data-entity2="PURCHASE_PLAN" data-cardinality1="zero-one" data-cardinality2="zero-one" data-identifying="true" data-label="promoted_to" points="671.156,2058.1666666666665 970.234,2058.1666666666665" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="USER" data-entity2="PURCHASE_PLAN" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="manages" points="219.79999999999998,1617.6999999999998 239.79999999999998,1617.6999999999998 239.79999999999998,1880.8666666666663 890.234,1880.8666666666663 890.234,2002.833333333333 970.234,2002.833333333333" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="BORROW_ITEM" data-entity2="REVIEW" data-cardinality1="one" data-cardinality2="zero-one" data-identifying="true" data-label="reviewed_in" points="1183.034,1007.5333333333332 1398.4160000000002,1007.5333333333332 1398.4160000000002,1193.533333333333 1478.4160000000002,1193.533333333333" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="USER" data-entity2="REVIEW" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="writes" points="219.79999999999998,1431.4499999999998 229.79999999999998,1431.4499999999998 229.79999999999998,40 1428.4160000000002,40 1428.4160000000002,1077.533333333333 1478.4160000000002,1077.533333333333" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="MATERIAL" data-entity2="REVIEW" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="has_reviews" points="684.356,1232.1999999999998 1478.4160000000002,1232.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="DURABLE_MATERIAL" data-entity2="REVIEW" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="has_reviews" points="684.356,835.8999999999999 1408.4160000000002,835.8999999999999 1408.4160000000002,1154.8666666666663 1478.4160000000002,1154.8666666666666" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="EQUIPMENT" data-entity2="REVIEW" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="has_reviews" points="684.356,241.1999999999999 694.356,241.19999999999982 694.356,74.29999999999995 1418.4160000000002,74.29999999999995 1418.4160000000002,1116.1999999999998 1478.4160000000002,1116.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="USER" data-entity2="DAMAGE_REPORT" data-cardinality1="one" data-cardinality2="zero-many" data-identifying="true" data-label="reports" points="219.79999999999998,1505.9499999999998 249.79999999999998,1505.9499999999998 249.79999999999998,549.5999999999999 890.234,549.5999999999999 890.234,638.8999999999999 970.234,638.8999999999999" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="EQUIPMENT" data-entity2="DAMAGE_REPORT" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="damaged_equipment" points="684.356,360.3999999999999 900.234,360.39999999999986 900.234,575.3999999999999 970.234,575.3999999999999" fill="none" stroke="var(--_line)" stroke-width="1" />
+<polyline class="er-relationship" data-entity1="DURABLE_MATERIAL" data-entity2="DAMAGE_REPORT" data-cardinality1="zero-one" data-cardinality2="zero-many" data-identifying="true" data-label="damaged_durable" points="684.356,771.8999999999999 704.356,771.8999999999999 704.356,702.3999999999999 970.234,702.3999999999999" fill="none" stroke="var(--_line)" stroke-width="1" />
+<g class="entity" data-id="USER" data-label="USER">
+  <rect x="40" y="1394.1999999999998" width="179.79999999999998" height="298" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="40" y="1394.1999999999998" width="179.79999999999998" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="129.89999999999998" y="1411.1999999999998" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">USER</text>
+  <line x1="40" y1="1428.1999999999998" x2="219.79999999999998" y2="1428.1999999999998" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสผู้ใช้</title>
+  <rect x="46" y="1432.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="57.155" y="1439.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="76.31" y="1439.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1439.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ชื่อ-นามสกุล</title>
+  <text x="48" y="1461.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1461.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+  </g>
+  <g><title>อีเมล @ubu.ac.th</title>
+  <rect x="46" y="1476.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="57.155" y="1483.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">UK</text>
+  <text x="76.31" y="1483.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1483.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">email</tspan></text>
+  </g>
+  <g><title>student / staff / admin</title>
+  <text x="48" y="1505.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1505.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">role</tspan></text>
+  </g>
+  <g><title>สิทธิ์พิเศษ (nullable)</title>
+  <text x="48" y="1527.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1527.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">role_override</tspan></text>
+  </g>
+  <g><title>ผู้แต่งตั้งสิทธิ์</title>
+  <rect x="46" y="1542.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="57.155" y="1549.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="76.31" y="1549.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1549.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">assigned_by</tspan></text>
+  </g>
+  <g><title>เบอร์โทรศัพท์</title>
+  <text x="48" y="1571.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1571.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">phone</tspan></text>
+  </g>
+  <g><title>เข้าสู่ระบบครั้งแรก</title>
+  <text x="48" y="1593.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="211.79999999999998" y="1593.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">first_login</tspan></text>
+  </g>
+  <g><title>เข้าสู่ระบบล่าสุด</title>
+  <text x="48" y="1615.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="211.79999999999998" y="1615.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">last_login</tspan></text>
+  </g>
+  <g><title>สถานะระงับสิทธิ์</title>
+  <text x="48" y="1637.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">boolean</tspan></text>
+  <text x="211.79999999999998" y="1637.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">blocked</tspan></text>
+  </g>
+  <g><title>เหตุผลการระงับสิทธิ์</title>
+  <text x="48" y="1659.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1659.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">block_reason</tspan></text>
+  </g>
+  <g><title>ผู้สั่งระงับสิทธิ์</title>
+  <rect x="46" y="1674.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="57.155" y="1681.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="76.31" y="1681.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="211.79999999999998" y="1681.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">blocked_by</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="MATERIAL" data-label="MATERIAL">
+  <rect x="517.7560000000001" y="1048.1999999999998" width="166.6" height="276" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="517.7560000000001" y="1048.1999999999998" width="166.6" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="601.056" y="1065.1999999999998" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">MATERIAL</text>
+  <line x1="517.7560000000001" y1="1082.1999999999998" x2="684.3560000000001" y2="1082.1999999999998" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสวัสดุสิ้นเปลือง</title>
+  <rect x="523.7560000000001" y="1086.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="534.9110000000001" y="1093.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="554.066" y="1093.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.3560000000001" y="1093.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ชื่อวัสดุ</title>
+  <text x="525.7560000000001" y="1115.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.3560000000001" y="1115.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+  </g>
+  <g><title>หมวดหมู่</title>
+  <text x="525.7560000000001" y="1137.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.3560000000001" y="1137.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">category</tspan></text>
+  </g>
+  <g><title>สถานที่ตั้งวางในคลัง</title>
+  <text x="525.7560000000001" y="1159.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.3560000000001" y="1159.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">location</tspan></text>
+  </g>
+  <g><title>จำนวนทั้งหมด</title>
+  <text x="525.7560000000001" y="1181.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.3560000000001" y="1181.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">qty_total</tspan></text>
+  </g>
+  <g><title>จำนวนคงเหลือ</title>
+  <text x="525.7560000000001" y="1203.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.3560000000001" y="1203.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">qty_available</tspan></text>
+  </g>
+  <g><title>หน่วยนับ</title>
+  <text x="525.7560000000001" y="1225.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.3560000000001" y="1225.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">unit</tspan></text>
+  </g>
+  <g><title>ราคาจัดซื้อ</title>
+  <text x="525.7560000000001" y="1247.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">float</tspan></text>
+  <text x="676.3560000000001" y="1247.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">purchase_price</tspan></text>
+  </g>
+  <g><title>สถานะคลัง</title>
+  <text x="525.7560000000001" y="1269.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.3560000000001" y="1269.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">base_status</tspan></text>
+  </g>
+  <g><title>รายละเอียด</title>
+  <text x="525.7560000000001" y="1291.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.3560000000001" y="1291.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">description</tspan></text>
+  </g>
+  <g><title>รูปภาพ</title>
+  <text x="525.7560000000001" y="1313.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.3560000000001" y="1313.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">image</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="DURABLE_MATERIAL" data-label="DURABLE_MATERIAL">
+  <rect x="497.956" y="643.8999999999999" width="186.4" height="320" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="497.956" y="643.8999999999999" width="186.4" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="591.1560000000001" y="660.8999999999999" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">DURABLE_MATERIAL</text>
+  <line x1="497.956" y1="677.8999999999999" x2="684.356" y2="677.8999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสวัสดุคงทน</title>
+  <rect x="503.956" y="681.8999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="515.111" y="688.8999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="534.266" y="688.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.356" y="688.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ชื่อวัสดุคงทน</title>
+  <text x="505.956" y="710.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="710.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+  </g>
+  <g><title>หมวดหมู่</title>
+  <text x="505.956" y="732.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="732.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">category</tspan></text>
+  </g>
+  <g><title>สถานที่ตั้งวางในคลัง</title>
+  <text x="505.956" y="754.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="754.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">location</tspan></text>
+  </g>
+  <g><title>จำนวนทั้งหมด</title>
+  <text x="505.956" y="776.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.356" y="776.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">qty_total</tspan></text>
+  </g>
+  <g><title>จำนวนคงเหลือ</title>
+  <text x="505.956" y="798.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.356" y="798.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">qty_available</tspan></text>
+  </g>
+  <g><title>หน่วยนับ</title>
+  <text x="505.956" y="820.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="820.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">unit</tspan></text>
+  </g>
+  <g><title>จำนวนวันยืมสูงสุด</title>
+  <text x="505.956" y="842.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.356" y="842.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">max_borrow_days</tspan></text>
+  </g>
+  <g><title>อัตราค่าปรับต่อวัน</title>
+  <text x="505.956" y="864.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">float</tspan></text>
+  <text x="676.356" y="864.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">fine_rate_per_day</tspan></text>
+  </g>
+  <g><title>ราคาจัดซื้อ</title>
+  <text x="505.956" y="886.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">float</tspan></text>
+  <text x="676.356" y="886.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">purchase_price</tspan></text>
+  </g>
+  <g><title>สถานะคลัง</title>
+  <text x="505.956" y="908.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="908.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">base_status</tspan></text>
+  </g>
+  <g><title>รายละเอียด</title>
+  <text x="505.956" y="930.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="930.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">description</tspan></text>
+  </g>
+  <g><title>รูปภาพ</title>
+  <text x="505.956" y="952.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="952.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">image</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="EQUIPMENT" data-label="EQUIPMENT">
+  <rect x="497.956" y="181.5999999999999" width="186.4" height="298" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="497.956" y="181.5999999999999" width="186.4" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="591.1560000000001" y="198.5999999999999" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">EQUIPMENT</text>
+  <line x1="497.956" y1="215.5999999999999" x2="684.356" y2="215.5999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสครุภัณฑ์</title>
+  <rect x="503.956" y="219.5999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="515.111" y="226.5999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="534.266" y="226.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.356" y="226.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>เลขครุภัณฑ์ประจำชิ้น</title>
+  <rect x="503.956" y="241.5999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="515.111" y="248.5999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">UK</text>
+  <text x="534.266" y="248.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="248.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">asset_tag</tspan></text>
+  </g>
+  <g><title>ชื่อครุภัณฑ์</title>
+  <text x="505.956" y="270.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="270.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+  </g>
+  <g><title>หมวดหมู่</title>
+  <text x="505.956" y="292.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="292.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">category</tspan></text>
+  </g>
+  <g><title>สถานที่ตั้งวางในคลัง</title>
+  <text x="505.956" y="314.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="314.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">location</tspan></text>
+  </g>
+  <g><title>หน่วยนับ</title>
+  <text x="505.956" y="336.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="336.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">unit</tspan></text>
+  </g>
+  <g><title>จำนวนวันยืมสูงสุด</title>
+  <text x="505.956" y="358.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="676.356" y="358.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">max_borrow_days</tspan></text>
+  </g>
+  <g><title>อัตราค่าปรับต่อวัน</title>
+  <text x="505.956" y="380.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">float</tspan></text>
+  <text x="676.356" y="380.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">fine_rate_per_day</tspan></text>
+  </g>
+  <g><title>ราคาจัดซื้อ</title>
+  <text x="505.956" y="402.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">float</tspan></text>
+  <text x="676.356" y="402.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">purchase_price</tspan></text>
+  </g>
+  <g><title>AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE</title>
+  <text x="505.956" y="424.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="424.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">base_status</tspan></text>
+  </g>
+  <g><title>รายละเอียด</title>
+  <text x="505.956" y="446.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="446.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">description</tspan></text>
+  </g>
+  <g><title>รูปภาพ</title>
+  <text x="505.956" y="468.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="676.356" y="468.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">image</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="BORROW_REQUEST" data-label="BORROW_REQUEST">
+  <rect x="502.35600000000005" y="1394.1999999999998" width="179.79999999999998" height="298" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="502.35600000000005" y="1394.1999999999998" width="179.79999999999998" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="592.2560000000001" y="1411.1999999999998" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">BORROW_REQUEST</text>
+  <line x1="502.35600000000005" y1="1428.1999999999998" x2="682.1560000000001" y2="1428.1999999999998" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>เลขที่ใบคำขอ</title>
+  <rect x="508.35600000000005" y="1432.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="519.5110000000001" y="1439.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="538.666" y="1439.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="674.1560000000001" y="1439.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ผู้ขอยืม → USER.id</title>
+  <rect x="508.35600000000005" y="1454.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="519.5110000000001" y="1461.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="538.666" y="1461.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="674.1560000000001" y="1461.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">user_id</tspan></text>
+  </g>
+  <g><title>ผู้อนุมัติ → USER.id</title>
+  <rect x="508.35600000000005" y="1476.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="519.5110000000001" y="1483.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="538.666" y="1483.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="674.1560000000001" y="1483.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">approved_by</tspan></text>
+  </g>
+  <g><title>เหตุผลการยืม</title>
+  <text x="510.35600000000005" y="1505.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="674.1560000000001" y="1505.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">reason</tspan></text>
+  </g>
+  <g><title>วันที่เริ่มใช้งาน</title>
+  <text x="510.35600000000005" y="1527.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">date</tspan></text>
+  <text x="674.1560000000001" y="1527.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">use_date</tspan></text>
+  </g>
+  <g><title>วันครบกำหนดคืน</title>
+  <text x="510.35600000000005" y="1549.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">date</tspan></text>
+  <text x="674.1560000000001" y="1549.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">due_date</tspan></text>
+  </g>
+  <g><title>ขอยืมกรณีพิเศษ</title>
+  <text x="510.35600000000005" y="1571.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">boolean</tspan></text>
+  <text x="674.1560000000001" y="1571.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">is_special</tspan></text>
+  </g>
+  <g><title>PENDING / BORROWING / ISSUED / RETURNED / REJECTED / CANCELLED / EXPIRED</title>
+  <text x="510.35600000000005" y="1593.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="674.1560000000001" y="1593.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+  </g>
+  <g><title>วันที่ส่งคำขอ</title>
+  <text x="510.35600000000005" y="1615.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="674.1560000000001" y="1615.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">created_at</tspan></text>
+  </g>
+  <g><title>วันที่อนุมัติ</title>
+  <text x="510.35600000000005" y="1637.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="674.1560000000001" y="1637.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">approved_at</tspan></text>
+  </g>
+  <g><title>เหตุผลที่ไม่อนุมัติ</title>
+  <text x="510.35600000000005" y="1659.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="674.1560000000001" y="1659.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">reject_reason</tspan></text>
+  </g>
+  <g><title>รูปถ่ายตอนรับของ</title>
+  <text x="510.35600000000005" y="1681.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="674.1560000000001" y="1681.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">pickup_photo</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="BORROW_ITEM" data-label="BORROW_ITEM">
+  <rect x="970.234" y="930.1999999999998" width="212.79999999999998" height="232" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="970.234" y="930.1999999999998" width="212.79999999999998" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1076.634" y="947.1999999999998" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">BORROW_ITEM</text>
+  <line x1="970.234" y1="964.1999999999998" x2="1183.034" y2="964.1999999999998" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสรายการยืม</title>
+  <rect x="976.234" y="968.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="975.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="1006.544" y="975.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="975.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ใบคำขอ → BORROW_REQUEST.id</title>
+  <rect x="976.234" y="990.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="997.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="997.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="997.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">borrow_request_id</tspan></text>
+  </g>
+  <g><title>วัสดุสิ้นเปลือง → MATERIAL.id</title>
+  <rect x="976.234" y="1012.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="1019.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="1019.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="1019.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">material_id</tspan></text>
+  </g>
+  <g><title>วัสดุคงทน → DURABLE_MATERIAL.id</title>
+  <rect x="976.234" y="1034.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="1041.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="1041.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="1041.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">durable_material_id</tspan></text>
+  </g>
+  <g><title>ครุภัณฑ์ → EQUIPMENT.id</title>
+  <rect x="976.234" y="1056.1999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="1063.1999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="1063.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="1063.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">equipment_id</tspan></text>
+  </g>
+  <g><title>จำนวนที่ยืม/เบิก</title>
+  <text x="978.234" y="1085.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="1085.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">qty</tspan></text>
+  </g>
+  <g><title>รูปถ่ายสภาพของก่อนยืม</title>
+  <text x="978.234" y="1107.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="1107.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">initial_photo</tspan></text>
+  </g>
+  <g><title>ที่ตั้ง/ที่อยู่ปัจจุบันที่แจ้งย้าย</title>
+  <text x="978.234" y="1129.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="1129.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">current_location</tspan></text>
+  </g>
+  <g><title>วันเวลาที่แจ้งย้ายล่าสุด</title>
+  <text x="978.234" y="1151.1999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1175.034" y="1151.1999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">moved_at</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="RETURN_REQUEST" data-label="RETURN_REQUEST">
+  <rect x="974.634" y="1601.4999999999998" width="199.6" height="276" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="974.634" y="1601.4999999999998" width="199.6" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1074.434" y="1618.4999999999998" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">RETURN_REQUEST</text>
+  <line x1="974.634" y1="1635.4999999999998" x2="1174.234" y2="1635.4999999999998" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสใบแจ้งคืน</title>
+  <rect x="980.634" y="1639.4999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="991.789" y="1646.4999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="1010.944" y="1646.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1166.234" y="1646.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ใบคำขอยืม → BORROW_REQUEST.id</title>
+  <rect x="980.634" y="1661.4999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="991.789" y="1668.4999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1010.944" y="1668.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1166.234" y="1668.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">borrow_request_id</tspan></text>
+  </g>
+  <g><title>ผู้ตรวจรับคืน → USER.id</title>
+  <rect x="980.634" y="1683.4999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="991.789" y="1690.4999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1010.944" y="1690.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1166.234" y="1690.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">inspected_by</tspan></text>
+  </g>
+  <g><title>RETURN_PENDING / RETURNED / REJECTED</title>
+  <text x="982.634" y="1712.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1166.234" y="1712.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+  </g>
+  <g><title>รูปถ่ายหลักฐานการส่งคืน</title>
+  <text x="982.634" y="1734.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1166.234" y="1734.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">return_photo</tspan></text>
+  </g>
+  <g><title>ยอดค่าปรับที่เรียกเก็บจริง</title>
+  <text x="982.634" y="1756.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">float</tspan></text>
+  <text x="1166.234" y="1756.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">custom_fine</tspan></text>
+  </g>
+  <g><title>สถานะชำระค่าปรับ</title>
+  <text x="982.634" y="1778.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">boolean</tspan></text>
+  <text x="1166.234" y="1778.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">fine_paid</tspan></text>
+  </g>
+  <g><title>เหตุผลการปรับ/ลดหย่อน</title>
+  <text x="982.634" y="1800.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1166.234" y="1800.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">fine_reason</tspan></text>
+  </g>
+  <g><title>หมายเหตุการส่งคืน</title>
+  <text x="982.634" y="1822.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1166.234" y="1822.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">note</tspan></text>
+  </g>
+  <g><title>วันที่แจ้งคืน</title>
+  <text x="982.634" y="1844.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1166.234" y="1844.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">created_at</tspan></text>
+  </g>
+  <g><title>วันที่ตรวจรับคืนสำเร็จ</title>
+  <text x="982.634" y="1866.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1166.234" y="1866.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">returned_at</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="RETURN_ITEM" data-label="RETURN_ITEM">
+  <rect x="1478.4160000000002" y="1614.1666666666665" width="199.6" height="188" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1478.4160000000002" y="1614.1666666666665" width="199.6" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1578.2160000000001" y="1631.1666666666665" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">RETURN_ITEM</text>
+  <line x1="1478.4160000000002" y1="1648.1666666666665" x2="1678.016" y2="1648.1666666666665" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสรายการที่คืน</title>
+  <rect x="1484.4160000000002" y="1652.1666666666665" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1659.1666666666665" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="1514.726" y="1659.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1670.016" y="1659.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ใบแจ้งคืน → RETURN_REQUEST.id</title>
+  <rect x="1484.4160000000002" y="1674.1666666666665" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1681.1666666666665" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1514.726" y="1681.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1670.016" y="1681.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">return_request_id</tspan></text>
+  </g>
+  <g><title>รายการยืมเดิม → BORROW_ITEM.id</title>
+  <rect x="1484.4160000000002" y="1696.1666666666665" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1703.1666666666665" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1514.726" y="1703.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1670.016" y="1703.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">borrow_item_id</tspan></text>
+  </g>
+  <g><title>จำนวนที่คืนในรอบนี้</title>
+  <text x="1486.4160000000002" y="1725.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1670.016" y="1725.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">qty_returned</tspan></text>
+  </g>
+  <g><title>NORMAL / DAMAGED / LOST</title>
+  <text x="1486.4160000000002" y="1747.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1670.016" y="1747.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">condition_status</tspan></text>
+  </g>
+  <g><title>ค่าชดใช้กรณีสูญหาย</title>
+  <text x="1486.4160000000002" y="1769.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">float</tspan></text>
+  <text x="1670.016" y="1769.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">lost_compensation</tspan></text>
+  </g>
+  <g><title>สถานะชำระค่าชดใช้</title>
+  <text x="1486.4160000000002" y="1791.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">boolean</tspan></text>
+  <text x="1670.016" y="1791.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">lost_paid</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="QUEUE" data-label="QUEUE">
+  <rect x="970.234" y="168.5999999999999" width="212.79999999999998" height="210" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="970.234" y="168.5999999999999" width="212.79999999999998" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1076.634" y="185.5999999999999" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">QUEUE</text>
+  <line x1="970.234" y1="202.5999999999999" x2="1183.034" y2="202.5999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสคิว</title>
+  <rect x="976.234" y="206.5999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="213.5999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="1006.544" y="213.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="213.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>คิววัสดุคงทน → DURABLE_MATERIAL.id</title>
+  <rect x="976.234" y="228.5999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="235.5999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="235.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="235.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">durable_material_id</tspan></text>
+  </g>
+  <g><title>คิวครุภัณฑ์ → EQUIPMENT.id</title>
+  <rect x="976.234" y="250.5999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="257.5999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="257.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="257.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">equipment_id</tspan></text>
+  </g>
+  <g><title>ผู้จองคิว → USER.id</title>
+  <rect x="976.234" y="272.5999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="279.5999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="279.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="279.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">user_id</tspan></text>
+  </g>
+  <g><title>WAITING / NOTIFIED / EXPIRED / CANCELLED</title>
+  <text x="978.234" y="301.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="301.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+  </g>
+  <g><title>เวลาที่เข้าคิว</title>
+  <text x="978.234" y="323.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1175.034" y="323.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">joined_at</tspan></text>
+  </g>
+  <g><title>เวลาที่แจ้งเตือนถึงคิว</title>
+  <text x="978.234" y="345.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1175.034" y="345.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">notified_at</tspan></text>
+  </g>
+  <g><title>เวลาหมดอายุคิว</title>
+  <text x="978.234" y="367.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1175.034" y="367.5999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">expired_at</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="SUGGESTION" data-label="SUGGESTION">
+  <rect x="511.156" y="1975.1666666666665" width="160" height="166" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="511.156" y="1975.1666666666665" width="160" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="591.156" y="1992.1666666666665" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">SUGGESTION</text>
+  <line x1="511.156" y1="2009.1666666666665" x2="671.156" y2="2009.1666666666665" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสข้อเสนอแนะ</title>
+  <rect x="517.156" y="2013.1666666666665" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="528.3109999999999" y="2020.1666666666665" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="547.4659999999999" y="2020.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="663.156" y="2020.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ผู้เสนอแนะ → USER.id</title>
+  <rect x="517.156" y="2035.1666666666665" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="528.3109999999999" y="2042.1666666666665" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="547.4659999999999" y="2042.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="663.156" y="2042.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">user_id</tspan></text>
+  </g>
+  <g><title>ชื่อสิ่งของที่เสนอ</title>
+  <text x="519.156" y="2064.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="663.156" y="2064.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+  </g>
+  <g><title>รายละเอียด/เหตุผล</title>
+  <text x="519.156" y="2086.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="663.156" y="2086.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">detail</tspan></text>
+  </g>
+  <g><title>SUBMITTED / ACKNOWLEDGED / PURCHASE_PLAN</title>
+  <text x="519.156" y="2108.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="663.156" y="2108.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+  </g>
+  <g><title>วันที่เสนอแนะ</title>
+  <text x="519.156" y="2130.1666666666665" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="663.156" y="2130.1666666666665" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">created_at</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="PURCHASE_PLAN" data-label="PURCHASE_PLAN">
+  <rect x="970.234" y="1947.4999999999998" width="173.2" height="166" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="970.234" y="1947.4999999999998" width="173.2" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1056.834" y="1964.4999999999998" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">PURCHASE_PLAN</text>
+  <line x1="970.234" y1="1981.4999999999998" x2="1143.434" y2="1981.4999999999998" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสแผนจัดซื้อ</title>
+  <rect x="976.234" y="1985.4999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="1992.4999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="1006.544" y="1992.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1135.434" y="1992.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ข้อเสนอแนะ → SUGGESTION.id</title>
+  <rect x="976.234" y="2007.4999999999998" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="2014.4999999999998" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="2014.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1135.434" y="2014.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">suggestion_id</tspan></text>
+  </g>
+  <g><title>ชื่อสิ่งของที่จะจัดซื้อ</title>
+  <text x="978.234" y="2036.4999999999998" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1135.434" y="2036.4999999999998" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+  </g>
+  <g><title>รายละเอียดการจัดซื้อ</title>
+  <text x="978.234" y="2058.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1135.434" y="2058.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">detail</tspan></text>
+  </g>
+  <g><title>ผู้บันทึก → USER.id</title>
+  <rect x="976.234" y="2073.5" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="2080.5" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="2080.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1135.434" y="2080.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">created_by</tspan></text>
+  </g>
+  <g><title>วันที่บันทึก</title>
+  <text x="978.234" y="2102.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1135.434" y="2102.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">created_at</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="REVIEW" data-label="REVIEW">
+  <rect x="1478.4160000000002" y="1038.8666666666663" width="212.79999999999998" height="232" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1478.4160000000002" y="1038.8666666666663" width="212.79999999999998" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1584.8160000000003" y="1055.8666666666663" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">REVIEW</text>
+  <line x1="1478.4160000000002" y1="1072.8666666666663" x2="1691.2160000000001" y2="1072.8666666666663" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสรีวิว</title>
+  <rect x="1484.4160000000002" y="1076.8666666666663" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1083.8666666666663" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="1514.726" y="1083.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1683.2160000000001" y="1083.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>รายการที่ยืม → BORROW_ITEM.id</title>
+  <rect x="1484.4160000000002" y="1098.8666666666663" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1105.8666666666663" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1514.726" y="1105.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1683.2160000000001" y="1105.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">borrow_item_id</tspan></text>
+  </g>
+  <g><title>ผู้รีวิว → USER.id</title>
+  <rect x="1484.4160000000002" y="1120.8666666666663" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1127.8666666666663" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1514.726" y="1127.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1683.2160000000001" y="1127.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">user_id</tspan></text>
+  </g>
+  <g><title>วัสดุสิ้นเปลือง → MATERIAL.id</title>
+  <rect x="1484.4160000000002" y="1142.8666666666663" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1149.8666666666663" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1514.726" y="1149.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1683.2160000000001" y="1149.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">material_id</tspan></text>
+  </g>
+  <g><title>วัสดุคงทน → DURABLE_MATERIAL.id</title>
+  <rect x="1484.4160000000002" y="1164.8666666666663" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1171.8666666666663" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1514.726" y="1171.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1683.2160000000001" y="1171.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">durable_material_id</tspan></text>
+  </g>
+  <g><title>ครุภัณฑ์ → EQUIPMENT.id</title>
+  <rect x="1484.4160000000002" y="1186.8666666666663" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="1495.5710000000001" y="1193.8666666666663" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1514.726" y="1193.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1683.2160000000001" y="1193.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">equipment_id</tspan></text>
+  </g>
+  <g><title>คะแนนดาว (1-5)</title>
+  <text x="1486.4160000000002" y="1215.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1683.2160000000001" y="1215.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">rating</tspan></text>
+  </g>
+  <g><title>ความคิดเห็นรีวิว</title>
+  <text x="1486.4160000000002" y="1237.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1683.2160000000001" y="1237.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">comment</tspan></text>
+  </g>
+  <g><title>วันที่รีวิว</title>
+  <text x="1486.4160000000002" y="1259.8666666666663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1683.2160000000001" y="1259.8666666666663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">created_at</tspan></text>
+  </g>
+</g>
+<g class="entity" data-id="DAMAGE_REPORT" data-label="DAMAGE_REPORT">
+  <rect x="970.234" y="511.89999999999986" width="212.79999999999998" height="254" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="970.234" y="511.89999999999986" width="212.79999999999998" height="34" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1076.634" y="528.8999999999999" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">DAMAGE_REPORT</text>
+  <line x1="970.234" y1="545.8999999999999" x2="1183.034" y2="545.8999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <g><title>รหัสใบแจ้งชำรุด</title>
+  <rect x="976.234" y="549.8999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="556.8999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+  <text x="1006.544" y="556.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="556.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+  </g>
+  <g><title>ผู้แจ้ง → USER.id</title>
+  <rect x="976.234" y="571.8999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="578.8999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="578.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="578.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">user_id</tspan></text>
+  </g>
+  <g><title>ครุภัณฑ์ → EQUIPMENT.id</title>
+  <rect x="976.234" y="593.8999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="600.8999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="600.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="600.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">equipment_id</tspan></text>
+  </g>
+  <g><title>วัสดุคงทน → DURABLE_MATERIAL.id</title>
+  <rect x="976.234" y="615.8999999999999" width="22.31" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+  <text x="987.389" y="622.8999999999999" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+  <text x="1006.544" y="622.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="1175.034" y="622.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">durable_material_id</tspan></text>
+  </g>
+  <g><title>ชื่อสิ่งของที่ชำรุด</title>
+  <text x="978.234" y="644.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="644.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">item_name</tspan></text>
+  </g>
+  <g><title>สถานที่พบความชำรุด</title>
+  <text x="978.234" y="666.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="666.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">location</tspan></text>
+  </g>
+  <g><title>อาการชำรุด</title>
+  <text x="978.234" y="688.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="688.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">symptom</tspan></text>
+  </g>
+  <g><title>รูปถ่ายความเสียหาย</title>
+  <text x="978.234" y="710.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="710.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">photo</tspan></text>
+  </g>
+  <g><title>PENDING / IN_PROGRESS / RESOLVED</title>
+  <text x="978.234" y="732.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">string</tspan></text>
+  <text x="1175.034" y="732.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+  </g>
+  <g><title>วันที่แจ้งชำรุด</title>
+  <text x="978.234" y="754.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">datetime</tspan></text>
+  <text x="1175.034" y="754.8999999999999" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">created_at</tspan></text>
+  </g>
+</g>
+<line x1="93.93333333333334" y1="1390.1999999999998" x2="105.93333333333334" y2="1390.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="93.93333333333334" y1="1386.1999999999998" x2="105.93333333333334" y2="1386.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="99.93333333333334" cy="1382.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="152.86666666666667" y1="1390.1999999999998" x2="159.86666666666667" y2="1378.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="159.86666666666667" y1="1390.1999999999998" x2="159.86666666666667" y2="1378.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="166.86666666666667" y1="1390.1999999999998" x2="159.86666666666667" y2="1378.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="159.86666666666667" cy="1374.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="223.79999999999998" y1="1537.1999999999998" x2="223.79999999999998" y2="1549.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="227.79999999999998" y1="1537.1999999999998" x2="227.79999999999998" y2="1549.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="498.35600000000005" y1="1550.1999999999998" x2="486.35600000000005" y2="1543.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="498.35600000000005" y1="1543.1999999999998" x2="486.35600000000005" y2="1543.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="498.35600000000005" y1="1536.1999999999998" x2="486.35600000000005" y2="1543.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="482.35600000000005" cy="1543.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="686.1560000000001" y1="1487.533333333333" x2="686.1560000000001" y2="1499.533333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="690.1560000000001" y1="1487.533333333333" x2="690.1560000000001" y2="1499.533333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1122.7999999999997" x2="954.234" y2="1115.7999999999997" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1115.7999999999997" x2="954.234" y2="1115.7999999999997" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1108.7999999999997" x2="954.234" y2="1115.7999999999997" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="1134.1999999999998" x2="688.356" y2="1146.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="1134.1999999999998" x2="692.356" y2="1146.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="1140.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1076.3999999999999" x2="954.234" y2="1069.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1069.3999999999999" x2="954.234" y2="1069.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1062.3999999999999" x2="954.234" y2="1069.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="1069.3999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="893.8999999999999" x2="688.356" y2="905.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="893.8999999999999" x2="692.356" y2="905.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="899.8999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1029.9999999999998" x2="954.234" y2="1022.9999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1022.9999999999998" x2="954.234" y2="1022.9999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1015.9999999999998" x2="954.234" y2="1022.9999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="1022.9999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="413.9999999999999" x2="688.356" y2="425.9999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="413.9999999999999" x2="692.356" y2="425.9999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="419.99999999999994" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="983.5999999999998" x2="954.234" y2="976.5999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="976.5999999999998" x2="954.234" y2="976.5999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="969.5999999999998" x2="954.234" y2="976.5999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="976.5999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="686.1560000000001" y1="1586.8666666666666" x2="686.1560000000001" y2="1598.8666666666666" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="690.1560000000001" y1="1586.8666666666666" x2="690.1560000000001" y2="1598.8666666666666" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="970.634" y1="1700.4999999999998" x2="958.634" y2="1693.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="970.634" y1="1693.4999999999998" x2="958.634" y2="1693.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="970.634" y1="1686.4999999999998" x2="958.634" y2="1693.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="954.634" cy="1693.4999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="223.79999999999998" y1="1574.4499999999998" x2="223.79999999999998" y2="1586.4499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="227.79999999999998" y1="1574.4499999999998" x2="227.79999999999998" y2="1586.4499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="231.79999999999998" cy="1580.4499999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="970.634" y1="1792.4999999999998" x2="958.634" y2="1785.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="970.634" y1="1785.4999999999998" x2="958.634" y2="1785.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="970.634" y1="1778.4999999999998" x2="958.634" y2="1785.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="954.634" cy="1785.4999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1178.234" y1="1733.4999999999998" x2="1178.234" y2="1745.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1182.234" y1="1733.4999999999998" x2="1182.234" y2="1745.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1746.4999999999998" x2="1462.4160000000002" y2="1739.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1739.4999999999998" x2="1462.4160000000002" y2="1739.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1732.4999999999998" x2="1462.4160000000002" y2="1739.4999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1187.0339999999999" y1="1078.8666666666666" x2="1187.0340000000003" y2="1090.8666666666666" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1191.0339999999999" y1="1078.8666666666666" x2="1191.0340000000003" y2="1090.8666666666666" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1683.8333333333333" x2="1462.4160000000002" y2="1676.8333333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1676.8333333333333" x2="1462.4160000000002" y2="1676.8333333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1669.8333333333333" x2="1462.4160000000002" y2="1676.8333333333333" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="1458.4160000000002" cy="1676.8333333333333" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="701.8999999999999" x2="688.356" y2="713.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="701.8999999999999" x2="692.356" y2="713.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="707.8999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="333.0999999999999" x2="954.234" y2="326.0999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="326.0999999999999" x2="954.234" y2="326.0999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="319.0999999999999" x2="954.234" y2="326.0999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="326.0999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="294.7999999999999" x2="688.356" y2="306.7999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="294.7999999999999" x2="692.356" y2="306.7999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="300.79999999999995" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="280.5999999999999" x2="954.234" y2="273.5999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="273.5999999999999" x2="954.234" y2="273.5999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="266.5999999999999" x2="954.234" y2="273.5999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="273.5999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="223.79999999999998" y1="1462.6999999999998" x2="223.79999999999998" y2="1474.6999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="227.79999999999998" y1="1462.6999999999998" x2="227.79999999999998" y2="1474.6999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="228.0999999999999" x2="954.234" y2="221.0999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="221.0999999999999" x2="954.234" y2="221.0999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="214.0999999999999" x2="954.234" y2="221.0999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="221.0999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="223.79999999999998" y1="1648.9499999999998" x2="223.79999999999998" y2="1660.9499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="227.79999999999998" y1="1648.9499999999998" x2="227.79999999999998" y2="1660.9499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="507.156" y1="2065.1666666666665" x2="495.156" y2="2058.1666666666665" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="507.156" y1="2058.1666666666665" x2="495.156" y2="2058.1666666666665" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="507.156" y1="2051.1666666666665" x2="495.156" y2="2058.1666666666665" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="491.156" cy="2058.1666666666665" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="675.156" y1="2052.1666666666665" x2="675.156" y2="2064.1666666666665" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="679.156" y1="2052.1666666666665" x2="679.156" y2="2064.1666666666665" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="683.156" cy="2058.1666666666665" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="2064.1666666666665" x2="966.234" y2="2052.1666666666665" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="962.234" y1="2064.1666666666665" x2="962.234" y2="2052.1666666666665" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="958.234" cy="2058.1666666666665" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="223.79999999999998" y1="1611.6999999999998" x2="223.79999999999998" y2="1623.6999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="227.79999999999998" y1="1611.6999999999998" x2="227.79999999999998" y2="1623.6999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="2009.833333333333" x2="954.234" y2="2002.833333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="2002.833333333333" x2="954.234" y2="2002.833333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="1995.833333333333" x2="954.234" y2="2002.833333333333" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="2002.833333333333" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1187.034" y1="1001.5333333333332" x2="1187.034" y2="1013.5333333333332" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1191.034" y1="1001.5333333333332" x2="1191.034" y2="1013.5333333333332" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1199.533333333333" x2="1474.4160000000002" y2="1187.533333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1470.4160000000002" y1="1199.533333333333" x2="1470.4160000000002" y2="1187.533333333333" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="1466.4160000000002" cy="1193.533333333333" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="223.79999999999998" y1="1425.4499999999998" x2="223.79999999999998" y2="1437.4499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="227.79999999999998" y1="1425.4499999999998" x2="227.79999999999998" y2="1437.4499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1084.533333333333" x2="1462.4160000000002" y2="1077.533333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1077.533333333333" x2="1462.4160000000002" y2="1077.533333333333" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1070.533333333333" x2="1462.4160000000002" y2="1077.533333333333" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="1458.4160000000002" cy="1077.533333333333" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="1226.1999999999998" x2="688.356" y2="1238.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="1226.1999999999998" x2="692.356" y2="1238.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="1232.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1239.1999999999998" x2="1462.4160000000002" y2="1232.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1232.1999999999998" x2="1462.4160000000002" y2="1232.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1225.1999999999998" x2="1462.4160000000002" y2="1232.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="1458.4160000000002" cy="1232.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="829.8999999999999" x2="688.356" y2="841.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="829.8999999999999" x2="692.356" y2="841.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="835.8999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1161.8666666666666" x2="1462.4160000000002" y2="1154.8666666666666" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1154.8666666666666" x2="1462.4160000000002" y2="1154.8666666666666" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1147.8666666666666" x2="1462.4160000000002" y2="1154.8666666666666" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="1458.4160000000002" cy="1154.8666666666666" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="235.19999999999987" x2="688.356" y2="247.19999999999987" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="235.19999999999985" x2="692.356" y2="247.19999999999985" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="241.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1123.1999999999998" x2="1462.4160000000002" y2="1116.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1116.1999999999998" x2="1462.4160000000002" y2="1116.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="1474.4160000000002" y1="1109.1999999999998" x2="1462.4160000000002" y2="1116.1999999999998" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="1458.4160000000002" cy="1116.1999999999998" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="223.79999999999998" y1="1499.9499999999998" x2="223.79999999999998" y2="1511.9499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="227.79999999999998" y1="1499.9499999999998" x2="227.79999999999998" y2="1511.9499999999998" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="645.8999999999999" x2="954.234" y2="638.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="638.8999999999999" x2="954.234" y2="638.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="631.8999999999999" x2="954.234" y2="638.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="638.8999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="354.3999999999999" x2="688.356" y2="366.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="354.3999999999999" x2="692.356" y2="366.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="360.3999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="582.3999999999999" x2="954.234" y2="575.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="575.3999999999999" x2="954.234" y2="575.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="568.3999999999999" x2="954.234" y2="575.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="575.3999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="688.356" y1="765.8999999999999" x2="688.356" y2="777.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="692.356" y1="765.8999999999999" x2="692.356" y2="777.8999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="696.356" cy="771.8999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="709.3999999999999" x2="954.234" y2="702.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="702.3999999999999" x2="954.234" y2="702.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<line x1="966.234" y1="695.3999999999999" x2="954.234" y2="702.3999999999999" stroke="var(--_line)" stroke-width="1.25" />
+<circle cx="950.234" cy="702.3999999999999" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1.25" />
+<rect x="63.00199999999998" y="1374.0499999999997" width="133.79600000000005" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="129.9" y="1384.1999999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">assigned_by / blocked_by</text>
+<rect x="311.99999999999994" y="1533.0499999999997" width="98.15600000000003" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="361.078" y="1543.1999999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">submits / approves</text>
+<rect x="679.335" y="1172.6776666666663" width="50.04200000000001" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="704.356" y="1182.8276666666663" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">contains</text>
+<rect x="756.776" y="1059.2499999999998" width="70.23800000000001" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="791.895" y="1069.3999999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">borrowed_in</text>
+<rect x="730.6260000000001" y="1012.8499999999998" width="70.23800000000001" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="765.7450000000001" y="1022.9999999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">borrowed_in</text>
+<rect x="679.237" y="801.0889999999998" width="70.23800000000001" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="714.356" y="811.2389999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">borrowed_in</text>
+<rect x="844.1866666666666" y="1582.7166666666665" width="69.05000000000001" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="878.7116666666666" y="1592.8666666666666" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">has_returns</text>
+<rect x="469.67100000000005" y="1775.3499999999997" width="50.04200000000001" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="494.69200000000006" y="1785.4999999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">inspects</text>
+<rect x="1268.634" y="1729.3499999999997" width="115.38200000000003" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1326.325" y="1739.4999999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">contains_return_items</text>
+<rect x="1157.3210000000001" y="1508.3909999999996" width="71.42600000000002" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1193.034" y="1518.5409999999997" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">returned_via</text>
+<rect x="662.207" y="373.9109999999999" width="64.298" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="694.356" y="384.06099999999986" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">queued_for</text>
+<rect x="781.5459999999999" y="263.44999999999993" width="64.298" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="813.6949999999999" y="273.5999999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">queued_for</text>
+<rect x="223.689" y="345.73299999999983" width="32.221999999999994" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="239.79999999999998" y="355.8829999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">joins</text>
+<rect x="201.80899999999997" y="1982.0863333333332" width="55.982" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="229.79999999999998" y="1992.2363333333333" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">proposes</text>
+<rect x="786.7639999999999" y="2048.0166666666664" width="67.86200000000001" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="820.6949999999999" y="2058.1666666666665" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">promoted_to</text>
+<rect x="498.20800000000014" y="1870.7166666666662" width="52.418000000000006" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="524.4170000000001" y="1880.8666666666663" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">manages</text>
+<rect x="1364.4850000000001" y="1022.6923333333331" width="67.862" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1398.4160000000002" y="1032.842333333333" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">reviewed_in</text>
+<rect x="653.0686666666664" y="29.85" width="38.162" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="672.1496666666665" y="40" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">writes</text>
+<rect x="1045.673" y="1222.0499999999997" width="71.42599999999999" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1081.386" y="1232.1999999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">has_reviews</text>
+<rect x="1205.1563333333334" y="825.7499999999999" width="71.42599999999999" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1240.8693333333333" y="835.8999999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">has_reviews</text>
+<rect x="1382.7030000000002" y="164.61999999999986" width="71.42599999999999" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1418.4160000000002" y="174.76999999999987" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">has_reviews</text>
+<rect x="227.15499999999997" y="627.7579999999998" width="45.29" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="249.79999999999998" y="637.9079999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">reports</text>
+<rect x="847.2950000000001" y="384.81099999999986" width="105.878" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="900.234" y="394.96099999999984" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">damaged_equipment</text>
+<rect x="744.9520000000001" y="692.2499999999999" width="95.18600000000002" height="20.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="792.5450000000001" y="702.3999999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">damaged_durable</text>
+</svg>

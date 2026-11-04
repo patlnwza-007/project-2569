@@ -54,7 +54,7 @@
     <div id="p_request_list_alert" class="hidden mb-5"></div>
 
     <!-- Summary Cards -->
-    <div id="p_request_list_summary" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6"></div>
+    <div id="p_request_list_summary" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-6"></div>
 
     <!-- Active Requests Section -->
     <div id="p_request_list_active_section" class="mb-6 hidden">
@@ -65,20 +65,7 @@
       <div id="p_request_list_active_rows" class="space-y-3"></div>
     </div>
 
-    <!-- History Section -->
-    <div id="p_request_list_history_section" class="hidden">
-      <button onclick="p_request_list_toggleHistory()" id="p_request_list_history_toggle"
-        class="w-full flex items-center justify-between text-sm font-bold text-gray-500 hover:text-gray-800 mb-3 transition-colors">
-        <span class="flex items-center gap-2">
-          <span>📜</span> ประวัติการยืม-คืน
-          <span id="p_request_list_history_count" class="bg-gray-200 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full">0</span>
-        </span>
-        <span id="p_request_list_history_chevron" class="text-gray-400">▼</span>
-      </button>
-      <div id="p_request_list_history_rows" class="space-y-2 hidden"></div>
-    </div>
-
-    <!-- All Requests (when no stu) -->
+    <!-- All Requests (when no active requests) -->
     <div id="p_request_list_rows" class="space-y-3"></div>
   </div>
 </div>
@@ -93,16 +80,6 @@ function p_request_list_init() {
   p_request_list_render();
 }
 
-let p_request_list_history_open = false;
-
-function p_request_list_toggleHistory() {
-  p_request_list_history_open = !p_request_list_history_open;
-  const rows = document.getElementById("p_request_list_history_rows");
-  const chevron = document.getElementById("p_request_list_history_chevron");
-  if (rows) rows.classList.toggle("hidden", !p_request_list_history_open);
-  if (chevron) chevron.textContent = p_request_list_history_open ? "▲" : "▼";
-}
-
 function p_request_list_render() {
   const stu = currentStudent() || (db("students") ? db("students")[0] : null);
   const host = document.getElementById("p_request_list_rows");
@@ -110,9 +87,6 @@ function p_request_list_render() {
   const summaryEl = document.getElementById("p_request_list_summary");
   const activeSection = document.getElementById("p_request_list_active_section");
   const activeRows = document.getElementById("p_request_list_active_rows");
-  const histSection = document.getElementById("p_request_list_history_section");
-  const histRows = document.getElementById("p_request_list_history_rows");
-  const histCount = document.getElementById("p_request_list_history_count");
 
   if (!stu) return;
   if (host) host.innerHTML = "";
@@ -121,11 +95,8 @@ function p_request_list_render() {
     .filter(r => r.student_id === stu.id)
     .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
 
-  const ACTIVE_STATUSES = ["PENDING", "APPROVED_WAIT_PICKUP", "BORROWING", "RETURN_PENDING"];
-  const DONE_STATUSES   = ["RETURNED", "ISSUED", "REJECTED", "CANCELLED", "EXPIRED"];
-
+  const ACTIVE_STATUSES = ["PENDING", "BORROWING", "RETURN_PENDING"];
   const activeRequests = requests.filter(r => ACTIVE_STATUSES.includes(r.status));
-  const doneRequests   = requests.filter(r => DONE_STATUSES.includes(r.status));
 
   // ─── Alert Banner ───────────────────────────────────────────────────────
   const urgentAlerts = [];
@@ -140,8 +111,11 @@ function p_request_list_render() {
   });
 
   activeRequests.forEach(r => {
-    if (r.status === "APPROVED_WAIT_PICKUP") {
-      urgentAlerts.push(`📦 คำขอ <strong>#${r.id}</strong> ได้รับการอนุมัติแล้ว — กรุณายืนยันรับของ ภายใน 2 วัน`);
+    if (r.status === "PENDING") {
+      urgentAlerts.push(`🟡 คำขอ <strong>#${r.id}</strong> — กรุณานำของที่หยิบมาจากตู้ไปให้เจ้าหน้าที่ตรวจเช็คที่เคาน์เตอร์`);
+    } else if (r.status === "RETURN_PENDING") {
+      const pCount = (r.items || []).filter(it => it.pending_return).length;
+      urgentAlerts.push(`🟡 คำขอ <strong>#${r.id}</strong> — มีการแจ้งส่งคืนแล้ว (${pCount} ชิ้น) กรุณานำของมาแสดงที่เคาน์เตอร์ EN6-101 เพื่อตรวจรับคืน`);
     } else if (r.status === "BORROWING" && r.due_date) {
       const dl = daysLeft(r.due_date);
       if (dl < 0) urgentAlerts.push(`🔴 คำขอ <strong>#${r.id}</strong> เกินกำหนดคืน ${Math.abs(dl)} วันแล้ว — กรุณานำส่งของคืนโดยด่วน`);
@@ -170,27 +144,23 @@ function p_request_list_render() {
   // ─── Summary Cards ───────────────────────────────────────────────────────
   const counts = {
     PENDING:             requests.filter(r => r.status === "PENDING").length,
-    APPROVED_WAIT_PICKUP:requests.filter(r => r.status === "APPROVED_WAIT_PICKUP").length,
-    BORROWING:           requests.filter(r => r.status === "BORROWING").length,
+    BORROWING:           requests.filter(r => r.status === "BORROWING" || r.status === "RETURN_PENDING").length,
     OVERDUE:             requests.filter(r => r.status === "BORROWING" && daysLeft(r.due_date) < 0).length,
-    RETURN_PENDING:      requests.filter(r => r.status === "RETURN_PENDING").length,
     RETURNED:            requests.filter(r => r.status === "RETURNED" || r.status === "ISSUED").length,
     queue:               db("queue").filter(q => q.student_id === stu.id).length,
   };
 
   const summaryCards = [
-    { label: "รออนุมัติ",      count: counts.PENDING,              icon: "🕐", bg: "bg-amber-50",   border: "border-amber-200", text: "text-amber-700",  nav: null },
-    { label: "รอรับของ",       count: counts.APPROVED_WAIT_PICKUP, icon: "📦", bg: "bg-blue-50",    border: "border-blue-200",  text: "text-blue-700",   nav: null },
-    { label: "กำลังยืม",      count: counts.BORROWING,            icon: "🔄", bg: "bg-indigo-50",  border: "border-indigo-200",text: "text-indigo-700", nav: null },
-    { label: "เกินกำหนดคืน",   count: counts.OVERDUE,              icon: "🚨", bg: "bg-red-50",     border: "border-red-200",   text: "text-red-700",    nav: "notify-return" },
-    { label: "รอยืนยันคืน",   count: counts.RETURN_PENDING,       icon: "🔁", bg: "bg-orange-50",  border: "border-orange-200",text: "text-orange-700", nav: "notify-return" },
-    { label: "คืน/เบิกสำเร็จ",count: counts.RETURNED,             icon: "✅", bg: "bg-emerald-50", border: "border-emerald-200",text:"text-emerald-700",nav: "history" },
-    { label: "คิวที่จอง",     count: counts.queue,                icon: "⏳", bg: "bg-purple-50",  border: "border-purple-200",text: "text-purple-700", nav: "queue-list" },
+    { label: "รอตรวจของ",    count: counts.PENDING,        icon: "📋", bg: "bg-amber-50",   border: "border-amber-200", text: "text-amber-700",  nav: null },
+    { label: "กำลังยืม",      count: counts.BORROWING,      icon: "🔄", bg: "bg-indigo-50",  border: "border-indigo-200",text: "text-indigo-700", nav: null },
+    { label: "เกินกำหนดคืน",   count: counts.OVERDUE,        icon: "🚨", bg: "bg-red-50",     border: "border-red-200",   text: "text-red-700",    nav: null },
+    { label: "คืน/เบิกสำเร็จ",count: counts.RETURNED,       icon: "✅", bg: "bg-emerald-50", border: "border-emerald-200",text: "text-emerald-700",nav: "history" },
+    { label: "คิวที่จอง",     count: counts.queue,          icon: "⏳", bg: "bg-purple-50",  border: "border-purple-200",text: "text-purple-700", nav: "queue-list" },
   ];
 
   if (summaryEl) {
     summaryEl.innerHTML = summaryCards.map(c => `
-      <div class="group ${c.bg} ${c.border} border rounded-2xl p-3.5 cursor-pointer hover:shadow-md transition-all ${c.nav ? `onclick="navigate('${c.nav}')"` : ""}" ${c.nav ? `onclick="navigate('${c.nav}')"` : ""}>
+      <div class="group ${c.bg} ${c.border} border rounded-2xl p-3.5 cursor-pointer hover:shadow-md transition-all" ${c.nav ? `onclick="navigate('${c.nav}')"` : ""}>
         <div class="flex items-center justify-between mb-1">
           <span class="text-xl">${c.icon}</span>
           <span class="text-2xl font-extrabold ${c.text} font-mono leading-none">${c.count}</span>
@@ -199,50 +169,29 @@ function p_request_list_render() {
       </div>`).join("");
   }
 
-  // ─── Empty State (no requests at all) ────────────────────────────────────
-  if (requests.length === 0) {
+  // ─── Active Requests ──────────────────────────────────────────────────────
+  if (activeRequests.length === 0) {
     if (activeSection) activeSection.classList.add("hidden");
-    if (histSection) histSection.classList.add("hidden");
-    if (host) host.innerHTML = p_request_list_emptyState("ยังไม่มีรายการยืม", "กดปุ่ม '+ ยืมสิ่งของใหม่' เพื่อเริ่มยืมได้เลย");
+    if (host) host.innerHTML = p_request_list_emptyState("ไม่มีรายการที่กำลังดำเนินการ", "กดปุ่ม '+ ยืมสิ่งของใหม่' เพื่อเริ่มยืม หรือดูรายการเก่าได้ที่เมนู 'ประวัติการยืม'");
     return;
   }
 
-
-
-  // ─── Active Requests ──────────────────────────────────────────────────────
   if (activeSection && activeRows) {
-    if (activeRequests.length > 0) {
-      activeSection.classList.remove("hidden");
-      activeRows.innerHTML = activeRequests.map(r => p_request_list_renderCard(r, false)).join("");
-    } else {
-      activeSection.classList.add("hidden");
-    }
-  }
-
-  // ─── History Requests ─────────────────────────────────────────────────────
-  if (histSection && histRows && histCount) {
-    if (doneRequests.length > 0) {
-      histSection.classList.remove("hidden");
-      histCount.textContent = doneRequests.length;
-      histRows.innerHTML = doneRequests.map(r => p_request_list_renderCard(r, true)).join("");
-    } else {
-      histSection.classList.add("hidden");
-    }
+    activeSection.classList.remove("hidden");
+    activeRows.innerHTML = activeRequests.map(r => p_request_list_renderCard(r, false)).join("");
   }
 }
 
 function p_request_list_stepProgress(status) {
-  // Steps: PENDING → APPROVED_WAIT_PICKUP → BORROWING → RETURN_PENDING → RETURNED
+  // Steps: PENDING (รอตรวจของ) → BORROWING (กำลังยืม) → RETURN_PENDING (รอตรวจรับคืน) → RETURNED (คืนสำเร็จ)
   const steps = [
-    { key: "PENDING",              label: "รออนุมัติ" },
-    { key: "APPROVED_WAIT_PICKUP", label: "รับของ" },
-    { key: "BORROWING",            label: "กำลังยืม" },
-    { key: "RETURN_PENDING",       label: "แจ้งคืน" },
-    { key: "RETURNED",             label: "สำเร็จ" },
+    { key: "PENDING",        label: "รอตรวจของที่เคาน์เตอร์" },
+    { key: "BORROWING",      label: "กำลังยืม" },
+    { key: "RETURN_PENDING", label: "รอตรวจรับคืน" },
+    { key: "RETURNED",       label: "สำเร็จ" },
   ];
 
-  // Material flow: PENDING → APPROVED_WAIT_PICKUP → ISSUED
-  const materialFlow = ["PENDING", "APPROVED_WAIT_PICKUP", "ISSUED"];
+  // Material flow: PENDING → ISSUED
   const isMaterial = status === "ISSUED";
 
   if (["REJECTED", "CANCELLED", "EXPIRED"].includes(status)) {
@@ -253,21 +202,22 @@ function p_request_list_stepProgress(status) {
 
   if (isMaterial) {
     return `<div class="flex items-center gap-1 text-xs mt-1 flex-wrap">
-      ${["ส่งคำขอ","รออนุมัติ","เบิกสำเร็จ"].map((label, idx) => {
-        const active = idx <= 2;
-        return `<span class="px-2 py-0.5 rounded-full font-semibold ${active ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400"}">${label}</span>${idx < 2 ? '<span class="text-gray-300">›</span>' : ""}`;
+      ${["รอตรวจของ","เบิกสำเร็จ"].map((label, idx) => {
+        const active = idx <= 1;
+        return `<span class="px-2 py-0.5 rounded-full font-semibold ${active ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400"}">${label}</span>${idx < 1 ? '<span class="text-gray-300">›</span>' : ""}`;
       }).join("")}
     </div>`;
   }
 
   const orderedSteps = steps;
-  const activeIdx = orderedSteps.findIndex(s => s.key === status);
+  let activeIdx = orderedSteps.findIndex(s => s.key === status);
+  if (status === "RETURNED") activeIdx = 3;
 
   return `<div class="flex items-center gap-1 mt-2 flex-wrap">
     ${orderedSteps.map((s, idx) => {
       let cls;
       if (idx < activeIdx) cls = "bg-emerald-500 text-white";
-      else if (idx === activeIdx) cls = "bg-blue-600 text-white ring-2 ring-blue-200";
+      else if (idx === activeIdx) cls = s.key === "RETURN_PENDING" ? "bg-amber-500 text-white ring-2 ring-amber-200" : "bg-blue-600 text-white ring-2 ring-blue-200";
       else cls = "bg-gray-100 text-gray-400";
       return `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}">${s.label}</span>${idx < orderedSteps.length - 1 ? '<span class="text-gray-300 text-xs">›</span>' : ""}`;
     }).join("")}
@@ -275,81 +225,258 @@ function p_request_list_stepProgress(status) {
 }
 
 function p_request_list_renderCard(r, isHistory) {
-  const units = db("units");
+  const units = db("units") || [];
   const assignedUnits = units.filter(u => u.current_request_id === r.id);
-  const assetTagsBadge = assignedUnits.length > 0
-    ? `<div class="mt-1 flex flex-wrap gap-1">${assignedUnits.map(u => `<span class="bg-blue-100 text-blue-800 font-mono text-[10px] px-2 py-0.5 rounded font-bold">🏷️ ${u.asset_tag}</span>`).join("")}</div>`
-    : "";
-
-  const itemNames = r.items.map(it => {
-    const i = itemById(it.item_id);
-    return i ? `<span class="inline-flex items-center gap-1">${i.image} <span class="font-medium">${i.name}</span> <span class="text-gray-400 font-mono">×${it.qty}</span></span>` : "";
-  }).filter(Boolean).join("<br>");
-
-  const isEquip = r.items.some(it => itemById(it.item_id)?.type === "equipment");
+  const hasEquip = r.items.some(it => itemById(it.item_id)?.type === "equipment");
+  const hasDurable = r.items.some(it => itemById(it.item_id)?.type === "durable_material");
+  const hasMaterial = r.items.some(it => itemById(it.item_id)?.type === "material");
+  const isPartialReturned = r.items.some(it => it.returned) && r.items.some(it => !it.returned);
+  const categoryBadge = hasEquip && (hasDurable || hasMaterial)
+    ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">ยืมแบบผสม</span>`
+    : hasEquip
+    ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">ครุภัณฑ์</span>`
+    : hasDurable
+    ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200">วัสดุคงทน (ยืม)</span>`
+    : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100">วัสดุเบิกใช้</span>`;
   let actions = "";
   let extraInfo = "";
   let urgentCls = "";
 
   if (r.status === "PENDING") {
-    actions = `<button onclick="p_request_list_cancelRequest(${r.id})" class="text-xs bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg px-3 py-1.5 transition-colors">ยกเลิกคำขอ</button>`;
-  } else if (r.status === "APPROVED_WAIT_PICKUP") {
-    urgentCls = "border-blue-400 ring-2 ring-blue-100";
-    actions = `<a href="javascript:void(0)" onclick="navigate('confirm-pickup', {rid: ${r.id}})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 inline-block font-semibold transition-colors">ยืนยันรับของ →</a>`;
-    extraInfo = `<p class="text-xs text-blue-600 font-medium mt-1.5">📦 กรุณายืนยันรับของภายใน 2 วันหลังอนุมัติ</p>`;
+    urgentCls = "border-amber-300 ring-2 ring-amber-100";
+    actions = `<button onclick="p_request_list_cancelRequest(${r.id})" class="text-xs bg-white border border-gray-300 hover:bg-red-50 hover:text-red-600 text-gray-700 rounded-xl px-3.5 py-2 font-semibold transition-colors cursor-pointer">ยกเลิกคำขอ</button>`;
+    extraInfo = `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5 font-medium mt-2.5">
+      📍 <strong>ขั้นตอนถัดไป:</strong> นำสิ่งของที่หยิบมาจากตู้ ไปแสดงให้เจ้าหน้าที่ตรวจนับที่เคาน์เตอร์เพื่อเริ่มการยืม
+    </p>`;
+  } else if (r.status === "RETURN_PENDING") {
+    const dl = daysLeft(r.due_date);
+    const isOverdue = dl < 0;
+    const fine = calculateOverdueFine(r);
+    urgentCls = "border-amber-400 ring-2 ring-amber-100";
+    const pendingCount = (r.items || []).filter(it => it.pending_return).length;
+    extraInfo = `
+      <div class="mt-2.5 p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 font-bold flex items-center justify-between gap-2">
+        <span>🟡 <strong>แจ้งส่งคืนแล้ว (${pendingCount} ชิ้น):</strong> กรุณานำของมาแสดงที่เคาน์เตอร์ EN6-101 เพื่อตรวจรับ</span>
+        <span class="text-[11px] text-amber-700 font-medium shrink-0">รอตรวจรับ</span>
+      </div>
+      <p class="text-xs mt-2 font-medium ${isOverdue ? "text-red-600 font-bold" : "text-gray-500"}">
+        ⏰ กำหนดคืน: <strong class="${isOverdue ? 'text-red-600' : 'text-gray-800'}">${r.due_date}</strong>
+      </p>
+      ${fine > 0 ? `<p class="text-xs font-bold text-red-600 mt-1.5 bg-red-50 p-2 rounded-xl border border-red-100">💸 ค่าปรับค้างชำระ: ${fine} บาท (${getOverdueDays(r)} วัน × ${getFineRatePerDay(r)} บาท/วัน ตามอัตราค่าปรับรายชิ้นที่ยังไม่คืน)</p>` : ""}`;
+    actions = `<button onclick="navigate('notify-return', {rid: ${r.id}})" class="text-xs bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-bold rounded-xl px-4 py-2 shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"><span>📋</span> ดู/แก้ไขรายการส่งคืน</button>`;
   } else if (r.status === "BORROWING") {
     const dl = daysLeft(r.due_date);
     const isOverdue = dl < 0;
     const isNear = dl >= 0 && dl <= 2;
     const fine = calculateOverdueFine(r);
-    urgentCls = isOverdue ? "border-red-400 ring-2 ring-red-100" : isNear ? "border-amber-400 ring-2 ring-amber-100" : "";
-    extraInfo = `<p class="text-xs mt-1.5 font-medium ${isOverdue ? "text-red-600" : isNear ? "text-amber-600" : "text-gray-500"}">
-      ⏰ กำหนดคืน: ${r.due_date}
-      ${isOverdue ? `<span class="ml-1 bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px]">เกินกำหนด ${Math.abs(dl)} วัน</span>` :
-        isNear ? `<span class="ml-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px]">อีก ${dl} วัน</span>` :
-        `<span class="ml-1 text-gray-400">(อีก ${dl} วัน)</span>`}
-    </p>
-    ${fine > 0 ? `<p class="text-xs font-bold text-red-600 mt-1 bg-red-50 p-1.5 rounded-lg border border-red-100">💸 ค่าปรับค้างชำระ: ${fine} บาท (${getOverdueDays(r)} วัน × ${getFineRatePerDay()} บาท/วัน)</p>` : ""}`;
-    actions = `<a href="javascript:void(0)" onclick="navigate('notify-return', {rid: ${r.id}})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 inline-block font-semibold transition-colors">แจ้งคืน →</a>`;
-  } else if (r.status === "RETURN_PENDING") {
-    extraInfo = `<p class="text-xs text-amber-600 mt-1.5 font-medium">🔁 รอเจ้าหน้าที่ตรวจสอบและยืนยันการรับคืน</p>`;
+    const returnedItemsCount = (r.items || []).filter(it => it.returned).length;
+    const totalItemsCount = (r.items || []).length;
+    urgentCls = isOverdue ? "border-red-400 ring-2 ring-red-100" : isNear ? "border-amber-400 ring-2 ring-amber-100" : (isPartialReturned ? "border-amber-300" : "");
+    extraInfo = `
+      ${isPartialReturned ? `<div class="mt-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-bold flex items-center gap-1.5"><span>⚠️</span> ทยอยคืนแล้ว ${returnedItemsCount}/${totalItemsCount} รายการ — ยังเหลือสิ่งของที่ยังไม่ส่งคืนอีก ${totalItemsCount - returnedItemsCount} รายการ</div>` : ''}
+      <p class="text-xs mt-2 font-medium ${isOverdue ? "text-red-600 font-bold" : isNear ? "text-amber-600 font-bold" : "text-gray-500"}">
+        ⏰ กำหนดคืน: <strong class="${isOverdue ? 'text-red-600' : 'text-gray-800'}">${r.due_date}</strong>
+        ${isOverdue ? `<span class="ml-1 bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">เกินกำหนด ${Math.abs(dl)} วัน</span>` :
+          isNear ? `<span class="ml-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">อีก ${dl} วัน</span>` :
+          `<span class="ml-1 text-gray-400 font-normal">(อีก ${dl} วัน)</span>`}
+      </p>
+      ${fine > 0 ? `<p class="text-xs font-bold text-red-600 mt-1.5 bg-red-50 p-2 rounded-xl border border-red-100">💸 ค่าปรับค้างชำระ: ${fine} บาท (${getOverdueDays(r)} วัน × ${getFineRatePerDay(r)} บาท/วัน ตามอัตราค่าปรับรายชิ้นที่ยังไม่คืน)</p>` : ""}`;
+    actions = `<button onclick="navigate('notify-return', {rid: ${r.id}})" class="text-xs bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold rounded-xl px-4 py-2 shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"><span>↩️</span> ส่งคืน</button>`;
   } else if (r.status === "REJECTED") {
     extraInfo = `<p class="text-xs text-red-500 mt-1.5">❌ เหตุผล: ${r.reject_reason || "-"}</p>`;
   } else if (r.status === "RETURNED") {
-    const evaluated = db("eval_responses").some(e => e.request_id === r.id);
-    if (!evaluated) {
-      actions = `<a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}})" class="text-xs bg-amber-400 hover:bg-amber-500 text-amber-950 font-semibold rounded-lg px-3 py-2 inline-block transition-colors">⭐ ประเมิน</a>`;
-    }
-    extraInfo = `<p class="text-xs text-emerald-600 mt-1.5 font-medium">✅ คืนสำเร็จ</p>`;
+    actions = "";
+    extraInfo = `<p class="text-xs text-emerald-600 mt-1.5 font-medium">✅ คืนสำเร็จครบทุกชิ้น</p>`;
   } else if (r.status === "ISSUED") {
+    actions = "";
     extraInfo = `<p class="text-xs text-emerald-600 mt-1.5 font-medium">✅ เบิกของสำเร็จ</p>`;
   }
+
+  // Render all items of the request together as a structured item list
+  const itemsListHtml = r.items.map((it, itIdx) => {
+    const i = itemById(it.item_id);
+    if (!i) return "";
+    const isItemEquip = i.type === "equipment";
+    let assignedTag = it.asset_tag;
+    if (!assignedTag && isItemEquip) {
+      const u = assignedUnits.find(u => u.item_id === it.item_id);
+      if (u) assignedTag = u.asset_tag;
+    }
+
+    const isPieceDone = it.returned === true || r.status === "RETURNED" || r.status === "ISSUED";
+    const pieceEval = isPieceEvaluated(r.id, itIdx, assignedTag);
+    const evalData = pieceEval ? getPieceEvaluation(r.id, itIdx, assignedTag) : null;
+
+    let itemStatusBadge = "";
+    if (it.condition === "lost") {
+      itemStatusBadge = `<span class="bg-red-100 text-red-800 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>🔴</span> สูญหาย (${(it.lost_compensation || 0).toLocaleString()} บ. ${it.lost_paid ? 'ชดใช้แล้ว' : 'ค้างชำระ'})</span>`;
+    } else if (it.condition === "damaged") {
+      if (pieceEval) {
+        itemStatusBadge = `
+          <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            <span class="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>⚠️</span> คืนแล้ว (ชำรุด)</span>
+            <span class="bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs">⭐ ${evalData?.rating || 5}★</span>
+          </div>`;
+      } else {
+        itemStatusBadge = `
+          <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            <span class="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>⚠️</span> คืนแล้ว (ชำรุด)</span>
+            <a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}, item_idx: ${itIdx}})" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs transition-all cursor-pointer">
+              <span>⭐</span> รีวิว
+            </a>
+          </div>`;
+      }
+    } else if (isPieceDone) {
+      if (pieceEval) {
+        itemStatusBadge = `
+          <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>✓</span> คืนแล้ว</span>
+            <span class="bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs">⭐ ${evalData?.rating || 5}★</span>
+          </div>`;
+      } else {
+        itemStatusBadge = `
+          <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>✓</span> คืนแล้ว</span>
+            <a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}, item_idx: ${itIdx}})" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs transition-all cursor-pointer">
+              <span>⭐</span> รีวิวชิ้นนี้
+            </a>
+          </div>`;
+      }
+    } else if (it.pending_return) {
+      if (it.pending_condition === "lost") {
+        itemStatusBadge = `<span class="bg-red-100 text-red-800 border border-red-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>🔴</span> แจ้งสูญหาย (รอตรวจ)</span>`;
+      } else if (it.pending_condition === "damaged") {
+        itemStatusBadge = `<span class="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>⚠️</span> แจ้งคืนชำรุด (รอตรวจ)</span>`;
+      } else {
+        itemStatusBadge = `<span class="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>🟡</span> รอตรวจรับคืน</span>`;
+      }
+    } else if (r.status === "BORROWING" || r.status === "RETURN_PENDING") {
+      itemStatusBadge = `<span class="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span>⏳</span> กำลังยืม (ยังไม่คืน)</span>`;
+    } else if (r.status === "PENDING") {
+      itemStatusBadge = `<span class="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full">📋 รอตรวจของ</span>`;
+    } else {
+      itemStatusBadge = `<span class="bg-gray-100 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full">${r.status}</span>`;
+    }
+
+    const canRelocate = !isPieceDone && !it.pending_return && (r.status === "BORROWING" || r.status === "RETURN_PENDING") && (i.type === "equipment" || i.type === "durable_material");
+    const locText = it.current_location || "ยังไม่ได้ระบุที่ตั้งปัจจุบัน";
+    const locTime = it.moved_at ? ` · อัปเดตเมื่อ ${it.moved_at}` : "";
+
+    return `
+      <div class="p-3 rounded-xl bg-gray-50/90 border border-gray-100 hover:bg-gray-100/90 transition-colors space-y-2">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-xl shrink-0 p-1 bg-white rounded-lg border border-gray-200 shadow-2xs">${i.image}</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-xs text-gray-900 truncate">${i.name}</span>
+                ${assignedTag ? `<span class="bg-blue-50 text-blue-800 font-mono text-[10px] px-1.5 py-0.2 rounded border border-blue-200 font-bold">🏷️ ${assignedTag}</span>` : ''}
+                ${i.type === 'durable_material' ? `<span class="bg-sky-50 text-sky-800 border border-sky-200 text-[10px] px-1.5 py-0.2 rounded font-bold">🔌 วัสดุคงทน (ยืม-คืน)</span>` : (i.type === 'material' ? `<span class="bg-teal-50 text-teal-800 border border-teal-200 text-[10px] px-1.5 py-0.2 rounded font-medium">📦 สิ้นเปลือง</span>` : '')}
+              </div>
+              <p class="text-[11px] text-gray-500 mt-0.5 font-mono">จำนวน: <strong class="text-gray-700">${it.qty}</strong> ${i.unit || 'ชิ้น'}</p>
+            </div>
+          </div>
+          <div class="shrink-0 flex items-center gap-2">
+            ${itemStatusBadge}
+          </div>
+        </div>
+        ${(i.type === "equipment" || i.type === "durable_material") && (r.status === "BORROWING" || r.status === "RETURN_PENDING" || it.current_location) ? `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-gray-200/70 text-xs">
+            <div class="flex items-center gap-1.5 text-gray-600 min-w-0 flex-wrap">
+              <span class="shrink-0">📍</span>
+              <span class="font-medium text-gray-500 shrink-0">ที่ตั้ง/ที่อยู่ปัจจุบัน:</span>
+              <strong class="${it.current_location ? 'text-blue-800' : 'text-gray-400 italic'}">${locText}</strong>
+              <span class="text-[10px] text-gray-400 font-mono shrink-0">${locTime}</span>
+            </div>
+            ${canRelocate ? `
+              <button type="button" onclick="p_request_list_openRelocateModal(${r.id}, ${itIdx})" class="self-start sm:self-auto shrink-0 inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-xs transition-colors cursor-pointer">
+                <span>📍</span> แจ้งย้ายที่ตั้ง / ที่อยู่
+              </button>
+            ` : ''}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).filter(Boolean).join("");
 
   const cardBg = isHistory ? "bg-gray-50/70" : "bg-white";
   const borderCls = urgentCls || "border-gray-200";
 
-  return `<div class="${cardBg} rounded-2xl border ${borderCls} shadow-sm hover:shadow-md transition-all p-4">
-    <div class="flex items-start justify-between gap-4">
+  return `<div class="${cardBg} rounded-3xl border ${borderCls} shadow-sm hover:shadow-md transition-all p-5">
+    <div class="flex items-start justify-between gap-4 mb-3">
       <div class="flex-1 min-w-0">
         <!-- Top badges row -->
-        <div class="flex flex-wrap items-center gap-2 mb-2">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
           ${badgeHtml(r.status)}
-          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md ${isEquip ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : "bg-teal-50 text-teal-700 border border-teal-100"}">${isEquip ? "ครุภัณฑ์" : "วัสดุเบิกใช้"}</span>
-          <span class="text-xs text-gray-400 font-mono">คำขอ #${r.id}</span>
+          ${categoryBadge}
+          <span class="text-xs text-gray-400 font-mono font-bold">คำขอ #${r.id}</span>
         </div>
-        <!-- Item list -->
-        <div class="text-sm text-gray-800 mb-1">${itemNames}</div>
-        ${assetTagsBadge}
-        <!-- Meta info -->
-        <p class="text-xs text-gray-400">เหตุผล: ${r.reason || "-"} · ส่งคำขอ ${r.created_at || "-"}</p>
-        ${extraInfo}
-        <!-- Step progress -->
-        ${p_request_list_stepProgress(r.status)}
+        <p class="text-xs text-gray-500">เหตุผล: <strong class="text-gray-700">${r.reason || "-"}</strong> · ส่งคำขอ: ${r.created_at || "-"}</p>
       </div>
       <!-- Action button -->
       <div class="shrink-0">${actions}</div>
     </div>
+
+    <!-- Itemized List showing all borrowed items together -->
+    <div class="space-y-1.5 mb-2">
+      ${itemsListHtml}
+    </div>
+
+    <!-- Extra info & due date -->
+    ${extraInfo}
+
+    <!-- Step progress -->
+    ${p_request_list_stepProgress(r.status)}
   </div>`;
+}
+
+let p_relocate_req_id = null;
+let p_relocate_item_idx = null;
+
+function p_request_list_openRelocateModal(reqId, itemIdx) {
+  const reqs = db("requests") || [];
+  const r = reqs.find(x => x.id === Number(reqId));
+  if (!r || !r.items || !r.items[itemIdx]) return;
+  const it = r.items[itemIdx];
+  const item = itemById(it.item_id);
+
+  p_relocate_req_id = Number(reqId);
+  p_relocate_item_idx = Number(itemIdx);
+
+  document.getElementById("p_relocate_item_name").textContent = `${item ? item.name : "ครุภัณฑ์"} ${it.asset_tag ? `[${it.asset_tag}]` : ""}`;
+  document.getElementById("p_relocate_input").value = it.current_location || "";
+  document.getElementById("p_relocate_err").classList.add("hidden");
+  document.getElementById("p_relocate_modal").classList.remove("hidden");
+}
+
+function p_request_list_closeRelocateModal() {
+  document.getElementById("p_relocate_modal").classList.add("hidden");
+}
+
+function p_request_list_setQuickLocation(val) {
+  document.getElementById("p_relocate_input").value = val;
+}
+
+function p_request_list_saveRelocate() {
+  const loc = document.getElementById("p_relocate_input").value.trim();
+  const errEl = document.getElementById("p_relocate_err");
+  if (!loc) {
+    errEl.classList.remove("hidden");
+    return;
+  }
+  errEl.classList.add("hidden");
+
+  const reqs = db("requests") || [];
+  const r = reqs.find(x => x.id === p_relocate_req_id);
+  if (r && r.items && r.items[p_relocate_item_idx]) {
+    const nowStr = "2026-07-23 " + new Date().toTimeString().slice(0, 5);
+    r.items[p_relocate_item_idx].current_location = loc;
+    r.items[p_relocate_item_idx].moved_at = nowStr;
+    dbSave("requests", reqs);
+    toastBanner("บันทึกการแจ้งย้ายที่ตั้ง/ที่อยู่เรียบร้อยแล้ว");
+  }
+  p_request_list_closeRelocateModal();
+  p_request_list_render();
 }
 
 function p_request_list_cancelRequest(id) {
@@ -377,5 +504,40 @@ function p_request_list_emptyState(title, sub) {
   </div>`;
 }
 </script>
+
+<!-- Relocate Modal (Student Only) -->
+<div id="p_relocate_modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" onclick="if(event.target === this) p_request_list_closeRelocateModal()">
+  <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h3 class="text-base font-bold text-gray-900 flex items-center gap-1.5">
+          <span>📍</span> แจ้งย้ายที่ตั้ง / แจ้งย้ายที่อยู่ครุภัณฑ์
+        </h3>
+        <p id="p_relocate_item_name" class="text-xs font-semibold text-blue-600 mt-0.5"></p>
+      </div>
+      <button type="button" onclick="p_request_list_closeRelocateModal()" class="text-gray-400 hover:text-gray-700 text-sm font-bold px-2 py-1 rounded-lg hover:bg-gray-100">✕</button>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
+      💡 กรุณาอัปเดตที่ตั้งหรือที่อยู่ล่าสุดของครุภัณฑ์ที่ยืมไป (เช่น ตั้งไว้ที่ห้องสาขา หรือย้ายที่อยู่หนีน้ำท่วม) เพื่อให้ทราบพิกัดล่าสุดของครุภัณฑ์ตลอดเวลา
+    </div>
+
+    <div>
+      <label class="text-xs font-bold text-gray-700 block mb-1.5">เลือกที่ตั้งด่วน หรือระบุที่อยู่ใหม่ <span class="text-red-500">*</span></label>
+      <div class="flex flex-wrap gap-1.5 mb-2">
+        <button type="button" onclick="p_request_list_setQuickLocation('ตึก EN6 ชั้น 2 ห้องพักสาขา EN6-204')" class="text-[11px] bg-gray-100 hover:bg-blue-50 hover:text-blue-700 border border-gray-200 px-2.5 py-1 rounded-lg font-medium cursor-pointer">🏢 ห้องสาขา EN6-204</button>
+        <button type="button" onclick="p_request_list_setQuickLocation('ตึก EN6 ชั้น 3 ห้องโปรเจกต์ EN6-305 (ย้ายหนีน้ำท่วม)')" class="text-[11px] bg-gray-100 hover:bg-blue-50 hover:text-blue-700 border border-gray-200 px-2.5 py-1 rounded-lg font-medium cursor-pointer">🌊 ย้ายขึ้นชั้น 3 EN6-305 (หนีน้ำท่วม)</button>
+        <button type="button" onclick="p_request_list_setQuickLocation('หอพักนักศึกษาในกำกับ ม.อุบลฯ (ย้ายที่อยู่ชั่วคราว)')" class="text-[11px] bg-gray-100 hover:bg-blue-50 hover:text-blue-700 border border-gray-200 px-2.5 py-1 rounded-lg font-medium cursor-pointer">🏠 ย้ายไปหอพัก/บ้านพัก</button>
+      </div>
+      <input id="p_relocate_input" type="text" placeholder="ระบุตึก/ห้องที่ตั้ง หรือที่อยู่ปัจจุบันที่ย้ายไป..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <p id="p_relocate_err" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ กรุณาระบุที่ตั้งหรือที่อยู่ปัจจุบัน</p>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <button type="button" onclick="p_request_list_closeRelocateModal()" class="px-4 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl cursor-pointer">ยกเลิก</button>
+      <button type="button" onclick="p_request_list_saveRelocate()" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer">บันทึกพิกัดล่าสุด</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

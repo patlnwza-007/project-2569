@@ -1,6 +1,25 @@
-/* Custom CSS for YuemDee System */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+/* Custom CSS for YuemDee System (Synchronized with Mockup) */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-body {
-    font-family: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
 }
+
+.font-mono, code, pre {
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* Tabs styling from mockup */
+.tab.active {
+    border-bottom: 2px solid #2563eb;
+    color: #2563eb;
+    font-weight: 600;
+}
+
+/* Navigation active styling from mockup */
+.nav-link.active {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+

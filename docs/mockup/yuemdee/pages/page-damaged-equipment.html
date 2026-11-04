@@ -32,61 +32,166 @@
 <body class="bg-gray-50" onload="p_damaged_equipment_init()">
 
 <div id="view-damaged-equipment" class="w-full h-full overflow-y-auto p-6">
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-2xl font-bold text-gray-800 mb-1">⚠️ ครุภัณฑ์เสียหาย</h1>
-    <p class="text-sm text-gray-500 mb-6">รายการรหัสครุภัณฑ์รายชิ้นที่ถูกเปลี่ยนสถานะเป็น "ครุภัณฑ์เสียหาย" — เกิดขึ้นอัตโนมัติเมื่อเจ้าหน้าที่ตรวจรับคืนแล้วพบว่าสิ่งของชำรุด (จากหน้ารับคืนครุภัณฑ์) หรือเจ้าหน้าที่กำหนดเองผ่านหน้าเปลี่ยนสถานะรายชิ้น</p>
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">⚠️ ครุภัณฑ์เสียหายและการแจ้งซ่อม</h1>
+    <p class="text-sm text-gray-500 mb-5">จัดการรายการครุภัณฑ์ที่เสียหายในคลัง และติดตามเรื่องแจ้งซ่อมอุปกรณ์ประจำห้องเรียน/สถานที่จากนักศึกษา</p>
 
-    <div id="p_damaged_equipment_summary" class="mb-5"></div>
-    <div id="p_damaged_equipment_rows" class="space-y-3"></div>
+    <!-- Tabs Navigation -->
+    <div class="flex border-b border-gray-200 mb-5 gap-6 text-sm font-semibold">
+      <button id="tab_btn_units" onclick="p_damaged_equipment_switchTab('units')" class="pb-3 border-b-2 border-blue-600 text-blue-600 flex items-center gap-2">
+        <span>⚠️ ครุภัณฑ์เสียหายในคลัง</span>
+        <span id="tab_count_units" class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+      </button>
+      <button id="tab_btn_reports" onclick="p_damaged_equipment_switchTab('reports')" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2">
+        <span>📩 รายการแจ้งชำรุดจากนักศึกษา</span>
+        <span id="tab_count_reports" class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+      </button>
+    </div>
+
+    <!-- Section 1: Damaged units in warehouse -->
+    <div id="p_damaged_equipment_section_units">
+      <div id="p_damaged_equipment_summary" class="mb-4"></div>
+      <div id="p_damaged_equipment_rows" class="space-y-3"></div>
+    </div>
+
+    <!-- Section 2: Student damage reports -->
+    <div id="p_damaged_equipment_section_reports" class="hidden">
+      <div id="p_damaged_reports_summary" class="mb-4"></div>
+      <div id="p_damaged_reports_rows" class="space-y-3"></div>
+    </div>
   </div>
 </div>
 
 <script src="../shared.js"></script>
 <script>
-function p_damaged_equipment_init() { notifyParentPage("damaged-equipment"); p_damaged_equipment_render(); }
+let currentTab = "units";
+
+function p_damaged_equipment_init() {
+  notifyParentPage("damaged-equipment");
+  p_damaged_equipment_render();
+}
+
+function p_damaged_equipment_switchTab(tab) {
+  currentTab = tab;
+  const isUnits = tab === "units";
+  document.getElementById("tab_btn_units").className = isUnits 
+    ? "pb-3 border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 font-bold"
+    : "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 font-semibold";
+  document.getElementById("tab_btn_reports").className = !isUnits 
+    ? "pb-3 border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 font-bold"
+    : "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 font-semibold";
+
+  document.getElementById("p_damaged_equipment_section_units").classList.toggle("hidden", !isUnits);
+  document.getElementById("p_damaged_equipment_section_reports").classList.toggle("hidden", isUnits);
+}
 
 function p_damaged_equipment_render() {
   const units = db("units").filter(u => u.status === "DAMAGED");
-  const summaryEl = document.getElementById("p_damaged_equipment_summary");
-  const host = document.getElementById("p_damaged_equipment_rows");
+  const reports = db("damage_reports") || [];
+  const pendingReports = reports.filter(r => r.status !== "RESOLVED");
 
-  summaryEl.innerHTML = `<div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm font-semibold inline-flex items-center gap-2">
-    ⚠️ พบครุภัณฑ์เสียหายทั้งหมด ${units.length} ชิ้น
+  document.getElementById("tab_count_units").textContent = units.length;
+  document.getElementById("tab_count_reports").textContent = pendingReports.length;
+
+  // Render Units Tab
+  const summaryEl = document.getElementById("p_damaged_equipment_summary");
+  const hostUnits = document.getElementById("p_damaged_equipment_rows");
+
+  summaryEl.innerHTML = `<div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-2.5 text-xs font-semibold inline-flex items-center gap-2">
+    ⚠️ ครุภัณฑ์ในคลังที่ขึ้นสถานะเสียหาย ${units.length} ชิ้น (ถูกกันออกจากระบบยืมแล้ว)
   </div>`;
 
   if (units.length === 0) {
-    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+    hostUnits.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
       <div class="text-5xl mb-3">✅</div>
-      <p class="text-gray-700 font-semibold text-base">ไม่มีครุภัณฑ์เสียหายในขณะนี้</p>
-      <p class="text-xs text-gray-400 mt-1">เมื่อตรวจรับคืนแล้วพบของชำรุด รายการจะแสดงที่นี่โดยอัตโนมัติ</p>
+      <p class="text-gray-700 font-semibold text-base">ไม่มีครุภัณฑ์เสียหายในคลังขณะนี้</p>
+      <p class="text-xs text-gray-400 mt-1">เมื่อตรวจรับคืนแล้วพบของชำรุด หรือเปลี่ยนสถานะเป็น DAMAGED รายการจะแสดงที่นี่</p>
     </div>`;
-    return;
+  } else {
+    hostUnits.innerHTML = units.map(u => {
+      const item = itemById(u.item_id);
+      const pos = item ? positionById(item.position_id) : null;
+      return `<div class="bg-white rounded-2xl border border-red-200 shadow-sm p-4 hover:shadow-md transition-all">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="text-xl">${item?.image || "📦"}</span>
+              <span class="text-sm font-bold text-gray-900">${item?.name || "ไม่พบสิ่งของ"}</span>
+              <span class="font-mono text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 font-bold">🏷️ ${u.asset_tag}</span>
+              <span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">⚠️ ครุภัณฑ์เสียหาย</span>
+            </div>
+            <p class="text-xs text-gray-500">ตำแหน่งจัดเก็บ: ${pos ? pos.name : "-"}</p>
+            ${u.note ? `<p class="text-xs text-red-600 font-medium mt-1.5 bg-red-50/60 border border-red-100 rounded-lg p-2">📝 หมายเหตุ: ${u.note}</p>` : ""}
+          </div>
+          <div class="flex flex-col gap-2 shrink-0">
+            <button onclick="p_damaged_equipment_setStatus('${u.asset_tag}', 'MAINTENANCE')" class="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">🛠️ ส่งซ่อม</button>
+            <button onclick="p_damaged_equipment_setStatus('${u.asset_tag}', 'AVAILABLE')" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded-xl px-4 py-2 transition-colors font-bold">✅ ซ่อมเสร็จแล้ว</button>
+            ${item ? `<a href="javascript:void(0)" onclick="navigate('item-status-change', {id: ${item.id}})" class="text-center text-xs text-blue-600 hover:underline px-4 py-1">จัดการเพิ่มเติม →</a>` : ""}
+          </div>
+        </div>
+      </div>`;
+    }).join("");
   }
 
-  host.innerHTML = units.map(u => {
-    const item = itemById(u.item_id);
-    const pos = item ? positionById(item.position_id) : null;
+  // Render Reports Tab
+  const hostReports = document.getElementById("p_damaged_reports_rows");
+  const summaryReports = document.getElementById("p_damaged_reports_summary");
 
-    return `<div class="bg-white rounded-2xl border border-red-200 shadow-sm p-4 hover:shadow-md transition-all">
-      <div class="flex items-start justify-between gap-4">
-        <div class="flex-1">
-          <div class="flex flex-wrap items-center gap-2 mb-1">
-            <span class="text-xl">${item?.image || "📦"}</span>
-            <span class="text-sm font-bold text-gray-900">${item?.name || "ไม่พบสิ่งของ"}</span>
-            <span class="font-mono text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">🏷️ ${u.asset_tag}</span>
-            <span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">⚠️ ครุภัณฑ์เสียหาย</span>
+  summaryReports.innerHTML = `<div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl px-4 py-2.5 text-xs font-semibold inline-flex items-center gap-2">
+    📩 ได้รับเรื่องแจ้งซ่อมจากนักศึกษาทั้งหมด ${reports.length} รายการ (รอดำเนินการ ${pendingReports.length} รายการ)
+  </div>`;
+
+  if (reports.length === 0) {
+    hostReports.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center text-gray-400 text-xs">ยังไม่มีรายการแจ้งชำรุดจากนักศึกษา</div>`;
+  } else {
+    hostReports.innerHTML = reports.map(r => {
+      const item = r.equipment_id ? itemById(r.equipment_id) : (r.durable_material_id ? itemById(r.durable_material_id) : null);
+      const originLoc = r.origin_location || (item && item.location ? item.location : "ห้องคลัง EN6-101");
+      const tagBadge = r.asset_tag
+        ? `<span class="bg-blue-100 text-blue-700 font-mono text-xs font-bold px-2 py-0.5 rounded border border-blue-200">🏷️ ${r.asset_tag}</span>`
+        : `<span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded border border-amber-200">ไม่ทราบรหัสประจำชิ้น</span>`;
+
+      const statusBadge = r.status === "PENDING"
+        ? `<span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-200">รอตรวจสอบ</span>`
+        : (r.status === "IN_PROGRESS"
+          ? `<span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200">กำลังดำเนินการซ่อม</span>`
+          : `<span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-green-200">ซ่อมเสร็จสิ้น</span>`);
+
+      return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-all">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+              ${tagBadge}
+              <span class="text-sm font-bold text-gray-900">${r.item_name}</span>
+              ${statusBadge}
+            </div>
+            <div class="text-xs text-gray-600 space-y-0.5">
+              <p>🏠 <b>สถานที่ตั้งเดิม:</b> ${originLoc}</p>
+              <p>📍 <b>สถานที่พบชำรุด:</b> <b class="text-blue-700">${r.location}</b></p>
+              <p>👤 <b>ผู้แจ้ง:</b> ${r.student_name} (${r.student_id}) · 🕒 ${r.created_at}</p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-xl p-3 text-xs text-gray-700 mt-2 border border-gray-100 flex gap-3">
+              ${r.photo ? `<img src="${r.photo}" class="w-16 h-16 object-cover rounded-lg shrink-0 border border-gray-200" alt="รูป" />` : ''}
+              <div class="flex-1">
+                <p class="font-semibold text-gray-700">อาการชำรุดที่พบ:</p>
+                <p class="text-gray-800 mt-0.5">${r.symptom}</p>
+              </div>
+            </div>
           </div>
-          <p class="text-xs text-gray-500">ตำแหน่งจัดเก็บ: ${pos ? pos.name : "-"}</p>
-          ${u.note ? `<p class="text-xs text-red-600 font-medium mt-1.5 bg-red-50/60 border border-red-100 rounded-lg p-2">📝 หมายเหตุ: ${u.note}</p>` : ""}
+
+          <div class="flex flex-col gap-2 shrink-0">
+            ${r.status === "PENDING" ? `
+              <button onclick="p_damaged_equipment_actionReport(${r.id}, 'IN_PROGRESS')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm">🛠️ รับเรื่อง/ส่งช่าง</button>
+            ` : ''}
+            ${r.status !== "RESOLVED" ? `
+              <button onclick="p_damaged_equipment_actionReport(${r.id}, 'RESOLVED')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm font-bold">✅ ปิดงานซ่อม</button>
+            ` : '<span class="text-xs text-gray-400 text-center py-2">ปิดงานแล้ว</span>'}
+          </div>
         </div>
-        <div class="flex flex-col gap-2 shrink-0">
-          <button onclick="p_damaged_equipment_setStatus('${u.asset_tag}', 'MAINTENANCE')" class="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">🛠️ ส่งซ่อม</button>
-          <button onclick="p_damaged_equipment_setStatus('${u.asset_tag}', 'AVAILABLE')" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">✅ ซ่อมเสร็จแล้ว</button>
-          ${item ? `<a href="javascript:void(0)" onclick="navigate('item-status-change', {id: ${item.id}})" class="text-center text-xs text-blue-600 hover:underline px-4 py-1">จัดการเพิ่มเติม →</a>` : ""}
-        </div>
-      </div>
-    </div>`;
-  }).join("");
+      </div>`;
+    }).join("");
+  }
 }
 
 function p_damaged_equipment_setStatus(assetTag, newStatus) {
@@ -110,6 +215,22 @@ function p_damaged_equipment_setStatus(assetTag, newStatus) {
   }
 
   toastBanner(`อัปเดตสถานะรหัส ${assetTag} เป็น "${label}" สำเร็จ`);
+  p_damaged_equipment_render();
+}
+
+function p_damaged_equipment_actionReport(id, newStatus) {
+  const reports = db("damage_reports") || [];
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+
+  r.status = newStatus;
+  if (newStatus === "IN_PROGRESS") {
+    toastBanner("รับเรื่องและเปลี่ยนสถานะเป็นกำลังดำเนินการซ่อมเรียบร้อยแล้ว");
+  } else if (newStatus === "RESOLVED") {
+    toastBanner("ปิดงานซ่อมเรียบร้อยแล้ว");
+  }
+
+  dbSave("damage_reports", reports);
   p_damaged_equipment_render();
 }
 </script>

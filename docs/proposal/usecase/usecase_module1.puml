@@ -1,6 +1,6 @@
-' โมดูล 1 (M1 · account): บัญชีและการเข้าสู่ระบบ — UC-14, UC-16
+' โมดูล 1 (M1 · account): บัญชีและการเข้าสู่ระบบ — UC-13, UC-15
 ' ตามรหัสใน use_case_description.md (M1 · account)
-' หมายเหตุ: UC-16 (เข้าสู่ระบบ) เป็นเงื่อนไขก่อนเริ่มงาน (pre-condition) ร่วมของทุก use case
+' หมายเหตุ: UC-15 (เข้าสู่ระบบ) เป็นเงื่อนไขก่อนเริ่มงาน (pre-condition) ร่วมของทุก use case
 ' ในโมดูลอื่นทั้งหมด (M2–M10) แต่ไม่วาดเป็นเส้นความสัมพันธ์ข้ามโมดูลเชิง include/extend
 ' เพราะเป็น cross-cutting concern ที่ระบุไว้ครั้งเดียวในเอกสารข้อความแทนการเขียนซ้ำ
 @startuml usecase_module1
@@ -38,17 +38,17 @@ actor "ผู้ดูแลระบบ\n(Admin)" as Admin
 
 rectangle "โมดูล 1 · บัญชีและการเข้าสู่ระบบ" {
   package "E1 · การเข้าสู่ระบบ (ใช้ร่วมกันทุกบทบาท)" {
-    usecase "UC-16\nเข้าสู่ระบบด้วย UBU Single Sign-On" as UC16
+    usecase "UC-15\nเข้าสู่ระบบด้วย UBU Single Sign-On" as UC15
   }
 
   package "E2 · ข้อมูลส่วนตัว (Student)" {
-    usecase "UC-14\nจัดการข้อมูลส่วนตัว" as UC14
+    usecase "UC-13\nจัดการข้อมูลส่วนตัว" as UC13
   }
 }
 
-Student -- UC16
-Staff -- UC16
-Admin -- UC16
-Student -- UC14
+Student -- UC15
+Staff -- UC15
+Admin -- UC15
+Student -- UC13
 
 @enduml

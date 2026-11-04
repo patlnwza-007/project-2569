@@ -1,0 +1,125 @@
+@startuml activity_module6_uc18
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc18_on_the_spot_inspection.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-18 · ตรวจของและปล่อยของหน้าเคาน์เตอร์ (On-the-Spot Counter Inspection) — Activity Diagram\npartition หน้าจอ = frontend:PendingRequests (ตรงกับ state diagram) · รวมขั้นตอนเดิมของ UC-08 (ยุบรวมแล้ว)
+
+|frontend:PendingRequests|
+start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
+:เปิดรายการคำขอที่รอตรวจของ (staff:request_list);
+
+|backend|
+:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:แสดงรายการคำขอสถานะ "รอเจ้าหน้าที่ตรวจของ" (PENDING);
+
+|frontend:PendingRequests|
+:เปิดคำขอ 1 รายการ — ตรวจนับของจริงบนโต๊ะเทียบกับรายการ โดยติ๊ก checkbox รายชิ้น (ค่าเริ่มต้นติ๊กถูกทุกชิ้น);
+:กดดูรูปถ่ายสภาพสิ่งของที่นักศึกษาแนบมาได้ (ถ้ามี, initial_photo);
+
+if (เป็นคำขอยืมพิเศษหรือไม่ (is_special)?) then (ใช่)
+  :ตรวจสอบเหตุผล (reason) และปรับวันที่อนุญาตคืน (custom_due_date) ก่อนอนุมัติ;
+else (ไม่ใช่)
+endif
+
+if (ของขาด/นักศึกษาเปลี่ยนใจไม่รับบางชิ้นหรือไม่?) then (มี)
+  :ติ๊กชิ้นนั้นออกจากรายการที่จะปล่อย;
+else (ไม่มี — ครบทุกชิ้น)
+endif
+
+if (เลือกดำเนินการอะไร?) then (ปฏิเสธคำขอทั้งหมด)
+  :กด "✕ ปฏิเสธคำขอ";
+  |backend|
+  if (ระบุเหตุผลครบหรือไม่?) then (ไม่ครบ)
+    :แสดงข้อความบังคับให้ระบุเหตุผลก่อนบันทึก;
+    |frontend:PendingRequests|
+    :กรอกเหตุผลการปฏิเสธ;
+  else (ครบ)
+  endif
+  |backend|
+  :เปลี่ยนสถานะคำขอเป็น "ปฏิเสธแล้ว" (REJECTED) พร้อมเหตุผล (write);
+else (ปล่อยของ)
+  |backend|
+  if (ไม่เหลือรายการที่ติ๊กเลยหรือไม่?) then (ไม่เหลือเลย)
+    |frontend:PendingRequests|
+    :ระบบไม่อนุญาตให้กดปล่อยของ แนะนำให้กดปฏิเสธคำขอแทน;
+    stop
+  else (เหลืออย่างน้อย 1 ชิ้น)
+  endif
+  :ตัดสต็อกคลัง (qty_available) เฉพาะชิ้นที่ติ๊กว่านำไปจริง ตามรหัส Asset Tag ที่นักศึกษาเลือกไว้ตอนส่งคำขอ;
+  :เปลี่ยนสถานะรหัสครุภัณฑ์ที่ปล่อยเป็น "กำลังยืม" (BORROWED) พร้อมกำหนดวันคืน;
+  :บันทึกเวลาอนุมัติและเวลารับของเป็นเวลาเดียวกัน (ไม่มีขั้นตอนรอรับของแยกต่างหากอีกต่อไป);
+  if (คำขอมีครุภัณฑ์หรือวัสดุคงทนอย่างน้อย 1 ชิ้นหรือไม่?) then (มี)
+    :เปลี่ยนสถานะคำขอเป็น "กำลังยืม" (BORROWING);
+  else (มีเฉพาะวัสดุสิ้นเปลืองล้วน)
+    :เปลี่ยนสถานะคำขอเป็น "เบิกสำเร็จ" (ISSUED);
+  endif
+  if (มีชิ้นที่ถูกติ๊กออก (ของขาด/ไม่รับ) หรือไม่?) then (มี)
+    :ตัดชิ้นนั้นออกจากคำขอ โดยไม่แตะต้องสต็อกคลัง;
+  else (ไม่มี)
+  endif
+endif
+
+fork
+  |frontend:PendingRequests|
+  :แสดงผลลัพธ์การดำเนินการให้เจ้าหน้าที่ (main flow);
+fork again
+  |backend|
+  :เขียน audit log (ตรวจของ/ปล่อยของ/ปฏิเสธคำขอ) ผ่าน signal;
+fork again
+  |backend|
+  :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษา (FR-39);
+  |เซิร์ฟเวอร์อีเมล (external)|
+  :ส่งอีเมลแจ้งผลคำขอยืมให้นักศึกษา (FR-39);
+end fork
+
+|frontend:PendingRequests|
+:เห็นผลลัพธ์การดำเนินการ (รวมรายการที่ถูกข้ามถ้ามี);
+
+stop
+
+legend right
+  |<back:white>    </back>| frontend:PendingRequests — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: ไม่มีสถานะ "อนุมัติแล้ว/รอรับของ" อีกต่อไป และไม่มี auto-expire 2 วัน — อนุมัติกับรับของ
+  เกิดขึ้นพร้อมกันเสมอในขั้นตอนเดียว (ยุบรวมขั้นตอนเดิมของ UC-08 เข้ามาในไดอะแกรมนี้ทั้งหมดแล้ว)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
+endlegend
+
+@enduml

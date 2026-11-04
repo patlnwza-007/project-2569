@@ -92,6 +92,9 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# บังคับให้ล็อกอินผ่าน Google (UBU SSO) ได้เฉพาะอีเมล @ubu.ac.th เท่านั้น
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.UBUSocialAccountAdapter'
+
 SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
 ACCOUNT_LOGOUT_ON_GET = True

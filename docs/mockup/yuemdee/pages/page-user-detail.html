@@ -55,11 +55,11 @@ function p_user_detail_getUser(email) {
       const email = qparam("email");
       const u = p_user_detail_getUser(email);
       const host = document.getElementById("p_user_detail_content");
-      const pendingCount = u.stu ? db("requests").filter(r => r.student_id === u.stu.id && ["PENDING","APPROVED_WAIT_PICKUP"].includes(r.status)).length : 0;
+      const pendingCount = u.stu ? db("requests").filter(r => r.student_id === u.stu.id && ["PENDING","BORROWING"].includes(r.status)).length : 0;
       host.innerHTML = `<table class="text-sm border-collapse mb-4">
         <tr><td class="border px-2 py-1 font-semibold bg-gray-50">อีเมล</td><td class="border px-2 py-1 font-mono">${u.email}</td></tr>
         <tr><td class="border px-2 py-1 font-semibold bg-gray-50">ชื่อ</td><td class="border px-2 py-1">${u.stu ? u.stu.name : (u.staff ? u.staff.name : "(ยังไม่เคยเข้าสู่ระบบ)")}</td></tr>
-        <tr><td class="border px-2 py-1 font-semibold bg-gray-50">บทบาทเริ่มต้น (Whitelist)</td><td class="border px-2 py-1">${u.defaultRole === 'student' ? 'นักศึกษา' : u.defaultRole === 'staff' ? 'เจ้าหน้าที่' : '-'}</td></tr>
+        <tr><td class="border px-2 py-1 font-semibold bg-gray-50">บทบาทเริ่มต้น</td><td class="border px-2 py-1">${u.defaultRole === 'student' ? 'นักศึกษา' : u.defaultRole === 'staff' ? 'เจ้าหน้าที่' : '-'}</td></tr>
         <tr><td class="border px-2 py-1 font-semibold bg-gray-50">บทบาทปัจจุบัน</td><td class="border px-2 py-1">${u.effectiveRole === 'student' ? 'นักศึกษา' : 'เจ้าหน้าที่'} ${u.ov ? '<span class="text-xs text-purple-600">(Role Override)</span>' : ''}</td></tr>
         <tr><td class="border px-2 py-1 font-semibold bg-gray-50">สถานะบัญชี</td><td class="border px-2 py-1">${u.blocked ? '🔴 ระงับสิทธิ์การเข้าสู่ระบบ' : '🟢 ปกติ'}</td></tr>
       </table>

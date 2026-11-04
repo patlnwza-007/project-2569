@@ -62,7 +62,7 @@
 
     <p class="text-xs font-semibold text-gray-500 mb-2">ทดสอบเงื่อนไขปฏิเสธ (Alternative Flow)</p>
     <div class="flex flex-col gap-2">
-      <button onclick="p_login_rejectNotWhitelist()" class="border border-red-200 text-red-600 rounded-xl px-4 py-2 text-xs hover:bg-red-50 text-left">
+      <button onclick="p_login_rejectNotAuthorized()" class="border border-red-200 text-red-600 rounded-xl px-4 py-2 text-xs hover:bg-red-50 text-left">
         ❌ ทดลองบัญชีที่ไม่พบบทบาทใน SSO: outsider@ubu.ac.th
       </button>
       <button onclick="p_login_rejectBlocked()" class="border border-red-200 text-red-600 rounded-xl px-4 py-2 text-xs hover:bg-red-50 text-left">
@@ -81,14 +81,14 @@
 function p_login_goHome() { navigate(getRole() ? HOME_PAGE[getRole()] : "welcome"); }
     function p_login_loginAs(role) { setRole(role); p_login_goHome(); }
     function p_login_loginAsOverride() {
-      // ระบบจริง: ตรวจ Whitelist ก่อน (พบเป็น student) แล้วเช็ค Role Override ทับ (UC-34) → ได้ staff
+      // ระบบจริง: ดึงข้อมูลจาก UBU SSO ก่อน (พบเป็น student) แล้วเช็ค Role Override ทับ (UC-33) → ได้ staff
       setRole("staff", "T001");
       p_login_goHome();
     }
-    function p_login_rejectNotWhitelist() {
+    function p_login_rejectNotAuthorized() {
       const box = document.getElementById("p_login_login-error");
       box.classList.remove("hidden");
-      box.textContent = "ปฏิเสธการเข้าสู่ระบบ: อีเมล outsider@gmail.com ไม่อยู่ในรายชื่อผู้มีสิทธิ์ใช้งาน (Whitelist)";
+      box.textContent = "ปฏิเสธการเข้าสู่ระบบ: บัญชี outsider@ubu.ac.th ไม่พบบทบาทในฐานข้อมูล SSO หรือไม่มีสิทธิ์เข้าใช้งานระบบ YuemDee";
     }
     function p_login_rejectBlocked() {
       const box = document.getElementById("p_login_login-error");

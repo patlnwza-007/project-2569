@@ -75,7 +75,7 @@ legend right
   |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
   |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: ตะกร้าเป็นข้อมูลชั่วคราวไม่มีการแจ้งเตือน จึงไม่มี fork audit/notification ใน use case นี้
-  ตามข้อ FR-39/40/41 การแจ้งเตือนอัตโนมัติเริ่มที่ UC-06/UC-08/UC-11/UC-18 เท่านั้น (ดู note ทั่วไปใน use_case_description.md)
+  ตามข้อ FR-39/40/41 การแจ้งเตือนอัตโนมัติเริ่มที่ UC-06/UC-08/UC-10/UC-17 เท่านั้น (ดู note ทั่วไปใน use_case_description.md)
   หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 

@@ -3,7 +3,7 @@
 ' รองรับภาษาไทย — อ่านก่อน render:
 ' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
 ' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
-'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc18_approve_reject.puml
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc18_counter_return_terminal.puml
 ' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
 '    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
 !pragma layout smetana
@@ -37,76 +37,83 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-18 · อนุมัติ/ปฏิเสธคำขอยืม — Activity Diagram\npartition หน้าจอ = frontend:PendingRequests (ตรงกับ state diagram)
+title UC-18 · ตรวจรับคืนสิ่งของหน้าเคาน์เตอร์ (Counter Return Terminal) — Activity Diagram\npartition หน้าจอ = frontend:ReturnList (ตรงกับ state diagram) · รองรับคืนบางส่วน + ค่าปรับ/ยอดชดใช้
 
-|frontend:PendingRequests|
+note over
+  **หมายเหตุ — asynchronous handoff จาก UC-08:** นักศึกษาแจ้งคืน (UC-08) เป็นคนละ actor
+  และคนละรอบเวลา ไม่ใช่ความสัมพันธ์ <<include>>/<<extend>> เชิง UML — ไดอะแกรมนี้จึงเริ่มที่
+  เจ้าหน้าที่ตรวจสอบสิ่งของที่นักศึกษานำมาคืนจริงแล้วเท่านั้น ไม่วาดขั้นตอนฝั่งนักศึกษาซ้ำ
+end note
+
+|frontend:ReturnList|
 start
 ' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
-:เปิดรายการคำขอยืมที่รออนุมัติทั้งหมด (staff:request_pending_list);
+:เปิดหน้ารับคืนพัสดุ — กรองแท็บ: ทั้งหมด / รอตรวจรับคืน / เกินกำหนด / คืนบางส่วน (staff:return_list);
 
 |backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
-:แสดงรายการคำขอสถานะ "รออนุมัติ";
+:แสดงรายการรอตรวจรับคืน (RETURN_PENDING) พร้อม Smart Pre-check ติ๊กชิ้นที่นักศึกษาแจ้งคืนมาแล้วให้อัตโนมัติ;
 
-|frontend:PendingRequests|
-:เลือกคำขอ 1 รายการหรือหลายรายการ (bulk);
-if (อนุมัติหรือปฏิเสธ?) then (ปฏิเสธ)
-  :กดปฏิเสธ;
+|frontend:ReturnList|
+:ตรวจของจริงบนโต๊ะเทียบกับที่ติ๊กไว้ (ปุ่ม "✓ เลือกทั้งหมด" ช่วยได้);
+
+repeat
+  :เลือกผลตรวจสภาพจริงของชิ้นนั้น: ปกติ / ชำรุด / สูญหาย;
   |backend|
-  if (ระบุเหตุผลครบหรือไม่?) then (ไม่ครบ)
-    :แสดงข้อความบังคับให้ระบุเหตุผลก่อนบันทึก;
-    |frontend:PendingRequests|
-    :กรอกเหตุผลการปฏิเสธ;
-  else (ครบ)
+  if (ผลตรวจสภาพ?) then (ปกติ)
+    :คืนจำนวนพร้อมใช้งานเข้าคลัง — ครุภัณฑ์กลับเป็น "ว่าง/พร้อมให้ยืม" (AVAILABLE) (write);
+  elseif (ชำรุด) then
+    :เปลี่ยนสถานะรหัสครุภัณฑ์เป็น "ครุภัณฑ์เสียหาย" (DAMAGED) ทันที ไม่คืนสต็อก (write);
+    :สร้างรายการแจ้งซ่อมอัตโนมัติ (เชื่อมต่อ UC-35 แท็บ 1);
+  else (สูญหาย)
+    :เปลี่ยนสถานะรหัสครุภัณฑ์เป็น "สูญหาย" (LOST) ตัดสต็อกรวมถาวร qty_total -= 1 (write);
+    :ตั้งยอดชดใช้เริ่มต้นจากราคาจัดซื้อเดิม (ปรับแก้ได้) พร้อมปุ่มบันทึกรับชำระเงิน;
   endif
-else (อนุมัติ)
-  :กดอนุมัติ;
-endif
+  |frontend:ReturnList|
+repeat while (ยังมีชิ้นที่ต้องตรวจอีกหรือไม่?) is (มี) not (ตรวจครบทุกชิ้นที่เลือกแล้ว)
 
 |backend|
-:ตรวจสอบรายการที่เลือก — ข้ามรายการที่ถูกยกเลิกไปแล้ว (UC-07) และเตรียมแจ้งผลลัพธ์;
-if (มีรายการที่ถูกข้าม?) then (มี)
-  :บันทึกรายการที่ข้าม เพื่อแจ้งผลลัพธ์ให้เจ้าหน้าที่ทราบ;
-else (ไม่มี)
-endif
+:คำนวณค่าปรับเกินกำหนดอัตโนมัติ = จำนวนวันที่เกิน due_date × อัตราค่าปรับต่อวัน (ดู UC-36);
 
-if (การกระทำคือ?) then (ปฏิเสธ)
-  :เปลี่ยนสถานะคำขอเป็น "ปฏิเสธแล้ว" พร้อมเหตุผล (write);
-else (อนุมัติ)
-  :เปลี่ยนสถานะคำขอเป็น "รอรับของ" และเริ่มนับกำหนด 2 วันสำหรับมารับของ (write);
+|frontend:ReturnList|
+if (ต้องการแก้ไขยอดค่าปรับหรือไม่?) then (ต้องการ)
+  :กด "✏️ แก้ไขยอดเงิน" ปรับยอด (custom_fine) — ปรับลด/ยกเว้นเป็น 0 บาทได้;
+else (ใช้ยอดคำนวณอัตโนมัติ)
+endif
+:กดสลับสถานะ fine_paid เมื่อนักศึกษาชำระค่าปรับ/ยอดชดใช้แล้ว (ถ้ามี);
+:กดยืนยันรับคืน;
+
+|backend|
+if (คืนครบทุกชิ้นที่ต้องคืนในคำขอหรือไม่?) then (ครบ)
+  :เปลี่ยนสถานะคำขอเป็น "คืนสำเร็จ" (RETURNED) สมบูรณ์ (write);
+else (คืนบางชิ้น — ของขาด/ยังใช้ต่อ)
+  :คงสถานะชิ้นที่ยังไม่คืนเป็น "กำลังยืม" (BORROWING) ต่อไป และบันทึกข้อความสรุป (return_summary) (write);
 endif
 
 fork
-  |frontend:PendingRequests|
-  :แสดงผลลัพธ์การอนุมัติ/ปฏิเสธให้เจ้าหน้าที่ (main flow);
+  |frontend:ReturnList|
+  :แสดงผลการรับคืนให้เจ้าหน้าที่ (main flow);
 fork again
   |backend|
-  :เขียน audit log (อนุมัติ/ปฏิเสธคำขอยืม) ผ่าน signal;
+  :เขียน audit log (ตรวจรับคืน/บันทึกค่าปรับ) ผ่าน signal;
 fork again
   |backend|
-  :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษา (FR-39);
+  :สร้างการแจ้งเตือนในระบบ (in-app) ให้นักศึกษา;
   |เซิร์ฟเวอร์อีเมล (external)|
-  :ส่งอีเมลแจ้งผลคำขอยืมให้นักศึกษา (FR-39);
+  :ส่งอีเมลยืนยันผลการรับคืน/ยอดค่าปรับ-ยอดชดใช้ให้นักศึกษา;
 end fork
 
-|frontend:PendingRequests|
-:เห็นผลลัพธ์การอนุมัติ/ปฏิเสธ (รวมรายการที่ถูกข้ามถ้ามี);
+|frontend:ReturnList|
+:เห็นผลลัพธ์การดำเนินการรับคืน;
 
 stop
 
-note right
-  **หมายเหตุ — กระบวนการอัตโนมัติแยกต่างหาก (ไม่ใช่ actor มนุษย์):**
-  Auto-expire 2 วัน — background job (Celery/django-q beat) ตรวจคำขอสถานะ
-  "รอรับของ" ทุกรอบเวลาที่กำหนด หากเกิน 2 วันนับจากวันที่อนุมัติโดยนักศึกษา
-  ยังไม่กดยืนยันรับของ (UC-08) ระบบดึงสิ่งของกลับเข้าคลังอัตโนมัติ
-  เปลี่ยนสถานะเป็น "หมดอายุ" (Expired) และแจ้งเตือนนักศึกษาทันที (FR-41)
-  — ไม่มี actor มนุษย์ริเริ่ม จึงไม่วาดเป็น partition ในกระบวนการนี้
-end note
-
 legend right
-  |<back:white>    </back>| frontend:PendingRequests — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:white>    </back>| frontend:ReturnList — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
   |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   |<back:#F5F5F5>    </back>| บริการภายนอก (เซิร์ฟเวอร์อีเมล) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: คืนสต็อกอัตโนมัติเฉพาะกรณีปกติเท่านั้น — ชำรุดเปลี่ยนสถานะทันทีไม่ต้องรอ UC-23
+  สูญหายตัด qty_total ถาวรทันที (ต่างจากชำรุดที่แค่เปลี่ยนสถานะรอซ่อม ไม่ตัดสต็อกรวม)
   หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 

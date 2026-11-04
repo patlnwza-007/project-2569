@@ -1,4 +1,4 @@
-' โมดูล 5 (M5 · evaluation): การประเมินความพึงพอใจ — UC-15, UC-32
+' โมดูล 5 (M5 · evaluation): การประเมินความพึงพอใจ — UC-14, UC-31
 @startuml usecase_module5
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -33,18 +33,18 @@ actor "เจ้าหน้าที่\n(Staff)" as Staff
 
 rectangle "โมดูล 5 · การประเมินความพึงพอใจ" {
   package "E1 · การประเมินของนักศึกษา" {
-    usecase "UC-15\nประเมินความพึงพอใจ" as UC15
+    usecase "UC-14\nประเมินความพึงพอใจ" as UC14
   }
 
   package "E2 · การจัดการแบบฟอร์มของเจ้าหน้าที่" {
-    usecase "UC-32\nออกแบบฟอร์มความพึงพอใจ\nและดูผลสรุป" as UC32
+    usecase "UC-31\nออกแบบฟอร์มความพึงพอใจ\nและดูผลสรุป" as UC31
   }
 }
 
-Student -- UC15
-Staff -- UC32
+Student -- UC14
+Staff -- UC31
 
-' หมายเหตุ: UC-32 (เจ้าหน้าที่ออกแบบฟอร์ม) เป็นเงื่อนไขก่อนเริ่มงาน (pre-condition) ของ UC-15
+' หมายเหตุ: UC-31 (เจ้าหน้าที่ออกแบบฟอร์ม) เป็นเงื่อนไขก่อนเริ่มงาน (pre-condition) ของ UC-14
 ' แต่เป็นคนละ actor และคนละรอบเวลา — ไม่ใช่ <<include>>/<<extend>> เชิง UML จึงไม่วาดเส้นความสัมพันธ์
 
 @enduml

@@ -1,4 +1,4 @@
-' โมดูล 8 (M8 · staff_student): การจัดการผู้ใช้และการระงับสิทธิ์ — UC-27, UC-28
+' โมดูล 8 (M8 · staff_student): การจัดการผู้ใช้และการระงับสิทธิ์ — UC-26, UC-27
 @startuml usecase_module8
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -32,14 +32,14 @@ actor "เจ้าหน้าที่\n(Staff)" as Staff
 
 rectangle "โมดูล 8 · การจัดการผู้ใช้และการระงับสิทธิ์" {
   package "E1 · การจัดการผู้ใช้และการระงับสิทธิ์" {
-    usecase "UC-27\nดูและค้นหารายชื่อนักศึกษา" as UC27
-    usecase "UC-28\nจัดการสิทธิ์การยืมของนักศึกษา" as UC28
+    usecase "UC-26\nดูและค้นหารายชื่อนักศึกษา" as UC26
+    usecase "UC-27\nจัดการสิทธิ์การยืมของนักศึกษา" as UC27
   }
 }
 
+Staff -- UC26
 Staff -- UC27
-Staff -- UC28
 
-UC28 ..> UC27 : <<include>>
+UC27 ..> UC26 : <<include>>
 
 @enduml

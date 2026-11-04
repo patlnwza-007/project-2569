@@ -32,16 +32,29 @@
 </head>
 <body class="bg-gray-50" onload="p_evaluation_init()">
 
-<div id="view-evaluation" class="w-full h-full overflow-y-auto p-6">
-<div class="max-w-xl mx-auto">
-    <a href="javascript:void(0)" onclick="navigate('history')" class="text-sm text-blue-600 hover:underline">← กลับประวัติการยืม</a>
-    <div id="p_evaluation_content" class="mt-3"></div>
+<div id="view-evaluation" class="w-full h-full overflow-y-auto p-4 md:p-6">
+  <div class="max-w-2xl mx-auto space-y-5">
+    <!-- Top Back Link -->
+    <div class="flex items-center justify-between">
+      <a href="javascript:void(0)" onclick="navigate('request-list')" class="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors">
+        <span>←</span> กลับหน้ารายการคำขอของฉัน
+      </a>
+      <a href="javascript:void(0)" onclick="navigate('history')" class="text-xs text-gray-500 hover:text-gray-800 transition-colors">
+        📜 ประวัติการยืมทั้งหมด
+      </a>
+    </div>
+
+    <!-- Main Container Host -->
+    <div id="p_evaluation_content"></div>
   </div>
 </div>
 
 <script src="../shared.js"></script>
 <script>
-let questions = [];
+let p_eval_req = null;
+let p_eval_pieces = [];
+let p_eval_active_idx = 0;
+let p_eval_ratings = {};
 
 function p_evaluation_init() {
   notifyParentPage("evaluation");
@@ -50,105 +63,401 @@ function p_evaluation_init() {
 
   // Fallback demo sample returned item if opened directly
   if (!r) {
-    r = db("requests").find(x => x.status === "RETURNED" || x.status === "ISSUED") || db("requests")[0];
+    r = db("requests").find(x => x.status === "RETURNED" || x.status === "ISSUED" || x.status === "BORROWING") || db("requests")[0];
   }
 
-  const form = db("eval_form");
+  p_eval_req = r;
+  if (!r) {
+    document.getElementById("p_evaluation_content").innerHTML = `
+      <div class="bg-white rounded-3xl border border-dashed border-gray-300 p-10 text-center text-gray-500">
+        <div class="text-4xl mb-2">📦</div>
+        <p class="font-bold text-gray-800">ไม่พบรายการยืมสำหรับประเมิน</p>
+      </div>`;
+    return;
+  }
+
+  // Build piece list
+  p_eval_pieces = [];
+  (r.items || []).forEach((it, idx) => {
+    const item = itemById(it.item_id);
+    p_eval_pieces.push({
+      orig_item_idx: idx,
+      item_id: it.item_id,
+      name: item?.name || "สิ่งของ",
+      image: item?.image || "📦",
+      unit: item?.unit || "ชิ้น",
+      qty: it.qty || 1,
+      asset_tag: it.asset_tag || (item?.type === 'equipment' ? `UBU-EQ-${it.item_id}-01` : null),
+      is_equipment: item?.type === 'equipment',
+      returned: it.returned === true || r.status === "RETURNED" || r.status === "ISSUED",
+      returned_at: it.returned_at || r.returned_at || null
+    });
+  });
+
+  // Determine initial active piece
+  const itemIdxParam = qparam("item_idx");
+  if (itemIdxParam !== null && itemIdxParam !== undefined && p_eval_pieces[Number(itemIdxParam)]) {
+    p_eval_active_idx = Number(itemIdxParam);
+  } else {
+    // Select first un-evaluated piece
+    const firstUnEval = p_eval_pieces.findIndex(p => !isPieceEvaluated(r.id, p.orig_item_idx, p.asset_tag));
+    p_eval_active_idx = firstUnEval !== -1 ? firstUnEval : 0;
+  }
+
+  p_eval_ratings = {};
+  p_evaluation_render();
+}
+
+function p_evaluation_render() {
+  const r = p_eval_req;
   const host = document.getElementById("p_evaluation_content");
 
-  if (!form.published) {
-    host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-3">ยังไม่มีแบบฟอร์มประเมินความพึงพอใจที่เผยแพร่ในขณะนี้</div>`;
-    return;
-  }
-  if (!r) {
-    host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-3">ไม่พบรายการยืมสำหรับประเมิน</div>`;
-    return;
-  }
+  const pieces = p_eval_pieces;
+  const totalCount = pieces.length;
+  const evaluatedCount = pieces.filter(p => isPieceEvaluated(r.id, p.orig_item_idx, p.asset_tag)).length;
+  const allEvaluated = totalCount > 0 && evaluatedCount >= totalCount;
+  const percent = totalCount > 0 ? Math.round((evaluatedCount / totalCount) * 100) : 0;
 
-  const already = db("eval_responses").some(e => e.request_id === r.id);
-  if (already && ridParam) {
-    host.innerHTML = `<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-2xl p-8 text-center mt-3">คุณเคยประเมินรายการนี้ไปแล้ว ไม่สามารถส่งซ้ำได้</div>`;
-    return;
-  }
+  // Render Piece Selection Cards
+  const piecesSelectorHtml = pieces.map((p, idx) => {
+    const isEval = isPieceEvaluated(r.id, p.orig_item_idx, p.asset_tag);
+    const evalData = isEval ? getPieceEvaluation(r.id, p.orig_item_idx, p.asset_tag) : null;
+    const isActive = idx === p_eval_active_idx;
 
-  questions = form.questions;
-  const itemCards = r.items.map(it => {
-    const item = itemById(it.item_id);
-    return `<div class="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
-      <span class="text-3xl">${item?.image || '📦'}</span>
-      <div class="flex-1 min-w-0">
-        <p class="font-bold text-gray-800 text-sm">${item?.name || 'สิ่งของ'} <span class="text-xs text-gray-400 font-mono font-normal">×${it.qty}</span></p>
-        <p class="text-xs text-gray-500">${item?.type === 'equipment' ? 'ครุภัณฑ์ (คืนเรียบร้อยแล้ว)' : 'วัสดุเบิกใช้'}</p>
+    let cardBg = "";
+    let badgeHtml = "";
+
+    if (isEval) {
+      cardBg = isActive 
+        ? "bg-emerald-50/90 border-2 border-emerald-500 ring-2 ring-emerald-100 shadow-xs" 
+        : "bg-emerald-50/50 border border-emerald-200 hover:bg-emerald-50";
+      badgeHtml = `
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-lg shadow-2xs">
+          <span>✓</span> รีวิวแล้ว (${evalData?.rating || 5}★)
+        </span>`;
+    } else if (isActive) {
+      cardBg = "bg-blue-50/80 border-2 border-blue-500 ring-2 ring-blue-100 shadow-xs";
+      badgeHtml = `
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-800 bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-lg shadow-2xs animate-pulse">
+          <span>✍️</span> กำลังรีวิว
+        </span>`;
+    } else {
+      cardBg = "bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50/20 shadow-2xs";
+      badgeHtml = `
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg shadow-2xs">
+          <span>⭐</span> รอรีวิว
+        </span>`;
+    }
+
+    return `
+      <div onclick="p_evaluation_selectPiece(${idx})" class="p-3 rounded-2xl ${cardBg} cursor-pointer transition-all flex flex-col justify-between gap-2">
+        <div class="flex items-start gap-2.5">
+          <span class="text-2xl shrink-0 p-1 bg-white rounded-xl border border-gray-100 shadow-2xs">${p.image}</span>
+          <div class="min-w-0 flex-1">
+            <h4 class="font-bold text-xs sm:text-sm text-gray-900 truncate">${p.name}</h4>
+            <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+              ${p.asset_tag ? `<span class="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">🏷️ ${p.asset_tag}</span>` : `<span class="text-[10px] font-mono text-gray-500">×${p.qty} ${p.unit}</span>`}
+              <span class="text-[10px] text-gray-400 font-medium">${p.returned ? '• คืนแล้ว' : '• ยืมอยู่'}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-1.5 border-t border-gray-200/50">
+          ${badgeHtml}
+          <span class="text-[10px] text-gray-400 font-medium">${isActive ? 'เลือกอยู่' : 'คลิกเพื่อเลือก'}</span>
+        </div>
       </div>
-    </div>`;
+    `;
   }).join("");
 
-  host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mt-3 space-y-4">
-    <div>
-      <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">คำขอ #${r.id}</span>
-      <h1 class="text-xl font-bold text-gray-900 mt-2">แบบประเมินความพึงพอใจการยืมสิ่งของ</h1>
-      <p class="text-xs text-gray-500 mt-0.5">กรุณาประเมินความพึงพอใจการให้บริการสิ่งของในคลัง</p>
-    </div>
+  const activePiece = pieces[p_eval_active_idx] || pieces[0];
+  const isActiveEvaluated = activePiece ? isPieceEvaluated(r.id, activePiece.orig_item_idx, activePiece.asset_tag) : false;
+  const activeEvalData = isActiveEvaluated ? getPieceEvaluation(r.id, activePiece.orig_item_idx, activePiece.asset_tag) : null;
 
-    <!-- Evaluated Items Sample Box -->
-    <div class="space-y-2">
-      <label class="text-xs font-bold text-gray-600 uppercase tracking-wider block">📦 สิ่งของที่ประเมิน:</label>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        ${itemCards}
+  // Active Piece Form or View Box
+  let formBoxHtml = "";
+  if (isActiveEvaluated) {
+    formBoxHtml = `
+      <div class="bg-emerald-50/60 rounded-3xl border border-emerald-200 p-6 space-y-4 shadow-2xs">
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-emerald-200">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">${activePiece.image}</span>
+            <div>
+              <h3 class="font-bold text-emerald-950 text-sm sm:text-base">${activePiece.name}</h3>
+              <p class="text-xs text-emerald-700 font-mono">${activePiece.asset_tag ? `🏷️ ${activePiece.asset_tag}` : `×${activePiece.qty} ${activePiece.unit}`} • รีวิวเรียบร้อยแล้ว</p>
+            </div>
+          </div>
+          <span class="px-3 py-1 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1">
+            <span>✓</span> บันทึกแล้วเมื่อ ${activeEvalData?.created_at || '2026-07-23'}
+          </span>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-emerald-200 p-4 space-y-3">
+          <div>
+            <span class="text-xs text-gray-500 font-medium">คะแนนดาวที่ให้ (rating):</span>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-amber-500 text-lg">
+                ${"★".repeat(activeEvalData?.rating || 5)}${"☆".repeat(5 - (activeEvalData?.rating || 5))}
+              </span>
+              <span class="font-bold text-gray-900 text-sm font-mono">${activeEvalData?.rating || 5}.0 / 5.0</span>
+            </div>
+          </div>
+
+          <div>
+            <span class="text-xs text-gray-500 font-medium">คำอธิบายรีวิว (comment):</span>
+            <p class="text-xs sm:text-sm text-gray-800 bg-gray-50 rounded-xl p-3 border border-gray-200 mt-1 italic">
+              "${activeEvalData?.comment || 'สภาพพร้อมใช้งานดี'}"
+            </p>
+          </div>
+        </div>
+
+        ${!allEvaluated ? `
+          <div class="pt-2 flex justify-end">
+            <button type="button" onclick="p_evaluation_selectNextUnEval()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-xs hover:shadow transition-all flex items-center gap-2 cursor-pointer">
+              <span>✍️</span> ไปรีวิวชิ้นถัดไปที่ยังรออยู่ →
+            </button>
+          </div>
+        ` : `
+          <div class="p-3 bg-emerald-100/80 rounded-xl text-xs text-emerald-900 font-medium text-center">
+            🎉 คุณรีวิวสิ่งของครบทุกชิ้นในคำขอนี้แล้ว ขอบคุณสำหรับข้อมูลรีวิวที่มีประโยชน์ต่อผู้อื่น
+          </div>
+        `}
+      </div>
+    `;
+  } else {
+    const curScore = p_eval_ratings[1] || 0;
+    formBoxHtml = `
+      <div class="bg-white rounded-3xl border border-blue-200 shadow-sm p-5 md:p-6 space-y-5">
+        <!-- Target Piece Banner -->
+        <div class="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-gray-100">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl p-2 bg-blue-50 border border-blue-200 rounded-2xl shadow-2xs">${activePiece.image}</span>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-bold text-gray-900 text-base sm:text-lg">${activePiece.name}</h3>
+                ${activePiece.asset_tag ? `<span class="bg-blue-50 text-blue-800 border border-blue-200 font-mono text-xs font-bold px-2 py-0.5 rounded-lg">🏷️ ${activePiece.asset_tag}</span>` : `<span class="bg-gray-100 text-gray-700 font-mono text-xs font-bold px-2 py-0.5 rounded-lg">×${activePiece.qty} ${activePiece.unit}</span>`}
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                💡 คะแนนดาวและคำอธิบายรีวิวนี้จะแสดงในหน้ารายละเอียดของสิ่งของชิ้นนี้โดยตรง
+              </p>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold shadow-2xs">
+            ชิ้นที่ ${p_eval_active_idx + 1} จาก ${totalCount}
+          </span>
+        </div>
+
+        <!-- Fixed 1-5 Star Rating & Comment -->
+        <div class="space-y-3.5">
+          <div class="bg-gray-50/80 p-4 rounded-2xl border border-gray-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <span>⭐</span> ให้คะแนนความพึงพอใจและสภาพสิ่งของ (1–5 ดาว) <span class="text-red-500">*</span>
+              </label>
+              <span id="p_eval_score_lbl_1" class="text-xs font-bold font-mono ${curScore > 0 ? 'text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md' : 'text-gray-400'}">
+                ${curScore > 0 ? `${curScore} / 5 ดาว` : 'แตะเพื่อให้ดาว'}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 pt-1" id="p_eval_stars_1">
+              ${[1, 2, 3, 4, 5].map(n => `
+                <button type="button" onclick="p_evaluation_setRating(1, ${n})" data-n="${n}" 
+                  class="p_eval_star_1 text-3xl transition-transform hover:scale-110 active:scale-95 cursor-pointer ${n <= curScore ? 'text-amber-400' : 'text-gray-300 hover:text-amber-200'}">
+                  ★
+                </button>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="bg-gray-50/80 p-4 rounded-2xl border border-gray-200 space-y-2">
+            <label class="text-xs sm:text-sm font-bold text-gray-800 block">
+              💬 เขียนอธิบายรีวิวสภาพสิ่งของ (comment)
+            </label>
+            <textarea id="p_eval_comment" rows="3" 
+              placeholder="เช่น สิ่งของสภาพดีมาก, มีรอยนิดหน่อยแต่ใช้งานได้ดี, แบตเตอรี่อึด..." 
+              class="w-full text-xs sm:text-sm px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400"></textarea>
+          </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <button type="button" onclick="p_evaluation_submitPieceEval()" 
+            class="bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white text-xs sm:text-sm font-bold rounded-xl px-6 py-3 shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <span>⭐</span> บันทึกรีวิวชิ้นนี้ (${activePiece.name})
+          </button>
+          
+          <button type="button" onclick="p_evaluation_skipPiece()" 
+            class="text-xs text-gray-500 hover:text-gray-800 font-semibold px-4 py-2 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer text-center">
+            ข้ามไปชิ้นอื่นก่อน / รีวิวภายหลัง →
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Final render assemble
+  host.innerHTML = `
+    <!-- Top Summary Banner -->
+    <div class="bg-white rounded-3xl border border-gray-200 shadow-2xs p-5 md:p-6 space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full font-mono">คำขอ #${r.id}</span>
+            <span class="text-xs font-semibold text-gray-400">ยืมเมื่อ ${r.created_at || '-'}</span>
+          </div>
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mt-1">รีวิวสิ่งของตามชิ้นที่ยืม (ให้ดาวและเขียนอธิบาย)</h1>
+          <p class="text-xs text-gray-500 mt-0.5">
+            ให้ดาว (1–5 ดาว) และเขียนรีวิวแยกรายชิ้น ข้อมูลรีวิวจะไปแสดงในหน้ารายละเอียดสิ่งของชิ้นนั้น
+          </p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl border ${allEvaluated ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'}">
+            <span>${allEvaluated ? '✓' : '⭐'}</span> รีวิวแล้ว ${evaluatedCount}/${totalCount} ชิ้น
+          </span>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+        <div class="h-2 rounded-full transition-all duration-500 ${allEvaluated ? 'bg-emerald-500' : 'bg-blue-600'}" style="width: ${percent}%"></div>
       </div>
     </div>
 
-    <div id="p_evaluation_q-host" class="space-y-4 pt-2 border-t border-gray-100"></div>
-    <button onclick="p_evaluation_submitEval(${r.id})" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 transition-all shadow-sm">ส่งแบบประเมิน</button>
-  </div>`;
-      document.getElementById("p_evaluation_q-host").innerHTML = questions.map(q => {
-        if (q.type === "rating") {
-          return `<div><label class="text-sm font-semibold text-gray-700">${q.text}</label>
-            <div class="flex gap-1 mt-1" id="rating-${q.id}">
-              ${[1,2,3,4,5].map(n => `<button type="button" onclick="p_evaluation_setRating(${q.id},${n})" data-n="${n}" class="star text-2xl text-gray-300">★</button>`).join("")}
-            </div></div>`;
-        }
-        return `<div><label class="text-sm font-semibold text-gray-700">${q.text}</label>
-          <textarea id="text-${q.id}" rows="2" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea></div>`;
-      }).join("");
-    }
-    window.p_evaluation_ratings = window.p_evaluation_ratings || {};
-    function p_evaluation_setRating(qid, n) {
-      window.p_evaluation_ratings[qid] = n;
-      document.querySelectorAll(`#view-evaluation #rating-${qid} .star`).forEach(s => {
-        s.classList.toggle("text-yellow-400", Number(s.dataset.n) <= n);
-        s.classList.toggle("text-gray-300", Number(s.dataset.n) > n);
-      });
-    }
-    function p_evaluation_submitEval(rid) {
-      const answers = {};
-      let missing = false;
-      questions.forEach(q => {
-        if (q.type === "rating") { if (!window.p_evaluation_ratings[q.id]) missing = true; answers[q.id] = window.p_evaluation_ratings[q.id] || null; }
-        else { answers[q.id] = document.getElementById("text-" + q.id).value.trim(); }
-      });
-      if (missing) { toastBanner("กรุณาให้คะแนนทุกข้อก่อนส่ง", "error"); return; }
-      const evals = db("eval_responses");
-      evals.push({ id: nextId(evals), request_id: rid, student_id: currentUserId(), answers, created_at: "2026-07-23" });
-      dbSave("eval_responses", evals);
+    <!-- Piece Selector Cards -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between text-xs font-bold text-gray-700 px-1">
+        <span>📦 เลือกสิ่งของที่ต้องการรีวิว (${totalCount} รายการ):</span>
+        <span class="text-gray-400 font-normal text-[11px]">* คลิกเลือกแต่ละชิ้นเพื่อรีวิว</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        ${piecesSelectorHtml}
+      </div>
+    </div>
 
-      // Save item-level review for specific assigned equipment serials
-      const req = db("requests").find(x => x.id === rid);
-      if (req) {
-        const units = db("units");
-        const assignedUnits = units.filter(u => u.current_request_id === rid);
-        const overallRating = window.p_evaluation_ratings[1] || 5;
-        const textComment = answers[3] || "สภาพพร้อมใช้งานดี";
-        const stu = currentStudent();
-        const studentName = stu ? stu.name : "นักศึกษา";
-        assignedUnits.forEach(u => {
-          addUnitReview(u.asset_tag, studentName, overallRating, textComment);
-        });
-      }
+    <!-- Active Form / Detail Box -->
+    <div class="pt-1">
+      ${formBoxHtml}
+    </div>
+  `;
+}
 
-      toastBanner("ส่งแบบประเมินและรีวิวสภาพสิ่งของเรียบร้อย ขอบคุณค่ะ/ครับ");
-      setTimeout(() => navigate("history"), 700);
+function p_evaluation_selectPiece(idx) {
+  p_eval_active_idx = idx;
+  p_eval_ratings = {};
+  p_evaluation_render();
+}
+
+function p_evaluation_selectNextUnEval() {
+  const r = p_eval_req;
+  const pieces = p_eval_pieces;
+  const nextIdx = pieces.findIndex(p => !isPieceEvaluated(r.id, p.orig_item_idx, p.asset_tag));
+  if (nextIdx !== -1) {
+    p_evaluation_selectPiece(nextIdx);
+  } else {
+    p_evaluation_render();
+  }
+}
+
+function p_evaluation_skipPiece() {
+  const pieces = p_eval_pieces;
+  const nextIdx = (p_eval_active_idx + 1) % pieces.length;
+  p_evaluation_selectPiece(nextIdx);
+}
+
+function p_evaluation_setRating(qid, score) {
+  p_eval_ratings[qid] = score;
+  const stars = document.querySelectorAll(`.p_eval_star_${qid}`);
+  stars.forEach(s => {
+    const n = Number(s.dataset.n);
+    if (n <= score) {
+      s.classList.add("text-amber-400");
+      s.classList.remove("text-gray-300");
+    } else {
+      s.classList.remove("text-amber-400");
+      s.classList.add("text-gray-300");
     }
+  });
+
+  const lbl = document.getElementById(`p_eval_score_lbl_${qid}`);
+  if (lbl) {
+    lbl.className = "text-xs font-bold font-mono text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md";
+    lbl.textContent = `${score} / 5 ดาว`;
+  }
+}
+
+function p_evaluation_submitPieceEval() {
+  const r = p_eval_req;
+  const activePiece = p_eval_pieces[p_eval_active_idx];
+  if (!r || !activePiece) return;
+
+  const overallRating = p_eval_ratings[1];
+  if (!overallRating) {
+    toastBanner("กรุณาให้คะแนนดาว (1–5 ดาว) ก่อนบันทึก", "error");
+    return;
+  }
+
+  const commentEl = document.getElementById("p_eval_comment");
+  const textComment = (commentEl ? commentEl.value.trim() : "") || "สภาพพร้อมใช้งานดี";
+  const stu = currentStudent();
+  const studentName = stu ? stu.name : "นักศึกษา";
+
+  // 1. Save response into eval_responses (Review table)
+  const evals = db("eval_responses") || [];
+  const item = itemById(activePiece.item_id);
+  const borrowItem = (r.items || [])[activePiece.orig_item_idx];
+  const borrowItemId = borrowItem ? (borrowItem.id || (activePiece.orig_item_idx + 1)) : 1;
+  const currentUid = currentUserId();
+
+  evals.push({
+    id: nextId(evals),
+    request_id: r.id,
+    orig_item_idx: activePiece.orig_item_idx,
+    borrow_item_id: borrowItemId,
+    user_id: currentUid,
+    student_id: currentUid,
+    item_id: activePiece.item_id,
+    material_id: item?.type === "material" ? activePiece.item_id : null,
+    durable_material_id: item?.type === "durable_material" ? activePiece.item_id : null,
+    equipment_id: item?.type === "equipment" ? activePiece.item_id : null,
+    asset_tag: activePiece.asset_tag,
+    item_name: activePiece.name,
+    rating: overallRating,
+    comment: textComment,
+    created_at: new Date().toISOString().slice(0, 10)
+  });
+  dbSave("eval_responses", evals);
+
+  // Also sync directly to reviews table if present
+  const reviews = db("reviews") || [];
+  reviews.push({
+    id: nextId(reviews),
+    borrow_item_id: borrowItemId,
+    user_id: currentUid,
+    material_id: item?.type === "material" ? activePiece.item_id : null,
+    durable_material_id: item?.type === "durable_material" ? activePiece.item_id : null,
+    equipment_id: item?.type === "equipment" ? activePiece.item_id : null,
+    rating: overallRating,
+    comment: textComment,
+    created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
+  });
+  dbSave("reviews", reviews);
+
+  // 2. Add review to specific unit if equipment with asset_tag
+  if (activePiece.asset_tag) {
+    addUnitReview(activePiece.asset_tag, studentName, overallRating, textComment);
+  }
+
+  toastBanner(`⭐ บันทึกรีวิว [${activePiece.name}] เรียบร้อยแล้ว`);
+
+  // Check if more un-evaluated pieces remain
+  const remaining = p_eval_pieces.filter(p => !isPieceEvaluated(r.id, p.orig_item_idx, p.asset_tag));
+  if (remaining.length > 0) {
+    const nextIdx = p_eval_pieces.findIndex(p => !isPieceEvaluated(r.id, p.orig_item_idx, p.asset_tag));
+    p_eval_active_idx = nextIdx !== -1 ? nextIdx : 0;
+    p_eval_ratings = {};
+    p_evaluation_render();
+  } else {
+    p_evaluation_render();
+  }
+}
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-' โมดูล 9 (M9 · staff_report): การส่งออกรายงาน — UC-31
+' โมดูล 9 (M9 · staff_report): การส่งออกรายงาน — UC-30
 @startuml usecase_module9
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -26,9 +26,9 @@ left to right direction
 actor "เจ้าหน้าที่\n(Staff)" as Staff
 
 rectangle "โมดูล 9 · การส่งออกรายงาน" {
-  usecase "UC-31\nส่งออกรายงาน" as UC31
+  usecase "UC-30\nส่งออกรายงาน" as UC30
 }
 
-Staff -- UC31
+Staff -- UC30
 
 @enduml

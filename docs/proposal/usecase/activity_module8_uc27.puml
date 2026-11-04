@@ -3,7 +3,7 @@
 ' รองรับภาษาไทย — อ่านก่อน render:
 ' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
 ' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
-'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_student_view_search_student_list.puml
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_student_manage_student_borrow_permission.puml
 ' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
 '    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
 !pragma layout smetana
@@ -37,40 +37,46 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-27 · ดูและค้นหารายชื่อนักศึกษา — Activity Diagram\npartition หน้าจอ = frontend:StudentList (ตรงกับ state diagram)
+title UC-27 · จัดการสิทธิ์การยืมของนักศึกษา — Activity Diagram\npartition หน้าจอ = frontend:StudentList → frontend:StudentPermission
 
 ' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
-' หมายเหตุ: UC นี้ถูก <<include>> โดย UC-28 (จัดการสิทธิ์การยืมของนักศึกษา) — ต้องค้นหา/เลือกนักศึกษาจากที่นี่ก่อน จึงจะไปจัดการสิทธิ์ต่อได้
+' หมายเหตุ: UC นี้ <<include>> UC-26 (ดูและค้นหารายชื่อนักศึกษา) — ขั้นตอนแรก "เลือกนักศึกษาจากรายชื่อ" คือผลของ UC-26
+' จึงแสดงเป็นกิจกรรมปกติขั้นตอนแรกในไดอะแกรมนี้ ไม่ต้องวาดไดอะแกรมของ UC-26 ซ้ำ
 
 |frontend:StudentList|
 start
-:เปิดหน้ารายชื่อนักศึกษา;
+:เลือกนักศึกษาเป้าหมายจากรายชื่อ (ผลจาก UC-26 · <<include>>);
+
+|frontend:StudentPermission|
+:เปิดหน้าจัดการสิทธิ์การยืมของนักศึกษาที่เลือก;
 
 |backend|
 :ตรวจ session + สิทธิ์ (staff เท่านั้น);
-:ดึงรายชื่อนักศึกษาทั้งหมด (ORM);
+:ดึงข้อมูลรายละเอียด + สถานะสิทธิ์การยืมปัจจุบันของนักศึกษา (ORM);
 
-|frontend:StudentList|
-:แสดงรายชื่อนักศึกษา;
-:ค้นหาด้วยชื่อ/รหัสนักศึกษา และ/หรือเลือกเรียงลำดับตามคอลัมน์ที่ต้องการ;
+|frontend:StudentPermission|
+:แสดงหน้าจัดการสิทธิ์การยืม พร้อมสถานะปัจจุบันของนักศึกษา;
+:เลือกดำเนินการ — กดระงับสิทธิ์ (Block) หรือกดปลดบล็อก (Unblock);
 
 |backend|
-:กรองและเรียงลำดับรายชื่อตามเงื่อนไขที่ระบุ (ORM query);
+:บันทึกสถานะสิทธิ์การยืมล่าสุดของนักศึกษา (write);
 
-|frontend:StudentList|
-if (พบนักศึกษาที่ตรงเงื่อนไขหรือไม่?) then (ไม่พบ)
-  :แสดงข้อความ "ไม่พบข้อมูล";
-else (พบ)
-  :แสดงรายชื่อนักศึกษาที่ตรงเงื่อนไข;
-endif
+fork
+  |frontend:StudentPermission|
+  :แสดงผลการอัปเดตสถานะสิทธิ์ให้เจ้าหน้าที่ (main flow);
+fork again
+  |backend|
+  :เขียน audit log (เปลี่ยนแปลงสิทธิ์การยืมของนักศึกษา) ผ่าน signal;
+end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| frontend:StudentList — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
   |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
-  หมายเหตุ: UC-27 เป็นฐานของ UC-28 (<<include>>) — เจ้าหน้าที่ต้องเลือกนักศึกษาจากรายชื่อนี้ก่อนจึงจัดการสิทธิ์การยืมต่อได้
+  หมายเหตุ: UC-27 <<include>> UC-26 — เจ้าหน้าที่ต้องเลือกนักศึกษาจากรายชื่อ/ค้นหา (UC-26) ก่อนจึงเข้าสู่ flow นี้ได้
+  หมายเหตุ: สถานะสิทธิ์ (block/unblock) ที่อัปเดตมีผลต่อการส่งคำขอยืมครั้งถัดไปของนักศึกษา (UC-06)
 endlegend
 
 @enduml

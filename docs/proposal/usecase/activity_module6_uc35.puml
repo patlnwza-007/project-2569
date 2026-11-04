@@ -1,0 +1,110 @@
+@startuml activity_module6_uc35
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_uc35_damaged_equipment.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ห้ามให้แต่ละ partition มีสีต่างกัน =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-35 · จัดการครุภัณฑ์เสียหายและเรื่องแจ้งซ่อม — Activity Diagram\npartition หน้าจอ = frontend:DamagedEquipment (ตรงกับ state diagram) · 2 แท็บ: ครุภัณฑ์เสียหายในคลัง / แจ้งซ่อมจากนักศึกษา
+
+note over
+  **หมายเหตุ — จุดเริ่มของรายการ:** แท็บ 1 ถูกเติมเข้ามาโดยอัตโนมัติจาก UC-18 (ตรวจรับคืนแล้วพบว่าเสียหาย)
+  และแท็บ 2 ถูกเติมเข้ามาโดยอัตโนมัติจาก UC-38 (นักศึกษาแจ้งซ่อม) — คนละ actor คนละรอบเวลา
+  (asynchronous) ไดอะแกรมนี้จึงเริ่มที่เจ้าหน้าที่เปิดเมนูเพื่อดู/จัดการรายการที่มีอยู่แล้วเท่านั้น
+end note
+
+|frontend:DamagedEquipment|
+start
+' สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
+:เปิดเมนู "ครุภัณฑ์เสียหาย" (staff:damaged_equipment_list);
+
+|backend|
+:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:ดึงรหัสครุภัณฑ์ที่มีสถานะ "ครุภัณฑ์เสียหาย" (แท็บ 1) และรายการแจ้งซ่อมจาก UC-38 (แท็บ 2);
+
+|frontend:DamagedEquipment|
+:เลือกแท็บที่ต้องการจัดการ;
+
+if (แท็บใด?) then (แท็บ 1 · ครุภัณฑ์เสียหายในคลัง)
+  if (มีครุภัณฑ์เสียหายอยู่หรือไม่?) then (ไม่มี)
+    :แสดงข้อความ "ไม่มีครุภัณฑ์เสียหายในขณะนี้";
+  else (มี)
+    :แสดงรายการรหัสครุภัณฑ์ พร้อมชื่อสิ่งของ ตำแหน่งจัดเก็บ และหมายเหตุความเสียหาย;
+    if (เลือกดำเนินการอะไร?) then (ส่งซ่อม)
+      |backend|
+      :เปลี่ยนสถานะรหัสครุภัณฑ์เป็น "ส่งซ่อม" (MAINTENANCE) (write);
+    elseif (ซ่อมเสร็จแล้ว) then
+      |backend|
+      :เปลี่ยนสถานะรหัสครุภัณฑ์เป็น "พร้อมให้ยืม" (AVAILABLE) (write);
+      :นับจำนวนคงเหลือของสิ่งของกลับเข้าคลัง;
+    else (จัดการเพิ่มเติม เช่น ปลดระวาง)
+      |frontend:DamagedEquipment|
+      :ส่งต่อไปหน้าเปลี่ยนสถานะครุภัณฑ์รายชิ้น (UC-23);
+      stop
+    endif
+  endif
+else (แท็บ 2 · แจ้งซ่อมจากนักศึกษา)
+  if (มีรายการแจ้งซ่อมหรือไม่?) then (ไม่มี)
+    :แสดงข้อความ "ยังไม่มีรายการแจ้งชำรุดจากนักศึกษา";
+  else (มี)
+    :แสดงรายการที่นักศึกษาแจ้งเข้ามา พร้อมรูปถ่ายและอาการที่แจ้ง (type: ห้อง/สถานที่ หรือ ครุภัณฑ์ในระบบ);
+    if (เลือกดำเนินการอะไร?) then (รับเรื่อง/ส่งช่าง)
+      |backend|
+      :บันทึกหมายเหตุ (staff_note) และเปลี่ยนสถานะเป็น "กำลังดำเนินการซ่อม" (IN_PROGRESS) (write);
+    else (ปิดงานซ่อม)
+      |backend|
+      :บันทึกผลการซ่อม และเปลี่ยนสถานะเป็น "ซ่อมเสร็จสิ้น" (RESOLVED) (write);
+    endif
+  endif
+endif
+
+fork
+  |frontend:DamagedEquipment|
+  :แสดงผลการอัปเดตสถานะให้เจ้าหน้าที่ (main flow);
+fork again
+  |backend|
+  :เขียน audit log (อัปเดตสถานะครุภัณฑ์เสียหาย/เรื่องแจ้งซ่อม) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| frontend:DamagedEquipment — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: รายการแจ้งซ่อมจาก UC-38 ไม่ผูกกับประวัติการยืมใดๆ (นักศึกษาแจ้งได้แม้ไม่เคยยืมสิ่งของชิ้นนั้น)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission (staff) — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
+endlegend
+
+@enduml

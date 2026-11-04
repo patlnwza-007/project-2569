@@ -3,7 +3,7 @@
 ' รองรับภาษาไทย — อ่านก่อน render:
 ' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
 ' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
-'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_inventory_item_delete.puml
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_staff_inventory_item_status_change.puml
 ' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
 '    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
 !pragma layout smetana
@@ -33,43 +33,45 @@ skinparam activity {
   DiamondBorderColor #616161
 }
 
-title UC-23 · ลบวัสดุออกจากระบบ — Activity Diagram\npartition หน้าจอ = frontend:ItemDelete (ตรงกับ state diagram)
+title UC-23 · เปลี่ยนสถานะครุภัณฑ์ — Activity Diagram\npartition หน้าจอ = frontend:ItemStatusChange (ตรงกับ state diagram)
 
 ' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow ทั่วไป
-|frontend:ItemDelete|
+|frontend:ItemStatusChange|
 start
-:เปิดรายการวัสดุ;
-:เลือกวัสดุ 1 รายการหรือหลายรายการที่ต้องการลบ;
-:ยืนยันการลบ;
+:เปิดหน้าเปลี่ยนสถานะครุภัณฑ์สำหรับรายการที่เลือก;
 
 |backend|
 :ตรวจ session + สิทธิ์ (เจ้าหน้าที่เท่านั้น);
+:ตรวจสอบสถานะปัจจุบันของครุภัณฑ์;
 
-' ===== วนตรวจสอบรายการที่เลือกทีละรายการ (รองรับกรณีลบหลายชิ้นพร้อมกัน) =====
-repeat
-  :ตรวจสอบคำขอยืมค้างอยู่ของวัสดุที่เลือก\n(สถานะรออนุมัติ/อนุมัติแล้ว-รอรับของ);
-  if (วัสดุรายการนี้มีคำขอยืมค้างอยู่หรือไม่?) then (มีค้างอยู่)
-    :ปฏิเสธการลบรายการนี้ และแจ้งเหตุผล;
-  else (ไม่มี)
-    :ลบวัสดุรายการนี้ออกจากคลัง (write);
-  endif
-repeat while (ยังมีรายการที่เลือกไว้ที่ยังไม่ตรวจสอบหรือไม่?) is (มี — ตรวจรายการถัดไป) not (ตรวจครบทุกรายการแล้ว)
+if (ครุภัณฑ์กำลังถูกยืมอยู่หรือไม่?) then (กำลังยืม)
+  |frontend:ItemStatusChange|
+  :ไม่อนุญาตให้เปลี่ยนสถานะ และแจ้งเหตุผล\n(ต้องรอจนกว่าจะมีการคืน);
+  stop
+else (ไม่ได้ยืม)
+endif
+
+|frontend:ItemStatusChange|
+:เลือกสถานะใหม่ (ชำรุด/เลิกใช้งาน/ปลดระวาง);
+
+|backend|
+:บันทึกสถานะใหม่ โดยคงประวัติการยืม-คืนเดิมไว้ (write);
+:ปรับให้ไม่ปรากฏเป็นตัวเลือกให้ยืม (หากสถานะไม่พร้อมใช้งาน);
 
 fork
-  |frontend:ItemDelete|
-  :แสดงผลสรุปการลบให้เจ้าหน้าที่ (รายการที่ลบสำเร็จ/ถูกปฏิเสธ);
+  |frontend:ItemStatusChange|
+  :แสดงผลยืนยันสถานะใหม่ให้เจ้าหน้าที่ (main flow);
 fork again
   |backend|
-  :เขียน audit log (ลบวัสดุ) ผ่าน signal;
+  :เขียน audit log (เปลี่ยนสถานะครุภัณฑ์) ผ่าน signal;
 end fork
 
 stop
 
 legend right
-  |<back:white>    </back>| frontend:ItemDelete — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:white>    </back>| frontend:ItemStatusChange — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
   |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
   หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
-  หมายเหตุ: loop ในไดอะแกรมนี้สื่อการตรวจสอบทีละรายการเมื่อเลือกลบหลายชิ้นพร้อมกัน (bulk delete) ตามคำอธิบาย basic flow ข้อ 2 ("เลือกวัสดุ 1 รายการหรือหลายรายการ") ไม่ใช่ loop แบบ retry
 endlegend
 
 @enduml

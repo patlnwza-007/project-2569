@@ -36,7 +36,7 @@
 <div class="max-w-xl mx-auto">
     <a href="javascript:void(0)" onclick="navigate('item-overview')" class="text-sm text-blue-600 hover:underline">← กลับภาพรวมคลัง</a>
     <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-1">นำเข้าคลังแบบชุด (CSV)</h1>
-    <p class="text-sm text-gray-500 mb-6">รูปแบบไฟล์: name,type(material/equipment),category_id,qty_total,max_borrow_days</p>
+    <p class="text-sm text-gray-500 mb-6">รูปแบบไฟล์: name,type(material/durable_material/equipment),category_id,qty_total,max_borrow_days</p>
 
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
       <button onclick="p_bulk_import_downloadTemplate()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">📥 ดาวน์โหลดไฟล์ต้นแบบ (template.csv)</button>
@@ -57,7 +57,7 @@ function p_bulk_import_init() {
 }
 
 function p_bulk_import_downloadTemplate() {
-      const csv = "name,type,category_id,qty_total,max_borrow_days\nตัวอย่าง จอมอนิเตอร์ 24 นิ้ว,equipment,1,5,7\nตัวอย่าง สมุดบันทึก,material,3,30,\n";
+      const csv = "name,type,category_id,qty_total,max_borrow_days\nตัวอย่าง จอมอนิเตอร์ 24 นิ้ว,equipment,1,5,7\nตัวอย่าง สาย HDMI 5 เมตร,durable_material,2,10,7\nตัวอย่าง สมุดบันทึก,material,3,30,\n";
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "template_import_item.csv"; a.click();
     }
@@ -75,10 +75,10 @@ function p_bulk_import_downloadTemplate() {
         lines.forEach((line, idx) => {
           const [name, type, catId, qty, days] = line.split(",").map(s => (s||"").trim());
           const rowNum = idx + 2;
-          if (!name || !["material","equipment"].includes(type) || !catId || isNaN(Number(qty))) {
+          if (!name || !["material","equipment","durable_material"].includes(type) || !catId || isNaN(Number(qty))) {
             errors.push(`แถวที่ ${rowNum}: รูปแบบไม่ถูกต้อง (${line})`); return;
           }
-          items.push({ id: nextId(items), name, type, category_id: Number(catId), position_id: 1, qty_total: Number(qty), qty_available: Number(qty), max_borrow_days: type === "equipment" ? (Number(days)||7) : null, base_status: "พร้อมให้ยืม", image: "📦" });
+          items.push({ id: nextId(items), name, type, category_id: Number(catId), position_id: 1, qty_total: Number(qty), qty_available: Number(qty), max_borrow_days: (type === "equipment" || type === "durable_material") ? (Number(days)||7) : null, base_status: "พร้อมให้ยืม", image: "📦" });
           ok++;
         });
         dbSave("items", items);

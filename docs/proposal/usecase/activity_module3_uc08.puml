@@ -3,7 +3,7 @@
 ' รองรับภาษาไทย — อ่านก่อน render:
 ' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
 ' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
-'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_borrow_UC08_confirm_pickup.puml
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_borrow_UC08_notify_return.puml
 ' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
 '    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
 !pragma layout smetana
@@ -37,50 +37,47 @@ skinparam partition {
   BorderColor #424242
 }
 
-title UC-08 ยืนยันรับสิ่งของ — Activity Diagram\npartition หน้าจอ = frontend:RequestList → frontend:ConfirmPickup · แยกสถานะตามประเภทสิ่งของ (วัสดุ/ครุภัณฑ์)
+title UC-08 แจ้งคืนสิ่งของ (ครุภัณฑ์และวัสดุคงทน) — Activity Diagram\npartition หน้าจอ = frontend:NotifyReturn → frontend:RequestList · รองรับคืนบางส่วน (Partial Return)
 
-|frontend:RequestList|
+|frontend:NotifyReturn|
 start
 ' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
-:ไปรับสิ่งของจากเจ้าหน้าที่ตามที่นัดหมาย;
-:เลือกคำขอสถานะ "อนุมัติแล้ว/รอรับของ" จากรายการ;
-
-|frontend:ConfirmPickup|
-:กดยืนยันการรับของในระบบ;
+:เปิดหน้าแจ้งคืน — ระบบกรองแสดงเฉพาะคำขอที่มีรายการต้องคืน (ครุภัณฑ์/วัสดุคงทน) สถานะ "กำลังยืม";
 
 |backend|
 :ตรวจ session + สิทธิ์ (เจ้าของคำขอเท่านั้น);
-:ตรวจสถานะคำขอปัจจุบัน;
-if (คำขอถูกเปลี่ยนเป็น "หมดอายุ" ไปแล้วหรือไม่ (เกิน 2 วันหลังอนุมัติ — auto-expire ที่ UC-18)?) then (หมดอายุแล้ว)
-  |frontend:ConfirmPickup|
-  :แจ้งว่าไม่สามารถยืนยันรับของได้อีก ต้องส่งคำขอยืมใหม่ (UC-06);
+:แสดงรายการที่ต้องคืน;
+
+|frontend:NotifyReturn|
+:ติ๊กเลือกเฉพาะชิ้นที่จะนำมาคืนรอบนี้ (ปุ่ม "✓ เลือกทั้งหมด" ช่วยได้ — ชิ้นที่ยังใช้ต่อไม่ต้องติ๊ก);
+
+repeat
+  :สำหรับชิ้นที่เลือก ระบุสภาพ 1 ใน 3: ✅ ปกติ / ⚠️ ชำรุด (กรอกอาการ) / 🔴 สูญหาย (ดูราคาจัดซื้อเดิม + ระบุสาเหตุ);
+repeat while (ยังมีชิ้นที่เลือกแต่ยังไม่ระบุสภาพหรือไม่?) is (มี) not (ระบุครบทุกชิ้นแล้ว)
+
+:ถ่ายรูป/แนบรูปหลักฐานสภาพ ณ วันคืน (return_photo);
+
+|backend|
+if (แนบ return_photo แล้วหรือไม่?) then (ยังไม่แนบ)
+  |frontend:NotifyReturn|
+  :แจ้งเตือนให้ถ่ายรูป/แนบรูปหลักฐานก่อนกดยืนยัน (บังคับเสมอ ต่างจาก initial_photo ตอนยืมที่เป็น optional);
   stop
-else (ยังไม่หมดอายุ — "อนุมัติแล้ว/รอรับของ")
+else (แนบแล้ว)
 endif
 
 |backend|
-repeat
-  :ตรวจประเภทของรายการถัดไปในคำขอ;
-  if (ประเภทสิ่งของ?) then (วัสดุ)
-    :เปลี่ยนสถานะรายการเป็น "เบิกสำเร็จ" (สิ้นสุด — ไม่มีขั้นตอนคืน);
-  else (ครุภัณฑ์)
-    :เปลี่ยนสถานะรายการเป็น "กำลังยืม" และเริ่มนับกำหนดคืนจากวันนี้ (write);
-  endif
-repeat while (ยังมีรายการที่ยังไม่ตรวจในคำขอหรือไม่?) is (มี) not (ตรวจครบทุกรายการแล้ว)
-
+:เปลี่ยนสถานะคำขอเป็น "รอเจ้าหน้าที่ตรวจรับคืน" (RETURN_PENDING) เฉพาะชิ้นที่เลือก (write);
 note right
-  รายการครุภัณฑ์ที่เข้าสถานะ "กำลังยืม" จะเริ่มถูกระบบแจ้งเตือนอัตโนมัติ
-  เมื่อใกล้ครบกำหนด/เกินกำหนดคืน (FR-40) ต่อเนื่องจนกว่าจะแจ้งคืนสำเร็จที่ UC-09
-  — เป็น background job (scheduled task) แยกจาก flow ที่นักศึกษาเป็นผู้ริเริ่มใน use case นี้
-  จึงไม่วาดเป็น fork ในไดอะแกรมนี้ (ดูข้อ 3.3 ของคู่มือ — ไม่ block, แต่ก็ไม่ใช่ side effect ของ write ครั้งนี้โดยตรง)
+  Partial Return: ชิ้นที่ไม่ได้ติ๊กคงสถานะ "กำลังยืม" ต่อไป
+  จนกว่าจะแจ้งคืนรอบถัดไป — ไม่บังคับคืนพร้อมกันทั้งหมด
 end note
 
 fork
   |frontend:RequestList|
-  :แสดงผลยืนยันการรับของให้นักศึกษา (main flow);
+  :กลับไปหน้าสถานะการยืมของฉัน พร้อมแบนเนอร์เตือนให้นำของมาแสดงที่เคาน์เตอร์ (main flow) — รอเจ้าหน้าที่ตรวจรับที่ UC-18;
 fork again
   |backend|
-  :เขียน audit log (ยืนยันรับของ) ผ่าน signal;
+  :เขียน audit log (แจ้งคืนสิ่งของ) ผ่าน signal;
 end fork
 
 stop
@@ -88,7 +85,8 @@ stop
 legend right
   |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
   |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
-  หมายเหตุ: การยืนยันรับของเองไม่ได้อยู่ในรายการเหตุการณ์แจ้งเตือนทันทีตาม FR-39/40/41 (แจ้งเตือนที่ตามมาเป็น background job ของ UC-08→UC-09)
+  หมายเหตุ: การแจ้งคืนหยุดวงจรแจ้งเตือนใกล้/เกินกำหนดคืนของชิ้นที่แจ้งคืนสำเร็จ (FR-40) แต่ตัวการแจ้งคืนเองไม่อยู่ในรายการแจ้งเตือนอัตโนมัติ FR-39/40/41
+  จึงไม่ใส่ fork ส่งอีเมล/in-app — มีเฉพาะ fork audit log เท่านั้น การยืนยัน/ปฏิเสธรับคืนจริงเป็นหน้าที่เจ้าหน้าที่ที่ UC-18 (โมดูลอื่น)
   หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
 endlegend
 

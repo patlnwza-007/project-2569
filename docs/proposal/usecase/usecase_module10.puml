@@ -1,4 +1,4 @@
-' โมดูล 10 (M10 · admin_panel): การจัดการบัญชีผู้ใช้งานและบทบาท — UC-33 ถึง UC-35
+' โมดูล 10 (M10 · admin_panel): การจัดการบัญชีผู้ใช้งานและบทบาท — UC-32 ถึง UC-34
 @startuml usecase_module10
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -32,22 +32,22 @@ actor "ผู้ดูแลระบบ\n(Admin)" as Admin
 
 rectangle "โมดูล 10 · การจัดการบัญชีผู้ใช้งานและบทบาท" {
   package "E1 · การจัดการบัญชีผู้ใช้งาน" {
-    usecase "UC-33\nจัดการบัญชีผู้ใช้งานทั้งหมด" as UC33
+    usecase "UC-32\nจัดการบัญชีผู้ใช้งานทั้งหมด" as UC32
   }
 
   package "E2 · การกำหนดบทบาท (Role Override)" {
-    usecase "UC-34\nกำหนดบทบาทผู้ใช้\nเป็นรายบุคคล" as UC34
+    usecase "UC-33\nกำหนดบทบาทผู้ใช้\nเป็นรายบุคคล" as UC33
   }
 
   package "E3 · การส่งออกข้อมูลผู้ใช้งาน" {
-    usecase "UC-35\nส่งออกไฟล์ CSV\nรายชื่อบุคลากร" as UC35
+    usecase "UC-34\nส่งออกไฟล์ CSV\nรายชื่อบุคลากร" as UC34
   }
 }
 
+Admin -- UC32
 Admin -- UC33
 Admin -- UC34
-Admin -- UC35
 
-UC34 ..> UC33 : <<include>>
+UC33 ..> UC32 : <<include>>
 
 @enduml

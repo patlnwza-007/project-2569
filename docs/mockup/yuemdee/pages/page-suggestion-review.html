@@ -142,15 +142,16 @@ function p_suggestion_review_addToPurchasePlan(id) {
   dbSave("suggestions", suggestions);
 
   // Automatically add to purchase wishlist if not already exists
-  const purchases = db("purchases");
-  const exists = purchases.some(p => p.name === s.name);
+  const purchases = db("purchases") || [];
+  const exists = purchases.some(p => p.suggestion_id === s.id || p.name === s.name);
   if (!exists) {
     purchases.push({
       id: nextId(purchases),
+      suggestion_id: s.id,
       name: s.name,
-      detail: `จากข้อเสนอแนะของนักศึกษา (${studentById(s.student_id)?.name || s.student_id}): ${s.detail}`,
-      created_by: "STAFF",
-      created_at: "2026-07-23 " + new Date().toTimeString().slice(0,5),
+      detail: `จากข้อเสนอแนะของนักศึกษา (${studentById(s.student_id)?.name || s.user_id || s.student_id}): ${s.detail}`,
+      created_by: currentUserId() || "STAFF01",
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
     });
     dbSave("purchases", purchases);
   }

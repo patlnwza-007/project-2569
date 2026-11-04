@@ -1,4 +1,5 @@
-' โมดูล 2 (M2 · catalog): ค้นหาและแสดงสิ่งของ — UC-01 ถึง UC-04, UC-38
+' โมดูล 2 (M2 · catalog): ค้นหาและแสดงสิ่งของ — UC-01 ถึง UC-04, UC-37
+' หมายเหตุ: UC-04 (ดูแผนผังตำแหน่งชั้นวาง) เป็น <<extend>> ที่เรียกใช้จากหน้ารายการ/รายละเอียดสิ่งของ
 @startuml usecase_module2
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -36,7 +37,7 @@ rectangle "โมดูล 2 · ค้นหาและแสดงสิ่ง
     usecase "UC-02\nค้นหาและกรองสิ่งของ" as UC02
     usecase "UC-03\nดูรายละเอียดสิ่งของ" as UC03
     usecase "UC-04\nดูแผนผังตำแหน่งชั้นวาง" as UC04
-    usecase "UC-38\nดูประวัติรีวิวและดาวรายชิ้น" as UC38
+    usecase "UC-37\nดูประวัติรีวิวและดาวรายชิ้น" as UC37
   }
 }
 
@@ -44,10 +45,12 @@ Student -- UC01
 Student -- UC02
 Student -- UC03
 Student -- UC04
-Student -- UC38
+Student -- UC37
 
 UC02 ..> UC01 : <<extend>>
 UC03 ..> UC01 : <<extend>>
-UC38 ..> UC03 : <<extend>>
+UC37 ..> UC03 : <<extend>>
+UC04 ..> UC01 : <<extend>>
+UC04 ..> UC03 : <<extend>>
 
 @enduml

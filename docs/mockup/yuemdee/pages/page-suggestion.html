@@ -65,7 +65,7 @@ function p_suggestion_init() { notifyParentPage("suggestion"); p_suggestion_rend
 
 function p_suggestion_render() {
   const stu = currentUserId();
-  const mine = db("suggestions").filter(s => s.student_id === stu).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
+  const mine = (db("suggestions") || []).filter(s => s.user_id === stu || s.student_id === stu).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
   const host = document.getElementById("p_suggestion_rows");
   if (!host) return;
 
@@ -105,14 +105,16 @@ function p_suggestion_submitSuggestion() {
   }
   document.getElementById("p_suggestion_err")?.classList.add("hidden");
 
-  const list = db("suggestions");
+  const list = db("suggestions") || [];
+  const curUid = currentUserId();
   list.push({
     id: nextId(list),
-    student_id: currentUserId(),
+    user_id: curUid,
+    student_id: curUid,
     name,
     detail,
     status: "SUBMITTED",
-    created_at: "2026-07-23 " + new Date().toTimeString().slice(0,5)
+    created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
   });
   dbSave("suggestions", list);
 

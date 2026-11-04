@@ -25,174 +25,1029 @@
     font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
   }
   .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
-  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
   html, body { margin: 0; height: 100%; }
 </style>
-<title>YuemDee · item-detail</title>
+<title>YuemDee · รายละเอียดครุภัณฑ์</title>
 </head>
-<body class="bg-gray-50" onload="p_item_detail_init()">
+<body class="bg-gray-50/80" onload="p_item_detail_init()">
 
-<div id="view-item-detail" class="w-full h-full overflow-y-auto p-6">
-<div class="max-w-2xl mx-auto">
-    <a href="javascript:void(0)" onclick="navigate('item-list')" class="text-sm text-blue-600 hover:underline">← กลับไปรายการสิ่งของ</a>
-    <div id="p_item_detail_content" class="mt-3"></div>
+<div id="view-item-detail" class="w-full h-full overflow-y-auto p-4 md:p-8">
+  <div class="max-w-5xl mx-auto space-y-6">
+    <!-- Top Navigation & Breadcrumbs -->
+    <div class="flex items-center justify-between">
+      <a href="javascript:void(0)" onclick="navigate('item-list')" 
+        class="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors bg-white px-3.5 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+        <span>←</span> กลับไปหน้ารายการสิ่งของ
+      </a>
+      <div class="text-xs text-gray-400 font-mono">YuemDee · Equipment Showcase</div>
+    </div>
+
+    <!-- Main Content Container -->
+    <div id="p_item_detail_content"></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SHOPEE-STYLE BORROW MODAL / BOTTOM SHEET (FOR MATERIALS & EQUIPMENT) -->
+<!-- ============================================================ -->
+<div id="p_item_detail_modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-200" onclick="if(event.target === this) p_item_detail_closeBorrowModal()">
+  <div class="relative bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transition-all transform animate-in fade-in slide-in-from-bottom-5 duration-200">
+    <!-- Mobile Pull Handle -->
+    <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mt-2 sm:hidden"></div>
+
+    <!-- Shopee Header: Image on left, Price/Stock & Info in middle, Close on right -->
+    <div class="p-4 flex items-start gap-3.5 border-b border-gray-100 relative">
+      <div id="p_dt_modal_img" class="w-20 h-20 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-center text-4xl shrink-0 shadow-xs">
+        📦
+      </div>
+      <div class="flex-1 min-w-0 pr-6">
+        <!-- Material stock box -->
+        <div id="p_dt_modal_stock_wrap" class="flex items-baseline gap-1.5 mb-0.5">
+          <span class="text-xs font-medium text-gray-500">คงเหลือ</span>
+          <span id="p_dt_modal_stock" class="text-xl font-bold font-mono text-teal-700">12</span>
+          <span id="p_dt_modal_stock_unit" class="text-xs font-medium text-gray-600">ชิ้น</span>
+        </div>
+        <!-- Equipment Asset Tag box -->
+        <div id="p_dt_modal_unit_wrap" class="hidden flex items-center gap-2 mb-1 flex-wrap">
+          <span id="p_dt_modal_tag_badge" class="font-mono font-bold text-xs bg-blue-100 text-blue-900 border border-blue-300 px-2 py-0.5 rounded-md">🏷️ UBU-EQ-001-01</span>
+          <span id="p_dt_modal_unit_rating" class="text-xs text-amber-500 font-bold">⭐ 5.0</span>
+        </div>
+        <h3 id="p_dt_modal_name" class="font-bold text-gray-900 text-sm leading-snug line-clamp-2 mb-1">
+          ชื่อสิ่งของ
+        </h3>
+        <div class="text-[11px] text-gray-500 flex items-center gap-2 flex-wrap">
+          <span id="p_dt_modal_pos" class="text-gray-500 truncate">📍 ตู้จัดเก็บ</span>
+          <span>·</span>
+          <span id="p_dt_modal_cat" class="text-gray-400 truncate">หมวดทั่วไป</span>
+        </div>
+      </div>
+      <!-- Close button -->
+      <button type="button" onclick="p_item_detail_closeBorrowModal()" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Shopee Body -->
+    <div class="p-4 space-y-4 overflow-y-auto">
+      <!-- Preset chips (hidden for equipment) -->
+      <div id="p_dt_modal_presets_wrap">
+        <div class="text-xs font-semibold text-gray-600 mb-2">เลือกจำนวนด่วน</div>
+        <div class="flex items-center gap-2 flex-wrap" id="p_dt_modal_presets">
+          <!-- Preset buttons injected here -->
+        </div>
+      </div>
+
+      <div class="border-t border-gray-100 pt-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <span id="p_dt_modal_qty_title" class="text-sm font-semibold text-gray-800">จำนวนที่ต้องการเบิก</span>
+            <span id="p_dt_modal_qty_hint" class="text-xs text-gray-400 block mt-0.5">เบิกใช้แล้วหมดไป ไม่ต้องส่งคืน</span>
+          </div>
+
+          <!-- Shopee Connected Stepper: [ − | 1 | + ] joined seamlessly as one unit -->
+          <div class="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white shadow-2xs">
+            <button type="button" id="p_dt_modal_btn_minus" onclick="p_item_detail_modalStep(-1)" 
+              class="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed font-bold text-lg border-r border-gray-300 select-none">
+              −
+            </button>
+            <input type="number" id="p_dt_modal_qty_input" min="1" 
+              oninput="p_item_detail_modalInputQty(this.value)" 
+              class="w-14 h-9 text-center font-mono font-bold text-sm text-gray-900 focus:outline-none focus:bg-teal-50/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              value="1">
+            <button type="button" id="p_dt_modal_btn_plus" onclick="p_item_detail_modalStep(1)" 
+              class="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed font-bold text-lg border-l border-gray-300 select-none">
+              +
+            </button>
+          </div>
+        </div>
+
+        <!-- Error Text -->
+        <p id="p_dt_modal_err_msg" class="hidden text-xs text-red-600 font-medium text-right mt-1.5"></p>
+      </div>
+    </div>
+
+    <!-- Shopee Footer Action -->
+    <div class="p-4 pt-2 border-t border-gray-100 bg-white space-y-2">
+      <!-- Full-width Primary Button -->
+      <button type="button" id="p_dt_modal_confirm_btn" onclick="p_item_detail_confirmBorrowModal()" 
+        class="w-full bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-md shadow-teal-100 transition-all flex items-center justify-center gap-2">
+        <span>🛒</span>
+        <span id="p_dt_modal_confirm_label">ใส่ตะกร้า</span>
+      </button>
+
+      <!-- Subtle Remove Link if already in cart -->
+      <div id="p_dt_modal_remove_wrap" class="hidden text-center pt-0.5">
+        <button type="button" onclick="p_item_detail_removeFromCartModal()" class="text-xs text-red-500 hover:text-red-700 hover:underline transition-colors font-medium">
+          🗑️ นำรายการนี้ออกจากตะกร้า
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script src="../shared.js"></script>
 <script>
+let p_item_detail_tab = "details"; // "details" | "reviews"
+let p_item_detail_star_filter = 0; // 0 = all
+
+function p_item_detail_setTab(tab) {
+  p_item_detail_tab = tab;
+  p_item_detail_init();
+}
+
+function p_item_detail_setStarFilter(stars) {
+  p_item_detail_star_filter = stars;
+  p_item_detail_init();
+}
+
 function p_item_detail_init() {
-      notifyParentPage("item-detail");
-      const id = Number(qparam("id"));
-      const item = itemById(id);
-      const host = document.getElementById("p_item_detail_content");
-      if (!item) {
-        host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 p-10 text-center mt-3">
-          <div class="text-4xl mb-2">❓</div><p class="text-gray-600 font-semibold">ไม่พบสิ่งของนี้</p>
-          <p class="text-xs text-gray-400 mt-1">สิ่งของนี้อาจถูกลบหรือปลดระวางไปแล้ว</p></div>`;
-        return;
-      }
-      const cat = categoryById(item.category_id);
-      const pos = positionById(item.position_id);
-      const unavailable = item.base_status !== "พร้อมให้ยืม";
-      const empty = !unavailable && item.qty_available === 0;
-      const queue = db("queue").filter(q => q.item_id === id);
-      const myPos = queue.findIndex(q => q.student_id === currentUserId()) + 1;
-      const units = getUnitsByItemId(id);
+  notifyParentPage("item-detail");
+  const id = Number(qparam("id"));
+  const targetUnitTag = qparam("unit");
+  const item = itemById(id);
+  const host = document.getElementById("p_item_detail_content");
+  if (!item) {
+    host.innerHTML = `<div class="bg-white rounded-3xl border border-gray-200 p-12 text-center shadow-xs">
+      <div class="text-5xl mb-3">❓</div><p class="text-gray-700 font-bold text-lg">ไม่พบสิ่งของนี้</p>
+      <p class="text-xs text-gray-400 mt-1">สิ่งของนี้อาจถูกลบหรือปลดระวางไปแล้ว</p></div>`;
+    return;
+  }
+  const cat = categoryById(item.category_id);
+  const pos = positionById(item.position_id);
+  const room = pos ? roomById(pos.room_id) : null;
+  const units = getUnitsByItemId(id);
+  const cart = db("cart");
 
-      let unitsHtml = "";
-      if (item.type === "equipment" && units.length > 0) {
-        unitsHtml = `<div class="mt-6 border-t border-gray-200 pt-5">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-md font-bold text-gray-800 flex items-center gap-2">
-              <span>🏷️ รายการรหัสครุภัณฑ์รายชิ้น</span>
-              <span class="text-xs font-normal text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">* บังคับเลือกรหัสชิ้นที่ต้องการยืม</span>
-            </h3>
-          </div>
-          <p class="text-xs text-gray-500 mb-4">โปรดตรวจสอบคะแนนดาว สภาพ และรีวิวจากผู้ใช้งานก่อนหน้า แล้วกดปุ่ม <strong>"+ เลือกชิ้นนี้ลงตะกร้า"</strong> ตรงรหัสที่ต้องการ</p>
-          <div class="space-y-3">`;
-        units.forEach(u => {
-          const isAvail = u.status === "AVAILABLE";
-          const ratingStars = u.rating ? "⭐".repeat(u.rating) : "ยังไม่มีรีวิว";
-          const reviewCount = u.reviews ? u.reviews.length : 0;
-          
-          let reviewList = "";
-          let toggleBtn = "";
-          if (u.reviews && u.reviews.length > 0) {
-            toggleBtn = `<button onclick="p_item_detail_toggleReviews('${u.asset_tag}')" class="ml-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg border border-blue-200 transition-all cursor-pointer">💬 ดูรีวิว (${reviewCount})</button>`;
-            reviewList = `<div id="reviews-${u.asset_tag}" class="hidden mt-3 text-xs bg-amber-50/60 rounded-xl p-3 space-y-2 border border-amber-200/70">
-              <span class="font-bold text-amber-900 block text-[11px]">💬 รีวิวจากผู้ยืมคนก่อนหน้า (${reviewCount} รายการ):</span>`;
-            u.reviews.forEach(r => {
-              reviewList += `<div class="bg-white rounded-lg p-2.5 border border-amber-200/80 shadow-xs">
-                <div class="flex items-center justify-between">
-                  <span class="font-semibold text-gray-800">${r.student_name}</span> 
-                  <span class="text-amber-500 font-bold">${"⭐".repeat(r.rating)} <span class="text-gray-400 font-normal text-[10px]">(${r.rating}/5)</span></span>
+  // Determine active unit for equipment (show only this piece, do not show others)
+  let activeUnit = null;
+  if (item.type === "equipment") {
+    if (targetUnitTag) {
+      activeUnit = units.find(u => u.asset_tag === targetUnitTag);
+    }
+    if (!activeUnit) {
+      activeUnit = units.find(u => u.status === "AVAILABLE") || units[0] || {
+        asset_tag: "UBU-EQ-UNKNOWN",
+        status: item.base_status === "พร้อมให้ยืม" ? "AVAILABLE" : "MAINTENANCE",
+        rating: 5,
+        reviews: []
+      };
+    }
+  }
+
+  const isEquipment = item.type === "equipment";
+  const isDurable = item.type === "durable_material";
+  const isMaterial = item.type === "material";
+  if (isMaterial && p_item_detail_tab === "reviews") {
+    p_item_detail_tab = "details";
+  }
+  const unitStatus = isEquipment ? (activeUnit ? activeUnit.status : "AVAILABLE") : null;
+  const isAvailable = isEquipment ? (unitStatus === "AVAILABLE") : (item.base_status === "พร้อมให้ยืม" && item.qty_available > 0);
+  const isBorrowed = isEquipment ? (unitStatus === "BORROWED") : (item.base_status === "พร้อมให้ยืม" && item.qty_available === 0);
+  const isDamaged = isEquipment ? (unitStatus === "DAMAGED" || unitStatus === "MAINTENANCE") : (item.base_status !== "พร้อมให้ยืม");
+
+  const inCart = isEquipment 
+    ? cart.some(c => c.item_id === item.id && c.asset_tag === activeUnit.asset_tag)
+    : cart.some(c => c.item_id === item.id && !c.asset_tag);
+  const inCartMatQty = !isEquipment && inCart ? (cart.find(c => c.item_id === item.id && !c.asset_tag)?.qty || 1) : 0;
+
+  const queue = db("queue").filter(q => q.item_id === id && (isEquipment ? q.asset_tag === activeUnit.asset_tag : true));
+  const myPos = queue.findIndex(q => q.student_id === currentUserId()) + 1;
+
+  // Collect reviews only for equipment and durable_material (MATERIAL has no reviews in ERD)
+  let allReviews = [];
+  if (isEquipment && activeUnit) {
+    if (activeUnit.reviews && activeUnit.reviews.length > 0) {
+      allReviews = activeUnit.reviews.map(r => ({ ...r, asset_tag: activeUnit.asset_tag }));
+    } else {
+      allReviews = units.flatMap(u => (u.reviews || []).map(r => ({ ...r, asset_tag: u.asset_tag })));
+    }
+  } else if (isDurable) {
+    allReviews = item.reviews || [
+      { student_name: "สมชาย ใจดี", rating: 5, comment: "สายและอุปกรณ์สภาพดี ใช้งานได้เสถียรไม่มีปัญหา", created_at: "2026-06-20" },
+      { student_name: "วิชัย ตั้งใจ", rating: 4, comment: "สภาพพร้อมใช้งาน ยืมและส่งคืนสะดวก", created_at: "2026-07-02" }
+    ];
+  }
+
+  const avgRating = allReviews.length > 0 
+    ? allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / allReviews.length 
+    : (activeUnit ? (activeUnit.rating || 5) : 5);
+
+  const filteredReviews = p_item_detail_star_filter > 0 
+    ? allReviews.filter(r => r.rating === p_item_detail_star_filter) 
+    : allReviews;
+
+  const countStars = [5, 4, 3, 2, 1].map(st => ({
+    stars: st,
+    count: allReviews.filter(r => r.rating === st).length
+  }));
+
+  let statusBadge = isAvailable
+    ? `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">● พร้อมให้ยืม</span>`
+    : isBorrowed
+    ? `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-slate-800 text-white shadow-2xs">🔴 ${isEquipment ? 'ครุภัณฑ์นี้ถูกยืมไปแล้ว' : isDurable ? 'วัสดุคงทนถูกยืมหมดแล้ว' : 'วัสดุเบิกหมดแล้ว'}</span>`
+    : `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-2xs">🔴 ${isEquipment ? (unitStatus === 'DAMAGED' ? 'ชำรุด/ส่งซ่อม' : unitStatus) : 'ไม่พร้อมใช้งาน'}</span>`;
+
+  const typeTag = isEquipment
+    ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-semibold px-2.5 py-1 rounded-lg">ครุภัณฑ์ (ต้องส่งคืน)</span>`
+    : isDurable
+    ? `<span class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-semibold px-2.5 py-1 rounded-lg">วัสดุคงทน (ต้องส่งคืน · สต็อกรวม)</span>`
+    : `<span class="bg-teal-50 text-teal-700 border border-teal-200 text-xs font-semibold px-2.5 py-1 rounded-lg">วัสดุเบิกใช้ (ใช้แล้วหมดไป)</span>`;
+
+  // Main Borrow Button
+  const borrowButtonHtml = isDamaged 
+    ? `<button disabled class="w-full bg-gray-100 text-gray-400 text-sm font-semibold rounded-2xl py-3.5 px-6 cursor-not-allowed">งดให้บริการชั่วคราว</button>`
+    : isEquipment
+    ? (isAvailable
+      ? (inCart
+        ? `<button onclick="p_item_detail_openEquipmentModal(${item.id}, '${activeUnit.asset_tag}')" class="w-full bg-white border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-800 text-sm font-bold rounded-2xl py-3.5 px-6 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+            <span>🛒</span> อยู่ในตะกร้าแล้ว (1 ชิ้น)
+          </button>`
+        : `<button onclick="p_item_detail_openEquipmentModal(${item.id}, '${activeUnit.asset_tag}')" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white text-base font-bold rounded-2xl py-3.5 px-6 shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <span>🛒</span> ขอยืมครุภัณฑ์ชิ้นนี้ทันที
+          </button>`)
+      : (inCart
+        ? `<div class="space-y-2.5">
+            <div class="p-3.5 bg-slate-100 border-2 border-slate-300 text-slate-800 rounded-2xl text-xs font-semibold flex items-center gap-2.5">
+              <span class="text-xl shrink-0">⚠️</span>
+              <div>
+                <p class="font-bold text-slate-900">ครุภัณฑ์นี้ถูกยืมไปแล้ว (มีคนอื่นยืมตัดหน้า)</p>
+                <p class="text-[11px] text-slate-600 mt-0.5">รายการนี้อยู่ในตะกร้าของคุณแล้ว แต่มีผู้อื่นกดยืมตัดหน้าไปก่อน ท่านสามารถกดจองคิวแทนได้</p>
+              </div>
+            </div>
+            <button onclick="p_item_detail_joinQueueForUnit(${item.id}, '${activeUnit.asset_tag}')" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-sm font-bold rounded-2xl py-3.5 px-6 shadow-md shadow-amber-200 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+              <span>⏳</span> จองคิวครุภัณฑ์รหัสนี้แทน
+            </button>
+          </div>`
+        : `<button onclick="p_item_detail_joinQueueForUnit(${item.id}, '${activeUnit.asset_tag}')" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-sm font-bold rounded-2xl py-3.5 px-6 shadow-md shadow-amber-200 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+            <span>⏳</span> จองคิวครุภัณฑ์รหัสนี้
+          </button>`))
+    : (isBorrowed
+      ? (isDurable
+        ? (inCart
+          ? `<div class="space-y-2.5">
+              <div class="p-3.5 bg-slate-100 border-2 border-slate-300 text-slate-800 rounded-2xl text-xs font-semibold flex items-center gap-2.5">
+                <span class="text-xl shrink-0">⚠️</span>
+                <div>
+                  <p class="font-bold text-slate-900">วัสดุคงทนถูกยืมหมดแล้ว (มีคนอื่นยืมตัดหน้า)</p>
+                  <p class="text-[11px] text-slate-600 mt-0.5">รายการนี้อยู่ในตะกร้าของคุณแล้ว แต่สต็อกในคลังหมดแล้ว ท่านสามารถกดจองคิวแทนได้</p>
                 </div>
-                <p class="text-gray-600 mt-1 text-xs">"${r.comment}"</p>
-                <span class="text-gray-400 text-[10px] block mt-1 text-right">${r.created_at}</span>
-              </div>`;
-            });
-            reviewList += `</div>`;
-          }
+              </div>
+              <button onclick="p_item_detail_joinQueue(${item.id})" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-sm font-bold rounded-2xl py-3.5 px-6 shadow-md shadow-amber-200 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+                <span>⏳</span> จองคิวล่วงหน้าแทน
+              </button>
+            </div>`
+          : `<button onclick="p_item_detail_joinQueue(${item.id})" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-sm font-bold rounded-2xl py-3.5 px-6 shadow-md shadow-amber-200 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+              <span>⏳</span> จองคิวล่วงหน้า (ยืมหมดสต็อก)
+            </button>`)
+        : `<button disabled class="w-full bg-gray-100 text-gray-400 text-sm font-semibold rounded-2xl py-3.5 px-6 cursor-not-allowed">วัสดุหมดคลัง (วัสดุสิ้นเปลืองไม่ต้องคืน จึงไม่สามารถจองคิวได้)</button>`)
+      : inCartMatQty > 0
+      ? `<button onclick="p_item_detail_openMaterialModal(${item.id})" class="w-full bg-white border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-800 text-sm font-bold rounded-2xl py-3.5 px-6 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+          <span>🛒</span> ในตะกร้า: ${inCartMatQty} ${item.unit || 'ชิ้น'}
+        </button>`
+      : isDurable
+      ? `<button onclick="p_item_detail_openMaterialModal(${item.id})" class="w-full bg-sky-600 hover:bg-sky-700 active:scale-[0.99] text-white text-base font-bold rounded-2xl py-3.5 px-6 shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <span>🛒</span> ยืมวัสดุคงทนลงตะกร้า
+        </button>`
+      : `<button onclick="p_item_detail_openMaterialModal(${item.id})" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white text-base font-bold rounded-2xl py-3.5 px-6 shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <span>+</span> เบิกวัสดุลงตะกร้า
+        </button>`);
 
-          unitsHtml += `<div class="p-4 border ${isAvail ? 'border-blue-200 bg-white hover:border-blue-400 shadow-xs' : 'border-gray-200 bg-gray-50 opacity-75'} rounded-2xl transition-all">
-            <div class="flex items-center justify-between">
-              <div>
-                <span class="font-mono font-bold text-sm text-blue-900 bg-blue-100/80 px-2.5 py-1 rounded-lg border border-blue-300">🏷️ ${u.asset_tag}</span>
-                <span class="ml-2 text-xs text-amber-600 font-bold">${ratingStars}</span>
-                ${toggleBtn}
-                ${u.note ? `<p class="text-xs text-amber-700 mt-1 font-medium">⚠️ หมายเหตุคลัง: ${u.note}</p>` : ""}
-              </div>
-              <div>
-                ${u.status === "AVAILABLE" ? `<button onclick="p_item_detail_addToCartWithSerial(${item.id}, '${u.asset_tag}')" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl px-4 py-2 shadow-sm shadow-blue-200 transition-all">+ เลือกชิ้นนี้ลงตะกร้า</button>`
-                  : u.status === "BORROWED" ? `<button onclick="p_item_detail_joinQueueForUnit(${item.id}, '${u.asset_tag}')" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 text-xs font-bold rounded-xl px-3 py-1.5 shadow-sm transition-all flex items-center gap-1"><span>⏳</span> จองคิวรหัสนี้</button>`
-                  : u.status === "DAMAGED" ? `<span class="text-xs font-semibold bg-red-100 text-red-700 px-3 py-1 rounded-full">ชำรุด/ส่งซ่อม</span>`
-                  : `<span class="text-xs font-semibold bg-gray-200 text-gray-700 px-3 py-1 rounded-full">${u.status}</span>`}
-              </div>
+  // Tab Navigation Header (hide reviews tab for consumable MATERIAL)
+  const tabNavHtml = `
+    <div class="flex items-center gap-3 border-b border-gray-200 text-sm font-bold mt-8">
+      <button type="button" onclick="p_item_detail_setTab('details')" 
+        class="pb-3 px-3 transition-all flex items-center gap-2 cursor-pointer ${
+          p_item_detail_tab === 'details' 
+            ? 'border-b-2 border-blue-600 text-blue-600' 
+            : 'border-b-2 border-transparent text-gray-400 hover:text-gray-700'
+        }">
+        <span>📋</span> รายละเอียดและคุณลักษณะ
+      </button>
+      ${!isMaterial ? `
+      <button type="button" onclick="p_item_detail_setTab('reviews')" 
+        class="pb-3 px-3 transition-all flex items-center gap-2 cursor-pointer ${
+          p_item_detail_tab === 'reviews' 
+            ? 'border-b-2 border-blue-600 text-blue-600' 
+            : 'border-b-2 border-transparent text-gray-400 hover:text-gray-700'
+        }">
+        <span>⭐</span> รีวิวการใช้งานจริง (${allReviews.length})
+      </button>
+      ` : ''}
+    </div>
+  `;
+
+  // Tab 1: Details Content (Clean, Flat, Elegant - No Box-in-Box)
+  const unifiedDescription = (isEquipment && activeUnit && activeUnit.note)
+    ? `${item.description ? item.description + ' · ' : ''}หมายเหตุสภาพเครื่อง: ${activeUnit.note}`
+    : (item.description || `${item.name} อุปกรณ์ประจำห้องปฏิบัติการ สำหรับการเรียนการสอน การทำโครงงาน และงานวิจัย ได้รับการตรวจสอบสภาพการทำงานและความพร้อมใช้งานเรียบร้อยแล้ว`);
+
+  const purchasePriceVal = item.purchase_price !== undefined ? item.purchase_price : item.price;
+  const fineRateVal = item.fine_rate_per_day !== undefined && item.fine_rate_per_day !== null
+    ? `${item.fine_rate_per_day} บาท/วัน`
+    : 'ไม่มีค่าปรับ (ไม่ต้องคืน)';
+
+  const detailsTabContent = `
+    <div class="space-y-6 pt-6">
+      <!-- Description Statement (Unified description) -->
+      <div>
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">รายละเอียดและหมายเหตุสภาพสิ่งของ (description):</h3>
+        <p class="text-sm text-gray-700 leading-relaxed">
+          ${unifiedDescription}
+        </p>
+      </div>
+
+      <!-- Clean Specification Cards Grid -->
+      <div>
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">คุณลักษณะสำคัญและข้อกำหนด:</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <div class="text-[11px] font-semibold text-gray-400">🏷️ รหัสพัสดุเฉพาะชิ้น</div>
+            <div class="font-mono font-bold text-sm text-gray-900 mt-1">${isEquipment ? activeUnit.asset_tag : (isDurable ? 'DUR-' + item.id : 'MAT-' + item.id)}</div>
+            <div class="text-[11px] text-gray-400 mt-0.5">${isEquipment ? 'ระบุบนตัวเครื่อง (asset_tag)' : (isDurable ? 'รหัสวัสดุคงทน (id)' : 'รหัสวัสดุสิ้นเปลือง (id)')}</div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <div class="text-[11px] font-semibold text-gray-400">💰 ราคาจัดซื้อเดิม (purchase_price)</div>
+            <div class="font-bold text-sm text-emerald-700 mt-1">${purchasePriceVal ? '฿' + Number(purchasePriceVal).toLocaleString() : 'ไม่ระบุ'}</div>
+            <div class="text-[11px] text-gray-400 mt-0.5">มูลค่าทางบัญชีคลัง</div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <div class="text-[11px] font-semibold text-gray-400">⏱️ ระยะเวลายืมสูงสุด (max_borrow_days)</div>
+            <div class="font-bold text-sm text-indigo-700 mt-1">${item.max_borrow_days ? item.max_borrow_days + ' วัน' : 'เบิกใช้แล้วหมดไป'}</div>
+            <div class="text-[11px] text-gray-400 mt-0.5">${item.max_borrow_days ? 'กำหนดคืนอัตโนมัติ' : 'ไม่ต้องส่งคืน'}</div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <div class="text-[11px] font-semibold text-gray-400">💸 อัตราค่าปรับเกินกำหนด (fine_rate_per_day)</div>
+            <div class="font-bold text-sm text-gray-900 mt-1">${fineRateVal}</div>
+            <div class="text-[11px] text-gray-400 mt-0.5">${isEquipment || isDurable ? 'คิดเฉพาะกรณีคืนของล่าช้า' : 'ตัดจ่ายคลัง'}</div>
+          </div>
+        </div>
+      </div>
+
+      ${!isMaterial ? `
+      <!-- Rating Preview Snippet -->
+      <div class="p-4 bg-gradient-to-r from-blue-50/50 via-white to-amber-50/30 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl p-2 bg-white rounded-xl border border-gray-100 shadow-2xs">⭐</span>
+          <div>
+            <div class="text-sm font-bold text-gray-900">คะแนนประเมินสภาพ: ${avgRating.toFixed(1)} / 5.0 จากผู้ยืมจริง</div>
+            <div class="text-xs text-gray-500 mt-0.5">มีรีวิวการใช้งานแล้ว ${allReviews.length} รายการ</div>
+          </div>
+        </div>
+        <button type="button" onclick="p_item_detail_setTab('reviews')" 
+          class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-white hover:bg-blue-50 px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs transition-colors self-start sm:self-auto cursor-pointer">
+          ดูหน้ารีวิวทั้งหมด →
+        </button>
+      </div>
+      ` : ''}
+    </div>
+  `;
+
+  // Tab 2: Dedicated Reviews Tab
+  const reviewsTabContent = `
+    <div class="space-y-6 pt-6">
+      <!-- Big Rating Overview Card -->
+      <div class="bg-gradient-to-br from-amber-50/70 via-white to-orange-50/30 rounded-3xl border border-amber-200/80 p-6 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div class="flex items-center gap-5">
+            <div class="text-center bg-white px-5 py-3 rounded-2xl border border-amber-200 shadow-2xs">
+              <div class="text-4xl font-black text-amber-500 font-mono leading-tight">${avgRating.toFixed(1)}</div>
+              <div class="text-amber-400 text-sm mt-0.5">${"★".repeat(Math.round(avgRating))}${"☆".repeat(5 - Math.round(avgRating))}</div>
+              <div class="text-[11px] text-gray-400 font-medium mt-1">${allReviews.length} รีวิว</div>
             </div>
-            ${reviewList}
-          </div>`;
-        });
-        unitsHtml += `</div></div>`;
-      }
-
-      host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <div class="flex gap-5">
-          <div class="text-7xl">${item.image}</div>
-          <div class="flex-1">
-            <h1 class="text-xl font-bold text-gray-800">${item.name}</h1>
-            <p class="text-sm text-gray-500">${cat ? cat.name : ""} · ${item.type === 'equipment' ? 'ครุภัณฑ์ (ต้องคืน)' : 'วัสดุ (เบิกใช้แล้วหมดไป)'}</p>
-            <div class="flex gap-2 mt-2">
-              ${unavailable ? `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-200 text-gray-600">ไม่พร้อมใช้งาน</span>`
-                : empty ? `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700">ถูกยืมหมด</span>`
-                : `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700">พร้อมให้ยืม</span>`}
+            <div>
+              <h3 class="font-bold text-gray-900 text-base">คะแนนความพึงพอใจและสภาพสิ่งของ</h3>
+              <p class="text-xs text-gray-500 mt-1">รวบรวมจากตาราง REVIEW หลังผู้ยืมนำส่งคืนเคาน์เตอร์</p>
             </div>
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-3 mt-5 text-sm">
-          <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400">จำนวนคงเหลือ</p><p class="font-mono font-semibold">${item.qty_available} / ${item.qty_total}</p></div>
-          <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400">ตำแหน่งชั้นวาง</p><p class="font-semibold">${pos ? pos.name : "-"}</p></div>
-          <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400">ยืมได้สูงสุด</p><p class="font-semibold">${item.max_borrow_days ? item.max_borrow_days + " วัน" : "ไม่มีกำหนดคืน"}</p></div>
-        </div>
-        ${queue.length ? `<div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-sm text-yellow-800">มีผู้จองคิวอยู่ ${queue.length} คน ${myPos > 0 ? `(คุณอยู่ลำดับที่ ${myPos})` : ""}</div>` : ""}
-        
-        ${unitsHtml}
 
-        <div class="flex gap-3 mt-6">
-          <a href="javascript:void(0)" onclick="navigate('position-map', {id: ${item.id}})" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">🗺️ ดูตำแหน่งชั้นวาง</a>
-          ${unavailable ? "" : empty
-            ? `<button onclick="p_item_detail_joinQueue(${item.id})" class="bg-yellow-400 hover:bg-yellow-500 text-blue-900 text-sm font-semibold rounded-xl px-4 py-2">จองคิว</button>`
-            : item.type === 'material' ? `<button onclick="p_item_detail_addToCart(${item.id})" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">+ เพิ่มลงตะกร้า</button>` : ""}
+        <!-- Star Filter Chips -->
+        <div class="mt-5 pt-4 border-t border-amber-200/60 flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold text-gray-500 mr-1">ระดับดาว:</span>
+          <button type="button" onclick="p_item_detail_setStarFilter(0)" 
+            class="text-xs px-3.5 py-1.5 rounded-full border transition-all cursor-pointer font-bold ${
+              p_item_detail_star_filter === 0 
+                ? 'bg-amber-500 text-white border-amber-500 shadow-xs' 
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }">
+            ทั้งหมด (${allReviews.length})
+          </button>
+          ${countStars.map(cs => `
+            <button type="button" onclick="p_item_detail_setStarFilter(${cs.stars})" 
+              class="text-xs px-3.5 py-1.5 rounded-full border transition-all cursor-pointer font-semibold ${
+                p_item_detail_star_filter === cs.stars 
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-xs font-bold' 
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }">
+              ${cs.stars} ดาว (${cs.count})
+            </button>
+          `).join("")}
         </div>
-      </div>`;
-    }
+      </div>
 
-    function p_item_detail_addToCart(id) {
-      const cart = db("cart");
-      const existing = cart.find(c => c.item_id === id);
-      if (existing) existing.qty += 1; else cart.push({ item_id: id, qty: 1 });
+      <!-- Reviews Cards List -->
+      <div class="space-y-3.5">
+        ${filteredReviews.length === 0 ? `
+          <div class="bg-white rounded-3xl border border-dashed border-gray-300 p-10 text-center">
+            <div class="text-4xl mb-2">💬</div>
+            <p class="text-gray-700 font-bold text-sm">ไม่พบรีวิวในเกณฑ์ที่เลือก</p>
+            <p class="text-xs text-gray-400 mt-0.5">ลองเลือกดู "ทั้งหมด" เพื่อดูรีวิวอื่นๆ</p>
+          </div>
+        ` : filteredReviews.map(r => `
+          <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-2xs hover:border-blue-200 transition-all space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-xs">
+                  ${r.student_name ? r.student_name.slice(0, 1) : "น"}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-gray-900 text-sm">${r.student_name}</span>
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      ✓ ผู้ยืมจริงในระบบ
+                    </span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 mt-0.5">วันที่รีวิว: ${r.created_at || '2026-07-10'}</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-amber-500 font-bold text-sm leading-none">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</div>
+                <span class="text-[10px] text-gray-400 font-mono mt-1 block">(${r.rating}/5)</span>
+              </div>
+            </div>
+
+            <p class="text-gray-700 text-sm leading-relaxed bg-gray-50/70 rounded-xl p-3.5 border border-gray-100">
+              "${r.comment}"
+            </p>
+
+            ${r.asset_tag ? `
+              <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                <span>รหัสครุภัณฑ์ที่ยืม:</span>
+                <span class="font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">${r.asset_tag}</span>
+              </div>
+            ` : ''}
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  // Render Whole Page HTML (Modern 2-Column Showcase)
+  const catName = item.category || (cat ? cat.name : 'หมวดทั่วไป');
+  const locName = item.location || (pos ? pos.name : '-');
+
+  host.innerHTML = `
+    <!-- Top Showcase Card -->
+    <div class="bg-white rounded-3xl border border-gray-200 shadow-xs p-6 md:p-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Left Column: Big Visual Box & Quick Location -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="relative ${isBorrowed ? 'bg-slate-100 border-2 border-slate-300' : 'bg-gradient-to-b from-slate-50 via-gray-50 to-blue-50/40 border-2 border-slate-200'} rounded-3xl p-8 flex flex-col items-center justify-center min-h-[280px] ${isBorrowed ? 'shadow-none' : 'shadow-inner'}">
+            <!-- Top Tag Badge -->
+            <div class="absolute top-4 left-4">
+              ${isEquipment ? `
+                <span class="font-mono font-bold text-xs ${isBorrowed ? 'bg-slate-700 text-slate-200' : 'bg-blue-600 text-white'} px-3 py-1 rounded-xl shadow-xs">🏷️ ${activeUnit.asset_tag}</span>
+              ` : ''}
+            </div>
+
+            <!-- Top Status Badge -->
+            <div class="absolute top-4 right-4">
+              ${statusBadge}
+            </div>
+
+            <!-- Big Emoji / Photo Display -->
+            <div class="text-8xl select-none filter drop-shadow-md py-4 ${isBorrowed ? 'grayscale opacity-60' : ''}">
+              ${item.image}
+            </div>
+
+            <!-- Bottom Indicator -->
+            <div class="text-xs ${isBorrowed ? 'text-slate-600 font-semibold' : 'text-gray-400 font-medium'}">
+              ${isEquipment ? (isBorrowed ? '🔴 ครุภัณฑ์ชิ้นนี้ถูกยืมไปแล้ว' : 'ครุภัณฑ์ชิ้นเฉพาะ · รหัสพัสดุเดียว') : (isBorrowed ? '🔴 วัสดุหมดสต็อก' : 'วัสดุสต็อกรวม')}
+            </div>
+          </div>
+
+          <!-- Location card (Storage + Active Borrowed Relocation) -->
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 text-xs">
+            <div class="flex items-center justify-between gap-2.5">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="text-xl shrink-0">📍</span>
+                <div class="min-w-0">
+                  <div class="text-gray-400 font-semibold text-[11px]">ตำแหน่งจัดเก็บในคลัง (location):</div>
+                  <div class="font-bold text-gray-800 mt-0.5">
+                    ${locName}
+                  </div>
+                </div>
+              </div>
+              ${getRole() === 'staff' ? `
+                <a href="javascript:void(0)" onclick="navigate('item-form', {id: ${item.id}})" class="text-blue-600 hover:text-blue-800 font-bold shrink-0 hover:underline">
+                  ✏️ แก้ไขตำแหน่ง
+                </a>
+              ` : ''}
+            </div>
+            ${(() => {
+              const activeLoc = isEquipment && activeUnit ? getActiveBorrowItemLocation(activeUnit.asset_tag, item.id) : null;
+              if (!activeLoc || !activeLoc.current_location) return '';
+              return `
+                <div class="pt-2.5 border-t border-slate-200/80 flex items-start gap-2 text-amber-900 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200">
+                  <span class="text-base shrink-0">🚨</span>
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-bold text-amber-800">ที่ตั้ง/ที่อยู่ปัจจุบัน (แจ้งย้ายโดยผู้ยืม ${activeLoc.student_id}):</div>
+                    <div class="font-bold text-xs text-gray-900 mt-0.5">${activeLoc.current_location}</div>
+                    ${activeLoc.moved_at ? `<div class="text-[10px] text-amber-700 font-mono mt-0.5">อัปเดตล่าสุดเมื่อ: ${activeLoc.moved_at}</div>` : ''}
+                  </div>
+                </div>
+              `;
+            })()}
+          </div>
+        </div>
+
+        <!-- Right Column: Product Title, Badges, Price, and Action Button -->
+        <div class="lg:col-span-7 space-y-5">
+          <!-- Breadcrumb info -->
+          <div class="flex items-center gap-2 flex-wrap text-xs text-gray-500">
+            <span class="font-semibold text-gray-700">${catName}</span>
+            <span>·</span>
+            ${typeTag}
+          </div>
+
+          <!-- Title -->
+          <div>
+            <h1 class="text-2xl md:text-3xl font-black text-gray-900 leading-snug">
+              ${item.name}
+            </h1>
+            ${!isMaterial ? `
+            <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
+              <button type="button" onclick="p_item_detail_setTab('reviews')" class="text-amber-500 font-bold hover:underline flex items-center gap-1 cursor-pointer">
+                <span>⭐</span> ${avgRating.toFixed(1)} <span class="text-gray-400 font-normal">(${allReviews.length} รีวิวจากผู้ยืมจริง)</span>
+              </button>
+            </div>
+            ` : ''}
+          </div>
+
+          <!-- Price & Accounting Value -->
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-semibold text-gray-400 block">ราคาจัดซื้อเดิม (purchase_price)</span>
+              <span class="text-2xl font-black text-emerald-700 font-mono">
+                ${purchasePriceVal ? '฿' + Number(purchasePriceVal).toLocaleString() : 'ไม่ระบุ'}
+              </span>
+            </div>
+            <div class="text-right">
+              <span class="text-[11px] font-semibold text-gray-400 block">สถานะในระบบ</span>
+              <span class="text-xs font-bold ${isAvailable ? 'text-emerald-700' : isBorrowed ? 'text-slate-800' : 'text-red-700'}">
+                ${isAvailable ? (isEquipment ? 'พร้อมให้ยืม (1/1 ชิ้น)' : `พร้อมให้เบิก/ยืม (${item.qty_available}/${item.qty_total} ${item.unit || 'ชิ้น'})`) : isBorrowed ? (isEquipment ? '🔴 ถูกยืมไปแล้ว' : '🔴 หมดสต็อก') : 'งดให้บริการ'}
+              </span>
+            </div>
+          </div>
+
+          <!-- Quick Metrics Bar -->
+          <div class="grid grid-cols-3 gap-2.5 text-center text-xs">
+            <div class="p-3 bg-white border border-gray-200 rounded-xl shadow-2xs">
+              <span class="text-gray-400 block text-[10px]">ยืมได้สูงสุด</span>
+              <span class="font-bold text-gray-900 mt-0.5 block">${item.max_borrow_days ? item.max_borrow_days + ' วัน' : 'เบิกใช้'}</span>
+            </div>
+            <div class="p-3 bg-white border border-gray-200 rounded-xl shadow-2xs">
+              <span class="text-gray-400 block text-[10px]">หน่วยนับ</span>
+              <span class="font-bold text-gray-900 mt-0.5 block">${item.unit || 'ชิ้น'}</span>
+            </div>
+            <div class="p-3 bg-white border border-gray-200 rounded-xl shadow-2xs">
+              <span class="text-gray-400 block text-[10px]">ค่าปรับเกินกำหนด</span>
+              <span class="font-bold ${item.fine_rate_per_day ? 'text-amber-700' : 'text-gray-500'} mt-0.5 block">${item.fine_rate_per_day ? item.fine_rate_per_day + ' บาท/วัน' : 'ไม่มีค่าปรับ'}</span>
+            </div>
+          </div>
+
+          <!-- Primary Action Button (Shopee Modal Trigger) -->
+          <div class="pt-2">
+            ${borrowButtonHtml}
+            <p class="text-[11px] text-gray-400 text-center mt-2">
+              ${isEquipment ? '🔒 ครุภัณฑ์จำกัดการยืม 1 ชิ้นต่อรหัสพัสดุ · นำไปแสดงที่เคาน์เตอร์เพื่อรับของจริง' : isDurable ? '🔌 วัสดุคงทน · ยืมตามจำนวนและต้องนำมาส่งคืนตามกำหนด' : '📦 วัสดุสิ้นเปลือง · เบิกใช้แล้วหมดไป ไม่ต้องนำมาคืน'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      ${tabNavHtml}
+
+      <!-- Tab Content Area -->
+      ${p_item_detail_tab === 'details' ? detailsTabContent : reviewsTabContent}
+    </div>
+  `;
+}
+
+// ============================================================
+// SHOPEE-STYLE BORROW MODAL CONTROLLERS (ITEM DETAIL)
+// ============================================================
+let p_dt_modal_item = null;
+let p_dt_modal_asset_tag = null;
+let p_dt_modal_is_equipment = false;
+let p_dt_modal_qty = 1;
+
+function p_item_detail_openEquipmentModal(id, assetTag) {
+  const item = itemById(id);
+  if (!item) return;
+
+  const unitRecord = db("units").find(u => u.item_id === id && u.asset_tag === assetTag);
+  if (!unitRecord) return;
+  if (unitRecord.status !== "AVAILABLE") {
+    toastBanner("ครุภัณฑ์ชิ้นนี้ไม่พร้อมให้ยืมในขณะนี้", "error");
+    return;
+  }
+
+  p_dt_modal_item = item;
+  p_dt_modal_asset_tag = assetTag;
+  p_dt_modal_is_equipment = true;
+  p_dt_modal_qty = 1;
+
+  const cat = categoryById(item.category_id);
+  const pos = positionById(item.position_id);
+
+  const imgEl = document.getElementById("p_dt_modal_img");
+  const nameEl = document.getElementById("p_dt_modal_name");
+  const catEl = document.getElementById("p_dt_modal_cat");
+  const posEl = document.getElementById("p_dt_modal_pos");
+  const stockWrap = document.getElementById("p_dt_modal_stock_wrap");
+  const unitWrap = document.getElementById("p_dt_modal_unit_wrap");
+  const tagBadge = document.getElementById("p_dt_modal_tag_badge");
+  const unitRating = document.getElementById("p_dt_modal_unit_rating");
+  const presetsWrap = document.getElementById("p_dt_modal_presets_wrap");
+  const qtyTitle = document.getElementById("p_dt_modal_qty_title");
+  const qtyHint = document.getElementById("p_dt_modal_qty_hint");
+  const qtyInput = document.getElementById("p_dt_modal_qty_input");
+  const minusBtn = document.getElementById("p_dt_modal_btn_minus");
+  const plusBtn = document.getElementById("p_dt_modal_btn_plus");
+  const confirmBtn = document.getElementById("p_dt_modal_confirm_btn");
+  const confirmLabel = document.getElementById("p_dt_modal_confirm_label");
+  const removeWrap = document.getElementById("p_dt_modal_remove_wrap");
+  const errMsg = document.getElementById("p_dt_modal_err_msg");
+
+  if (imgEl) imgEl.innerText = item.image || "📦";
+  if (nameEl) nameEl.innerText = item.name;
+  if (catEl) catEl.innerText = cat ? cat.name : "หมวดทั่วไป";
+  if (posEl) posEl.innerText = `📍 ${pos ? pos.name : 'ตู้จัดเก็บ'}`;
+
+  if (stockWrap) stockWrap.classList.add("hidden");
+  if (unitWrap) {
+    unitWrap.classList.remove("hidden");
+    if (tagBadge) tagBadge.innerText = `🏷️ ${assetTag}`;
+    const revCount = unitRecord.reviews ? unitRecord.reviews.length : 0;
+    if (unitRating) unitRating.innerText = `⭐ ${(unitRecord.rating || 5).toFixed(1)} (${revCount} รีวิว)`;
+  }
+  if (presetsWrap) presetsWrap.classList.add("hidden");
+
+  if (qtyTitle) qtyTitle.innerText = "จำนวนที่ขอยืม";
+  if (qtyHint) qtyHint.innerHTML = `<span class="text-amber-600 font-medium">🔒 ครุภัณฑ์จำกัดการยืม 1 ชิ้นต่อรหัสพัสดุ ไม่สามารถเพิ่มจำนวนได้</span>`;
+
+  if (qtyInput) {
+    qtyInput.value = 1;
+    qtyInput.readOnly = true;
+  }
+  if (minusBtn) minusBtn.disabled = true;
+  if (plusBtn) plusBtn.disabled = true;
+  if (errMsg) errMsg.classList.add("hidden");
+
+  const cart = db("cart");
+  const inCart = cart.some(c => c.item_id === id && c.asset_tag === assetTag);
+
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.className = "w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-md shadow-blue-100 transition-all flex items-center justify-center gap-2";
+  }
+  if (confirmLabel) {
+    confirmLabel.innerText = inCart ? "อยู่ในตะกร้าแล้ว (1 ชิ้น)" : "ใส่ตะกร้า (1 ชิ้น)";
+  }
+
+  if (removeWrap) {
+    if (inCart) removeWrap.classList.remove("hidden");
+    else removeWrap.classList.add("hidden");
+  }
+
+  const modal = document.getElementById("p_item_detail_modal");
+  if (modal) modal.classList.remove("hidden");
+  document.body.classList.add("overflow-hidden");
+}
+
+function p_item_detail_openMaterialModal(id) {
+  const item = itemById(id);
+  if (!item) return;
+
+  if (item.qty_available <= 0) {
+    toastBanner("สิ่งของรายการนี้หมดในคลังแล้ว", "error");
+    return;
+  }
+
+  p_dt_modal_item = item;
+  p_dt_modal_asset_tag = null;
+  p_dt_modal_is_equipment = false;
+
+  const cart = db("cart");
+  const cartItem = cart.find(c => c.item_id === id && !c.asset_tag);
+  const inCartQty = cartItem ? (cartItem.qty || 1) : 0;
+
+  p_dt_modal_qty = inCartQty > 0 ? inCartQty : 1;
+  if (p_dt_modal_qty > item.qty_available) p_dt_modal_qty = item.qty_available;
+
+  const cat = categoryById(item.category_id);
+  const pos = positionById(item.position_id);
+  const unit = item.unit || "ชิ้น";
+
+  const imgEl = document.getElementById("p_dt_modal_img");
+  const nameEl = document.getElementById("p_dt_modal_name");
+  const catEl = document.getElementById("p_dt_modal_cat");
+  const posEl = document.getElementById("p_dt_modal_pos");
+  const stockWrap = document.getElementById("p_dt_modal_stock_wrap");
+  const unitWrap = document.getElementById("p_dt_modal_unit_wrap");
+  const stockEl = document.getElementById("p_dt_modal_stock");
+  const stockUnitEl = document.getElementById("p_dt_modal_stock_unit");
+  const presetsWrap = document.getElementById("p_dt_modal_presets_wrap");
+  const qtyTitle = document.getElementById("p_dt_modal_qty_title");
+  const qtyHint = document.getElementById("p_dt_modal_qty_hint");
+  const qtyInput = document.getElementById("p_dt_modal_qty_input");
+  const confirmBtn = document.getElementById("p_dt_modal_confirm_btn");
+  const removeWrap = document.getElementById("p_dt_modal_remove_wrap");
+
+  if (imgEl) imgEl.innerText = item.image || "📦";
+  if (nameEl) nameEl.innerText = item.name;
+  if (catEl) catEl.innerText = cat ? cat.name : "หมวดทั่วไป";
+  if (posEl) posEl.innerText = `📍 ${pos ? pos.name : 'ตู้จัดเก็บ'}`;
+
+  if (stockWrap) stockWrap.classList.remove("hidden");
+  if (stockEl) stockEl.innerText = item.qty_available;
+  if (stockUnitEl) stockUnitEl.innerText = unit;
+
+  const isDurable = item.type === "durable_material";
+  if (qtyTitle) qtyTitle.innerText = isDurable ? "จำนวนที่ต้องการยืม" : "จำนวนที่ต้องการเบิก";
+  if (qtyHint) qtyHint.innerText = isDurable
+    ? `วัสดุคงทน · ยืมแล้วต้องนำมาส่งคืนตามกำหนด (สูงสุด ${item.max_borrow_days || 7} วัน)`
+    : "เบิกใช้แล้วหมดไป ไม่ต้องส่งคืน";
+
+  if (qtyInput) qtyInput.readOnly = false;
+
+  if (confirmBtn) {
+    confirmBtn.className = isDurable
+      ? "w-full bg-sky-600 hover:bg-sky-700 active:scale-[0.99] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-md shadow-sky-100 transition-all flex items-center justify-center gap-2"
+      : "w-full bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-md shadow-teal-100 transition-all flex items-center justify-center gap-2";
+  }
+
+  if (removeWrap) {
+    if (inCartQty > 0) removeWrap.classList.remove("hidden");
+    else removeWrap.classList.add("hidden");
+  }
+
+  p_item_detail_modalUpdateUI();
+
+  const modal = document.getElementById("p_item_detail_modal");
+  if (modal) modal.classList.remove("hidden");
+  document.body.classList.add("overflow-hidden");
+}
+
+function p_item_detail_closeBorrowModal() {
+  const modal = document.getElementById("p_item_detail_modal");
+  if (modal) modal.classList.add("hidden");
+  document.body.classList.remove("overflow-hidden");
+  p_dt_modal_item = null;
+  p_dt_modal_asset_tag = null;
+  p_dt_modal_is_equipment = false;
+}
+
+function p_item_detail_modalStep(delta) {
+  if (!p_dt_modal_item || p_dt_modal_is_equipment) return;
+  let next = p_dt_modal_qty + delta;
+  if (next < 1) next = 1;
+  if (next > p_dt_modal_item.qty_available) {
+    next = p_dt_modal_item.qty_available;
+    toastBanner(`⚠️ จำนวนสูงสุดที่มีในคลังคือ ${p_dt_modal_item.qty_available} ${p_dt_modal_item.unit || 'ชิ้น'}`, "info");
+  }
+  p_dt_modal_qty = next;
+  p_item_detail_modalUpdateUI();
+}
+
+function p_item_detail_modalSetQty(val) {
+  if (!p_dt_modal_item || p_dt_modal_is_equipment) return;
+  let q = parseInt(val, 10) || 1;
+  if (q < 1) q = 1;
+  if (q > p_dt_modal_item.qty_available) q = p_dt_modal_item.qty_available;
+  p_dt_modal_qty = q;
+  p_item_detail_modalUpdateUI();
+}
+
+function p_item_detail_modalInputQty(val) {
+  if (!p_dt_modal_item || p_dt_modal_is_equipment) return;
+  const errMsg = document.getElementById("p_dt_modal_err_msg");
+  const confirmBtn = document.getElementById("p_dt_modal_confirm_btn");
+  let q = parseInt(val, 10);
+
+  if (isNaN(q) || q < 1) {
+    if (errMsg) {
+      errMsg.classList.remove("hidden");
+      errMsg.innerText = "ระบุอย่างน้อย 1 " + (p_dt_modal_item.unit || "ชิ้น");
+    }
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.classList.add("opacity-50", "cursor-not-allowed");
+    }
+    return;
+  }
+  if (q > p_dt_modal_item.qty_available) {
+    if (errMsg) {
+      errMsg.classList.remove("hidden");
+      errMsg.innerText = `เกินสต็อกในคลัง (สูงสุด ${p_dt_modal_item.qty_available} ${p_dt_modal_item.unit || 'ชิ้น'})`;
+    }
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.classList.add("opacity-50", "cursor-not-allowed");
+    }
+    return;
+  }
+
+  if (errMsg) errMsg.classList.add("hidden");
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.classList.remove("opacity-50", "cursor-not-allowed");
+  }
+  p_dt_modal_qty = q;
+  p_item_detail_modalUpdateUI(true);
+}
+
+function p_item_detail_modalUpdateUI(skipInputSet = false) {
+  if (!p_dt_modal_item) return;
+  const unit = p_dt_modal_item.unit || "ชิ้น";
+  const input = document.getElementById("p_dt_modal_qty_input");
+  const minusBtn = document.getElementById("p_dt_modal_btn_minus");
+  const plusBtn = document.getElementById("p_dt_modal_btn_plus");
+  const confirmLabel = document.getElementById("p_dt_modal_confirm_label");
+  const confirmBtn = document.getElementById("p_dt_modal_confirm_btn");
+  const errMsg = document.getElementById("p_dt_modal_err_msg");
+
+  if (p_dt_modal_is_equipment) {
+    if (input) { input.value = 1; input.readOnly = true; }
+    if (minusBtn) minusBtn.disabled = true;
+    if (plusBtn) plusBtn.disabled = true;
+    return;
+  }
+
+  if (!skipInputSet && input) {
+    input.value = p_dt_modal_qty;
+  }
+  if (input) {
+    input.max = p_dt_modal_item.qty_available;
+  }
+
+  if (minusBtn) {
+    minusBtn.disabled = p_dt_modal_qty <= 1;
+  }
+  if (plusBtn) {
+    plusBtn.disabled = p_dt_modal_qty >= p_dt_modal_item.qty_available;
+  }
+
+  if (errMsg) errMsg.classList.add("hidden");
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.classList.remove("opacity-50", "cursor-not-allowed");
+  }
+
+  const isDurable = p_dt_modal_item.type === "durable_material";
+  if (confirmLabel) {
+    if (cartItem) {
+      confirmLabel.innerText = `บันทึกจำนวนในตะกร้า (${p_dt_modal_qty} ${unit})`;
+    } else {
+      confirmLabel.innerText = isDurable ? `ใส่ตะกร้า (ยืม ${p_dt_modal_qty} ${unit})` : `ใส่ตะกร้า (${p_dt_modal_qty} ${unit})`;
+    }
+  }
+
+  // Presets
+  const presetsHost = document.getElementById("p_dt_modal_presets");
+  if (presetsHost) {
+    const rawPresets = [1, 2, 5, 10];
+    const candidatePresets = rawPresets.filter(p => p < p_dt_modal_item.qty_available);
+    let html = candidatePresets.map(val => {
+      const active = p_dt_modal_qty === val;
+      const activeCls = isDurable 
+        ? 'bg-sky-50 text-sky-700 border-sky-500 shadow-2xs font-bold' 
+        : 'bg-teal-50 text-teal-700 border-teal-500 shadow-2xs font-bold';
+      return `<button type="button" onclick="p_item_detail_modalSetQty(${val})" class="px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+        active 
+          ? activeCls 
+          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+      }">${val} ${unit}</button>`;
+    }).join("");
+
+    const isMax = p_dt_modal_qty === p_dt_modal_item.qty_available;
+    const maxActiveCls = isDurable 
+      ? 'bg-sky-50 text-sky-700 border-sky-500 shadow-2xs font-bold' 
+      : 'bg-teal-50 text-teal-700 border-teal-500 shadow-2xs font-bold';
+    const maxInactiveCls = isDurable
+      ? 'bg-gray-50 text-sky-700 border-sky-200 hover:bg-sky-100/60'
+      : 'bg-gray-50 text-teal-700 border-teal-200 hover:bg-teal-100/60';
+    html += `<button type="button" onclick="p_item_detail_modalSetQty(${p_dt_modal_item.qty_available})" class="px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+      isMax ? maxActiveCls : maxInactiveCls
+    }">ทั้งหมด (${p_dt_modal_item.qty_available} ${unit})</button>`;
+
+    presetsHost.innerHTML = html;
+  }
+}
+
+function p_item_detail_confirmBorrowModal() {
+  if (!p_dt_modal_item) return;
+
+  const cart = db("cart");
+  const unit = p_dt_modal_item.unit || "ชิ้น";
+
+  if (p_dt_modal_is_equipment) {
+    const existing = cart.find(c => c.item_id === p_dt_modal_item.id && c.asset_tag === p_dt_modal_asset_tag);
+    if (!existing) {
+      cart.push({ item_id: p_dt_modal_item.id, asset_tag: p_dt_modal_asset_tag, qty: 1 });
       dbSave("cart", cart);
-      toastBanner("เพิ่มลงตะกร้าแล้ว");
-      p_item_detail_init();
+      toastBanner(`🛒 เพิ่ม "${p_dt_modal_item.name}" รหัส ${p_dt_modal_asset_tag} ลงตะกร้าแล้ว`);
+    } else {
+      toastBanner(`ℹ️ ครุภัณฑ์รหัส ${p_dt_modal_asset_tag} อยู่ในตะกร้าแล้ว`, "info");
     }
-    function p_item_detail_addToCartWithSerial(id, assetTag) {
-      const cart = db("cart");
-      const existing = cart.find(c => c.item_id === id && c.asset_tag === assetTag);
-      if (existing) {
-        toastBanner("ครุภัณฑ์ชิ้นนี้อยู่ในตะกร้าแล้ว", "info");
-        return;
-      }
-      cart.push({ item_id: id, asset_tag: assetTag, qty: 1 });
-      dbSave("cart", cart);
-      toastBanner(`เพิ่มครุภัณฑ์รหัส ${assetTag} ลงตะกร้าแล้ว`);
-      p_item_detail_init();
+  } else {
+    const input = document.getElementById("p_dt_modal_qty_input");
+    let qty = parseInt(input ? input.value : p_dt_modal_qty, 10);
+    if (isNaN(qty) || qty < 1) qty = 1;
+    if (qty > p_dt_modal_item.qty_available) qty = p_dt_modal_item.qty_available;
+
+    const existing = cart.find(c => c.item_id === p_dt_modal_item.id && !c.asset_tag);
+    if (existing) {
+      existing.qty = qty;
+      toastBanner(`🛒 ปรับปรุง "${p_dt_modal_item.name}" ในตะกร้าเป็น ${qty} ${unit} แล้ว`);
+    } else {
+      cart.push({ item_id: p_dt_modal_item.id, qty: qty });
+      toastBanner(`🛒 เพิ่ม "${p_dt_modal_item.name}" (${qty} ${unit}) ลงตะกร้าแล้ว`);
     }
-    function p_item_detail_joinQueue(id) {
-      const queue = db("queue");
-      const stu = currentUserId();
-      if (queue.some(q => q.item_id === id && q.student_id === stu)) { toastBanner("คุณอยู่ในคิวแล้ว", "error"); return; }
-      queue.push({ id: nextId(queue), item_id: id, student_id: stu, joined_at: "2026-07-23" });
-      dbSave("queue", queue);
-      toastBanner("จองคิวสำเร็จ");
-      p_item_detail_init();
-    }
-    function p_item_detail_joinQueueForUnit(id, assetTag) {
-      const queue = db("queue");
-      const stu = currentUserId();
-      if (queue.some(q => q.item_id === id && q.asset_tag === assetTag && q.student_id === stu)) {
-        toastBanner(`คุณอยู่ในคิวของรหัส ${assetTag} เรียบร้อยแล้ว`, "info");
-        return;
-      }
-      queue.push({ id: nextId(queue), item_id: id, asset_tag: assetTag, student_id: stu, joined_at: "2026-07-23 " + new Date().toTimeString().slice(0,5) });
-      dbSave("queue", queue);
-      const myPos = queue.filter(q => q.asset_tag === assetTag).findIndex(q => q.student_id === stu) + 1;
-      toastBanner(`จองคิวครุภัณฑ์รหัส ${assetTag} สำเร็จ (ลำดับที่ ${myPos})`);
-      p_item_detail_init();
-    }
-    function p_item_detail_toggleReviews(assetTag) {
-      const el = document.getElementById("reviews-" + assetTag);
-      if (el) el.classList.toggle("hidden");
-    }
+    dbSave("cart", cart);
+  }
+
+  p_item_detail_closeBorrowModal();
+  p_item_detail_init();
+}
+
+function p_item_detail_removeFromCartModal() {
+  if (!p_dt_modal_item) return;
+  let cart = db("cart");
+  if (p_dt_modal_is_equipment) {
+    cart = cart.filter(c => !(c.item_id === p_dt_modal_item.id && c.asset_tag === p_dt_modal_asset_tag));
+    toastBanner(`🗑️ นำครุภัณฑ์รหัส ${p_dt_modal_asset_tag} ออกจากตะกร้าแล้ว`, "info");
+  } else {
+    cart = cart.filter(c => !(c.item_id === p_dt_modal_item.id && !c.asset_tag));
+    toastBanner(`🗑️ นำ "${p_dt_modal_item.name}" ออกจากตะกร้าแล้ว`, "info");
+  }
+  dbSave("cart", cart);
+  p_item_detail_closeBorrowModal();
+  p_item_detail_init();
+}
+
+function p_item_detail_addToCart(id) {
+  p_item_detail_openMaterialModal(id);
+}
+
+function p_item_detail_addToCartWithSerial(id, assetTag) {
+  p_item_detail_openEquipmentModal(id, assetTag);
+}
+
+function p_item_detail_joinQueue(id) {
+  const targetItem = itemById(id);
+  if (targetItem && targetItem.type === "material") {
+    toastBanner("วัสดุสิ้นเปลืองไม่สามารถจองคิวได้", "error");
+    return;
+  }
+  const queue = db("queue");
+  const stu = currentUserId();
+  if (queue.some(q => q.item_id === id && q.student_id === stu)) { toastBanner("คุณอยู่ในคิวแล้ว", "error"); return; }
+  queue.push({ id: nextId(queue), item_id: id, durable_material_id: id, student_id: stu, status: "WAITING", joined_at: "2026-07-23 " + new Date().toTimeString().slice(0,5) });
+  dbSave("queue", queue);
+  // Also remove from cart if it was in cart
+  const cart = db("cart").filter(c => c.item_id !== id);
+  dbSave("cart", cart);
+  toastBanner("จองคิวสำเร็จ (นำออกจากตะกร้าเรียบร้อย)");
+  p_item_detail_init();
+}
+
+function p_item_detail_joinQueueForUnit(id, assetTag) {
+  const queue = db("queue");
+  const stu = currentUserId();
+  if (queue.some(q => q.item_id === id && q.asset_tag === assetTag && q.student_id === stu)) {
+    toastBanner(`คุณอยู่ในคิวของรหัส ${assetTag} เรียบร้อยแล้ว`, "info");
+    return;
+  }
+  queue.push({ id: nextId(queue), item_id: id, asset_tag: assetTag, student_id: stu, joined_at: "2026-07-23 " + new Date().toTimeString().slice(0,5) });
+  dbSave("queue", queue);
+  // Also remove from cart if it was in cart
+  const cart = db("cart").filter(c => !(c.item_id === id && c.asset_tag === assetTag));
+  dbSave("cart", cart);
+  const myPos = queue.filter(q => q.asset_tag === assetTag).findIndex(q => q.student_id === stu) + 1;
+  toastBanner(`จองคิวครุภัณฑ์รหัส ${assetTag} สำเร็จ (ลำดับที่ ${myPos})`);
+  p_item_detail_init();
+}
+
+function p_item_detail_toggleReviews(assetTag) {
+  const el = document.getElementById("reviews-" + assetTag);
+  if (el) el.classList.toggle("hidden");
+}
 </script>
 </body>
 </html>

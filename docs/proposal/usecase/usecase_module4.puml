@@ -1,4 +1,4 @@
-' โมดูล 4 (M4 · suggestion): การเสนอแนะและจัดซื้อสิ่งของ — UC-13, UC-29, UC-30
+' โมดูล 4 (M4 · suggestion): การเสนอแนะและจัดซื้อสิ่งของ — UC-12, UC-28, UC-29
 @startuml usecase_module4
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -33,20 +33,20 @@ actor "เจ้าหน้าที่\n(Staff)" as Staff
 
 rectangle "โมดูล 4 · การเสนอแนะและจัดซื้อสิ่งของ" {
   package "E1 · การเสนอแนะของนักศึกษา" {
-    usecase "UC-13\nเสนอแนะสิ่งของใหม่" as UC13
+    usecase "UC-12\nเสนอแนะสิ่งของใหม่" as UC12
   }
 
   package "E2 · การพิจารณาและจัดซื้อของเจ้าหน้าที่" {
-    usecase "UC-29\nอนุมัติ/ปฏิเสธรายการเสนอแนะ" as UC29
-    usecase "UC-30\nเพิ่มรายการจัดซื้อด้วยตนเอง" as UC30
+    usecase "UC-28\nอนุมัติ/ปฏิเสธรายการเสนอแนะ" as UC28
+    usecase "UC-29\nเพิ่มรายการจัดซื้อด้วยตนเอง" as UC29
   }
 }
 
-Student -- UC13
+Student -- UC12
+Staff -- UC28
 Staff -- UC29
-Staff -- UC30
 
-' หมายเหตุ: UC-13 (นักศึกษาเสนอแนะ) กับ UC-29 (เจ้าหน้าที่พิจารณา) เป็นคนละ actor
+' หมายเหตุ: UC-12 (นักศึกษาเสนอแนะ) กับ UC-28 (เจ้าหน้าที่พิจารณา) เป็นคนละ actor
 ' และคนละรอบเวลา (asynchronous handoff) — ไม่ใช่ <<include>>/<<extend>> เชิง UML จึงไม่วาดเส้นความสัมพันธ์
 
 @enduml

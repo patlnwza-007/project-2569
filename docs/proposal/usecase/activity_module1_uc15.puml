@@ -1,0 +1,106 @@
+@startuml activity_module1_uc15
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_account_UC15_login.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น — ไม่มี partition ไหนสีต่างจากที่อื่น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-15 · เข้าสู่ระบบด้วย UBU Single Sign-On — Activity Diagram\nflow เดียวที่วาดขั้นตอน UBU SSO (external) + Role Override · partition หน้าจอ = frontend:PageCode
+
+' ===== หน้าแรกก่อนเข้าสู่ระบบ — ผู้ใช้ทั้ง 3 บทบาทเริ่มที่หน้าเดียวกันนี้ =====
+|frontend:Welcome|
+start
+:กดปุ่มเข้าสู่ระบบด้วย UBU Single Sign-On;
+
+' ===== ถูก redirect ไปหน้า Login (รอผล SSO) — ตรงกับ state "Login" ในไดอะแกรม =====
+|frontend:Login|
+:ถูกนำไปหน้ายืนยันตัวตนของ UBU Single Sign-On;
+
+' ===== บริการภายนอกจริง — UBU SSO (นอกขอบเขต Django) =====
+|UBU Single Sign-On (@ubu.ac.th) (external)|
+:ยืนยันตัวตนกับบริการ UBU Single Sign-On;
+:ผู้ใช้อนุญาต (consent) และคืนข้อมูลผู้ใช้พร้อมสิทธิ์บุคลากร;
+
+' ===== ฝั่งเซิร์ฟเวอร์ประมวลผล =====
+|backend|
+:รับข้อมูลการยืนยันตัวตนจาก UBU SSO;
+:กำหนดบทบาทเริ่มต้น (Student/Staff) ตามข้อมูล SSO โดยอัตโนมัติ;
+
+:ตรวจสอบว่าบัญชีถูกระงับสิทธิ์ (Block) โดยแอดมินหรือไม่;
+
+if (บัญชีถูกระงับสิทธิ์ (Block) หรือไม่?) then (ถูกระงับ)
+  |frontend:Login|
+  :ปฏิเสธการเข้าสู่ระบบ + แจ้งเหตุผล (บัญชีถูกระงับสิทธิ์);
+  stop
+else (ไม่ถูกระงับ)
+endif
+
+|backend|
+:ตรวจสอบ Role Override เฉพาะบุคคล (UC-33);
+if (มีการกำหนด Role Override หรือไม่?) then (มี)
+  :ใช้บทบาทที่ถูกกำหนด (Role Override) แทนบทบาทเริ่มต้นจาก UBU SSO;
+else (ไม่มี)
+  :ใช้บทบาทเริ่มต้นจาก UBU SSO ตามที่กำหนดไว้;
+endif
+
+:สร้างเซสชันผู้ใช้ตามบทบาทที่ได้ (session cookie);
+
+fork
+  if (บทบาทที่ได้คือ?) then (นักศึกษา)
+    |frontend:RequestList|
+    :เข้าสู่หน้าหลักนักศึกษา (main flow);
+  elseif (เจ้าหน้าที่) then (เจ้าหน้าที่)
+    |frontend:StaffDashboard|
+    :เข้าสู่หน้าแดชบอร์ดเจ้าหน้าที่ (main flow);
+  else (ผู้ดูแลระบบ)
+    |frontend:UserList|
+    :เข้าสู่หน้ารายชื่อผู้ใช้งาน (main flow);
+  endif
+fork again
+  |backend|
+  :บันทึก audit log (เข้าสู่ระบบสำเร็จ + วัน-เวลา first/last login) ผ่าน signal;
+end fork
+
+stop
+
+legend right
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  |<back:#F5F5F5>    </back>| บริการภายนอก (UBU Single Sign-On) — สื่อด้วยข้อความ "(external)" ไม่ใช่สี |
+  หมายเหตุ: มีเพียง UC-15 นี้เท่านั้นที่วาดขั้นตอนติดต่อ UBU SSO — flow อื่นทั้งหมดถือว่า login แล้ว (session) เริ่มที่ frontend:PageCode ของหน้าแรกใน UC นั้นได้เลย
+  หมายเหตุ: ลำดับตรวจรับข้อมูลบทบาทเริ่มต้นจาก UBU SSO ก่อน แล้วจึงเช็ค Role Override ทับเสมอ ตาม Business Rule ของ UC-15
+endlegend
+
+@enduml

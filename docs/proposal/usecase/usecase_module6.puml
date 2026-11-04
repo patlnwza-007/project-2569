@@ -1,4 +1,6 @@
-' โมดูล 6 (M6 · staff): แดชบอร์ดและการจัดการคำขอยืม-คืน — UC-17 ถึง UC-20, UC-36, UC-37
+' โมดูล 6 (M6 · staff): แดชบอร์ดและการจัดการคำขอยืม-คืน — UC-16 ถึง UC-19, UC-35, UC-36
+' หมายเหตุ: UC-17 รวมขั้นตอน "ยืนยันรับสิ่งของ" (อดีต FR-08, โมดูล 3 เดิม) ไว้ในตัวแล้ว
+' ตาม On-the-Spot Counter Inspection — เจ้าหน้าที่อนุมัติและปล่อยของในขั้นตอนเดียว
 @startuml usecase_module6
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -32,25 +34,29 @@ actor "เจ้าหน้าที่\n(Staff)" as Staff
 
 rectangle "โมดูล 6 · แดชบอร์ดและการจัดการคำขอยืม-คืน" {
   package "E1 · แดชบอร์ด" {
-    usecase "UC-17\nดูแดชบอร์ดภาพรวมระบบ" as UC17
+    usecase "UC-16\nดูแดชบอร์ดภาพรวมระบบ" as UC16
   }
 
   package "E2 · การจัดการคำขอยืม-คืน" {
-    usecase "UC-18\nอนุมัติ/ปฏิเสธคำขอยืม" as UC18
-    usecase "UC-19\nจัดการรับคืนครุภัณฑ์\nและตรวจรับรูปภาพ" as UC19
-    usecase "UC-20\nดูประวัติการยืม-คืนของ\nนักศึกษาทั้งหมด" as UC20
-    usecase "UC-36\nดูรายการ\nครุภัณฑ์เสียหาย" as UC36
-    usecase "UC-37\nกำหนดอัตราค่าปรับและ\nจัดการการชำระค่าปรับ" as UC37
+    usecase "UC-17\nตรวจของและปล่อยของหน้าเคาน์เตอร์\n(On-the-Spot Counter Inspection)" as UC17
+    usecase "UC-18\nตรวจรับคืนสิ่งของหน้าเคาน์เตอร์\n(Counter Return Terminal)" as UC18
+    usecase "UC-19\nดูประวัติการยืม-คืนของ\nนักศึกษาทั้งหมด" as UC19
+    usecase "UC-35\nดูรายการครุภัณฑ์เสียหาย\n(รวมรายงานจากนักศึกษา)" as UC35
+    usecase "UC-36\nกำหนดอัตราค่าปรับและ\nจัดการการชำระค่าปรับ" as UC36
   }
 }
 
+Staff -- UC16
 Staff -- UC17
 Staff -- UC18
 Staff -- UC19
-Staff -- UC20
+Staff -- UC35
 Staff -- UC36
-Staff -- UC37
 
-UC37 ..> UC19 : <<extend>>
+UC36 ..> UC18 : <<extend>>
+
+' หมายเหตุ: UC-35 (เจ้าหน้าที่ดูรายการครุภัณฑ์เสียหาย) รับข้อมูลบางส่วนจาก UC-38 (นักศึกษาแจ้งอุปกรณ์ชำรุด,
+' โมดูล 3) แบบ asynchronous handoff ผ่านข้อมูลที่บันทึกไว้ในระบบ — คนละ actor คนละรอบเวลา ไม่ใช่
+' <<include>>/<<extend>> เชิง UML จึงไม่วาดเส้นข้ามโมดูล
 
 @enduml

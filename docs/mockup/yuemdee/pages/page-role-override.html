@@ -42,25 +42,30 @@
 function p_role_override_init() {
       notifyParentPage("role-override");
       const email = qparam("email");
-      document.getElementById("p_role_override_back-link").href = "page-user-detail.html?email=" + encodeURIComponent(email);
       const overrides = db("role_overrides");
       const ov = overrides.find(o => o.email === email && o.active);
-      document.getElementById("p_role_override_content").innerHTML = `<p class="text-sm mb-2 font-mono">${email}</p>
-        <label class="text-sm font-semibold block mb-1">บทบาทที่ต้องการกำหนด</label>
-        <select id="f-role" class="border px-2 py-1 mb-2"><option value="student">นักศึกษา</option><option value="staff">เจ้าหน้าที่</option></select><br>
-        <label class="text-sm font-semibold block mb-1">เหตุผล (ไม่บังคับ)</label>
-        <input id="f-reason" class="border px-2 py-1 w-80 mb-3" value="${ov ? ov.reason : ''}"><br>
-        <button onclick="p_role_override_save('${email}')" class="bg-purple-600 text-white text-sm px-3 py-1.5 rounded mr-2">บันทึก</button>
-        ${ov ? `<button onclick="p_role_override_cancelOverride('${email}')" class="bg-white border text-sm px-3 py-1.5 rounded">ยกเลิก Override (กลับไปใช้ Whitelist)</button>` : ""}`;
+      document.getElementById("p_role_override_back-link").onclick = () => navigate("user-detail", {email: email});
+      document.getElementById("p_role_override_content").innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-lg">
+        <h1 class="text-lg font-bold text-gray-800 mb-1">กำหนดบทบาทพิเศษ (Role Override)</h1>
+        <p class="text-xs text-gray-500 mb-4 font-mono">อีเมล: <span class="font-bold text-gray-800">${email}</span></p>
+        <label class="text-sm font-semibold block mb-1 text-gray-700">บทบาทที่ต้องการกำหนด</label>
+        <select id="p_role_override_f-role" class="border border-gray-300 rounded-xl px-3 py-2 mb-4 text-sm w-full bg-white focus:outline-none focus:ring-2 focus:ring-purple-300">
+          <option value="student">นักศึกษา</option>
+          <option value="staff">เจ้าหน้าที่</option>
+        </select>
+        <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+          <button onclick="p_role_override_save('${email}')" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold px-5 py-2 rounded-xl shadow-sm transition">บันทึก</button>
+          ${ov ? `<button onclick="p_role_override_cancelOverride('${email}')" class="bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl transition">ยกเลิก Override (กลับไปใช้บทบาท SSO)</button>` : ""}
+        </div>
+      </div>`;
       if (ov) document.getElementById("p_role_override_f-role").value = ov.role;
     }
     function p_role_override_save(email) {
       const role = document.getElementById("p_role_override_f-role").value;
-      const reason = document.getElementById("p_role_override_f-reason").value.trim();
       const overrides = db("role_overrides");
       let ov = overrides.find(o => o.email === email);
-      if (ov) { ov.role = role; ov.reason = reason; ov.active = true; }
-      else overrides.push({ email, role, reason, active: true });
+      if (ov) { ov.role = role; ov.active = true; }
+      else overrides.push({ email, role, active: true });
       dbSave("role_overrides", overrides);
       toastBanner("บันทึกบทบาท Role Override สำเร็จ มีผลตั้งแต่การเข้าสู่ระบบครั้งถัดไป");
       setTimeout(() => navigate("user-detail", {email: email}), 700);
@@ -70,7 +75,7 @@ function p_role_override_init() {
       const ov = overrides.find(o => o.email === email);
       if (ov) ov.active = false;
       dbSave("role_overrides", overrides);
-      toastBanner("ยกเลิก Override แล้ว กลับไปใช้บทบาทอัตโนมัติจาก Whitelist");
+      toastBanner("ยกเลิก Override แล้ว กลับไปใช้บทบาทอัตโนมัติจาก UBU SSO");
       setTimeout(() => navigate("user-detail", {email: email}), 700);
     }
 </script>

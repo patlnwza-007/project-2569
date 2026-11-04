@@ -46,7 +46,7 @@
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex flex-wrap gap-3">
       <input id="p_item_overview_q" oninput="p_item_overview_render()" placeholder="ค้นหาชื่อ..." class="flex-1 min-w-[180px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
       <select id="p_item_overview_f-cat" onchange="p_item_overview_render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">หมวดหมู่ทั้งหมด</option></select>
-      <select id="p_item_overview_f-type" onchange="p_item_overview_render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">ประเภททั้งหมด</option><option value="material">วัสดุ</option><option value="equipment">ครุภัณฑ์</option></select>
+      <select id="p_item_overview_f-type" onchange="p_item_overview_render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">ประเภททั้งหมด</option><option value="material">วัสดุสิ้นเปลือง</option><option value="durable_material">วัสดุคงทน</option><option value="equipment">ครุภัณฑ์</option></select>
       <select id="p_item_overview_f-status" onchange="p_item_overview_render()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">สถานะทั้งหมด</option><option value="available">พร้อมให้ยืม</option><option value="empty">กำลังยืมหมด</option><option value="unavailable">ไม่พร้อมใช้งาน</option></select>
     </div>
 
@@ -94,7 +94,7 @@ function p_item_overview_init() {
         return `<tr class="hover:bg-gray-50 border-t border-gray-100">
           <td class="px-4 py-2">${i.image} ${i.name}</td>
           <td class="px-4 py-2 text-xs text-gray-500">${cat?cat.name:""}</td>
-          <td class="px-4 py-2 text-xs">${i.type==='equipment'?'ครุภัณฑ์':'วัสดุ'}</td>
+          <td class="px-4 py-2 text-xs">${i.type==='equipment' ? '<span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">ครุภัณฑ์</span>' : i.type==='durable_material' ? '<span class="px-2 py-0.5 rounded bg-sky-50 text-sky-700 font-medium">วัสดุคงทน</span>' : '<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-medium">วัสดุสิ้นเปลือง</span>'}</td>
           <td class="px-4 py-2 font-mono text-xs">${i.qty_available}/${i.qty_total}</td>
           <td class="px-4 py-2">${statusBadge}</td>
           <td class="px-4 py-2">

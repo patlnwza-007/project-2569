@@ -4,128 +4,114 @@ top to bottom direction
 skinparam linetype ortho
 
 ' ==========================================
-' ENTITIES DEFINITIONS (Final Production-Ready Schema)
+' ENTITIES DEFINITIONS (Final Normalized 3NF Schema - 13 Entities)
+' อัปเดตล่าสุด:
+' 1. ยุบ Student/Staff/Admin รวมถึง RoleOverride และ AdminBlockedEmail เป็นตาราง User เดียว รองรับ Django AbstractUser และ UBU SSO
+' 2. ยุบ Category และ Position เป็นฟิลด์ category และ location ในตารางสิ่งของทั้ง 3 ประเภทโดยตรง
+' 3. ยุบ EquipmentUnit รวมเข้ากับ Equipment และเก็บอัตราค่าปรับต่อวัน (fine_rate_per_day) ไว้ใน DurableMaterial และ Equipment โดยตรง (ตัด SystemSetting ออก)
+' 4. เพิ่มฟิลด์ current_location และ moved_at ใน BorrowItem รองรับการแจ้งย้ายที่ตั้ง/ที่อยู่ครุภัณฑ์โดยนักศึกษาเมื่อเกิดเหตุฉุกเฉิน (เช่น น้ำท่วม)
+' 5. ใช้ตาราง Review เดียวสำหรับให้ดาวและเขียนอธิบายรีวิวสิ่งของตามชิ้นที่ยืม (ตัด EvaluationQuestion และ EvaluationAnswer ออก)
 ' ==========================================
 
-entity "Student (นักศึกษา)" as student {
+entity "User (ผู้ใช้งานระบบ)" as user {
   * id : VARCHAR(20) <<PK>>
   --
   * name : VARCHAR(100)
   * email : VARCHAR(100) <<UK>> (@ubu.ac.th)
+  * role : ENUM (student / staff / admin)
+  role_override : ENUM (student / staff / admin)
+  assigned_by : VARCHAR(20) <<FK>>
   phone : VARCHAR(20)
-  * first_login : DATETIME
-  * last_login : DATETIME
+  first_login : DATETIME
+  last_login : DATETIME
   blocked : BOOLEAN
   block_reason : TEXT
+  blocked_by : VARCHAR(20) <<FK>>
 }
 
-entity "Staff (เจ้าหน้าที่คลัง)" as staff {
-  * id : VARCHAR(20) <<PK>>
-  --
-  * name : VARCHAR(100)
-  * email : VARCHAR(100) <<UK>>
-}
-
-entity "Admin (ผู้ดูแลระบบ)" as admin {
-  * id : VARCHAR(20) <<PK>>
-  --
-  * name : VARCHAR(100)
-  * email : VARCHAR(100) <<UK>>
-}
-
-entity "RoleOverride (สิทธิ์ข้ามบทบาท)" as role_override {
-  * id : INT <<PK>>
-  --
-  * email : VARCHAR(100) <<UK>>
-  * role : ENUM (student / staff / admin)
-  reason : TEXT
-  active : BOOLEAN
-}
-
-entity "AdminBlockedEmail (ระงับสิทธิ์เข้าใช้งาน)" as admin_blocked_email {
-  * id : INT <<PK>>
-  --
-  * email : VARCHAR(100) <<UK>>
-  reason : TEXT
-  * blocked_by : VARCHAR(20) <<FK>>
-  * blocked_at : DATETIME
-}
-
-entity "Category (หมวดหมู่สิ่งของ)" as category {
-  * id : INT <<PK>>
-  --
-  * name : VARCHAR(100)
-}
-
-entity "Position (ตำแหน่งตู้/ชั้นวาง)" as position {
-  * id : INT <<PK>>
-  --
-  * name : VARCHAR(100)
-}
-
-entity "Item (ชนิดสิ่งของ/พัสดุ)" as item {
+entity "Material (วัสดุสิ้นเปลือง — เบิกแล้วหมดไป ไม่ต้องคืน)" as material {
   * id : INT <<PK>>
   --
   * name : VARCHAR(150)
-  * type : ENUM (material / equipment)
-  * category_id : INT <<FK>>
-  * position_id : INT <<FK>>
+  * category : VARCHAR(100)
+  * location : VARCHAR(150)
   * qty_total : INT
   * qty_available : INT
-  max_borrow_days : INT
+  * unit : VARCHAR(30)
+  purchase_price : DECIMAL(10,2)
   base_status : VARCHAR(50)
+  description : TEXT
   image : VARCHAR(255)
 }
 
-entity "Unit (ครุภัณฑ์รายชิ้น)" as unit {
-  * asset_tag : VARCHAR(50) <<PK>>
-  --
-  * item_id : INT <<FK>>
-  * status : ENUM (AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE)
-  note : TEXT
-  rating : FLOAT
-}
-
-entity "UnitReview (รีวิวครุภัณฑ์รายชิ้น)" as unit_review {
+entity "DurableMaterial (วัสดุคงทน — ยืม-คืนแบบนับจำนวนรวม)" as durable_material {
   * id : INT <<PK>>
   --
-  * asset_tag : VARCHAR(50) <<FK>>
-  * student_name : VARCHAR(100)
-  * rating : INT (1-5)
-  comment : TEXT
-  * created_at : DATETIME
+  * name : VARCHAR(150)
+  * category : VARCHAR(100)
+  * location : VARCHAR(150)
+  * qty_total : INT
+  * qty_available : INT
+  * unit : VARCHAR(30)
+  * max_borrow_days : INT
+  * fine_rate_per_day : DECIMAL(8,2)
+  purchase_price : DECIMAL(10,2)
+  base_status : VARCHAR(50)
+  description : TEXT
+  image : VARCHAR(255)
+}
+
+entity "Equipment (ครุภัณฑ์รายชิ้น — มีเลขครุภัณฑ์ประจำตัว)" as equipment {
+  * id : INT <<PK>>
+  --
+  * asset_tag : VARCHAR(50) <<UK>>
+  * name : VARCHAR(150)
+  * category : VARCHAR(100)
+  * location : VARCHAR(150)
+  * unit : VARCHAR(30)
+  * max_borrow_days : INT
+  * fine_rate_per_day : DECIMAL(8,2)
+  purchase_price : DECIMAL(10,2)
+  * base_status : ENUM (AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE)
+  description : TEXT
+  image : VARCHAR(255)
 }
 
 entity "BorrowRequest (คำขอยืม/เบิก)" as borrow_request {
   * id : INT <<PK>>
   --
-  * student_id : VARCHAR(20) <<FK>>
+  * user_id : VARCHAR(20) <<FK>>
   approved_by : VARCHAR(20) <<FK>>
   * reason : TEXT
+  use_date : DATE
   due_date : DATE
-  * status : ENUM (PENDING / APPROVED_WAIT_PICKUP / REJECTED / EXPIRED / BORROWING / ISSUED / CANCELLED / COMPLETED)
+  is_special : BOOLEAN
+  * status : ENUM (PENDING / BORROWING / RETURN_PENDING / ISSUED / RETURNED / REJECTED / CANCELLED / EXPIRED)
   * created_at : DATETIME
   approved_at : DATETIME
-  picked_up_at : DATETIME
   reject_reason : TEXT
   pickup_photo : TEXT
 }
 
+' หมายเหตุ: ใช้ Exclusive Arc FK (เติมค่าแค่คอลัมน์เดียวตามชนิดสิ่งของ: material_id / durable_material_id / equipment_id)
 entity "BorrowItem (รายการยืม)" as borrow_item {
   * id : INT <<PK>>
   --
   * borrow_request_id : INT <<FK>>
-  * item_id : INT <<FK>>
-  asset_tag : VARCHAR(50) <<FK>>
+  material_id : INT <<FK>>
+  durable_material_id : INT <<FK>>
+  equipment_id : INT <<FK>>
   * qty : INT
-  returned_qty : INT
+  initial_photo : TEXT
+  current_location : VARCHAR(255)
+  moved_at : DATETIME
 }
 
+' หมายเหตุ (3NF): ไม่เก็บ user_id ซ้ำ เพราะอ้างอิงผ่าน borrow_request_id ได้โดยตรง
 entity "ReturnRequest (ใบแจ้งส่งคืนพัสดุ)" as return_request {
   * id : INT <<PK>>
   --
   * borrow_request_id : INT <<FK>>
-  * student_id : VARCHAR(20) <<FK>>
   inspected_by : VARCHAR(20) <<FK>>
   * status : ENUM (RETURN_PENDING / RETURNED / REJECTED)
   return_photo : TEXT
@@ -137,22 +123,25 @@ entity "ReturnRequest (ใบแจ้งส่งคืนพัสดุ)" as 
   returned_at : DATETIME
 }
 
+' หมายเหตุ (3NF): อ้างอิงสิ่งของที่คืนผ่าน borrow_item_id อย่างเดียว
+' ไม่เก็บ item_type / material_id / durable_material_id / equipment_id ซ้ำ
 entity "ReturnItem (รายการคืนพัสดุ)" as return_item {
   * id : INT <<PK>>
   --
   * return_request_id : INT <<FK>>
   * borrow_item_id : INT <<FK>>
-  asset_tag : VARCHAR(50) <<FK>>
   * qty_returned : INT
   condition_status : ENUM (NORMAL / DAMAGED / LOST)
+  lost_compensation : DECIMAL(10,2)
+  lost_paid : BOOLEAN
 }
 
 entity "Queue (คิวจองสิ่งของ)" as queue {
   * id : INT <<PK>>
   --
-  * item_id : INT <<FK>>
-  asset_tag : VARCHAR(50) <<FK>>
-  * student_id : VARCHAR(20) <<FK>>
+  durable_material_id : INT <<FK>>
+  equipment_id : INT <<FK>>
+  * user_id : VARCHAR(20) <<FK>>
   * status : ENUM (WAITING / NOTIFIED / EXPIRED / CANCELLED)
   * joined_at : DATETIME
   notified_at : DATETIME
@@ -162,7 +151,7 @@ entity "Queue (คิวจองสิ่งของ)" as queue {
 entity "Suggestion (ข้อเสนอแนะพัสดุใหม่)" as suggestion {
   * id : INT <<PK>>
   --
-  * student_id : VARCHAR(20) <<FK>>
+  * user_id : VARCHAR(20) <<FK>>
   * name : VARCHAR(150)
   * detail : TEXT
   * status : ENUM (SUBMITTED / ACKNOWLEDGED / PURCHASE_PLAN)
@@ -172,25 +161,38 @@ entity "Suggestion (ข้อเสนอแนะพัสดุใหม่)" 
 entity "PurchasePlan (แผนจัดซื้อพัสดุ)" as purchase_plan {
   * id : INT <<PK>>
   --
+  suggestion_id : INT <<FK>>
   * name : VARCHAR(150)
   detail : TEXT
   * created_by : VARCHAR(20) <<FK>>
   * created_at : DATETIME
 }
 
-entity "SystemSetting (การตั้งค่ากลางระบบ)" as system_setting {
+entity "Review (รีวิวสิ่งของตามชิ้นที่ยืม)" as review {
   * id : INT <<PK>>
   --
-  fine_rate_per_day : DECIMAL(8,2)
-}
-
-entity "Evaluation (ผลตอบแบบประเมิน)" as evaluation {
-  * id : INT <<PK>>
-  --
-  * borrow_request_id : INT <<FK>>
-  * student_id : VARCHAR(20) <<FK>>
+  * borrow_item_id : INT <<FK>>
+  * user_id : VARCHAR(20) <<FK>>
+  material_id : INT <<FK>>
+  durable_material_id : INT <<FK>>
+  equipment_id : INT <<FK>>
   * rating : INT (1-5 ดาว)
   comment : TEXT
+  * created_at : DATETIME
+}
+
+' หมายเหตุ (3NF): ค้นหาสิ่งของจาก Equipment / DurableMaterial ก่อน หรือระบุ item_name กรณีป้ายรหัสหลุดหาย
+entity "DamageReport (แจ้งอุปกรณ์ชำรุด)" as damage_report {
+  * id : INT <<PK>>
+  --
+  * user_id : VARCHAR(20) <<FK>>
+  equipment_id : INT <<FK>>
+  durable_material_id : INT <<FK>>
+  * item_name : VARCHAR(150)
+  * location : VARCHAR(255)
+  * symptom : TEXT
+  photo : TEXT
+  * status : ENUM (PENDING / IN_PROGRESS / RESOLVED)
   * created_at : DATETIME
 }
 
@@ -198,33 +200,36 @@ entity "Evaluation (ผลตอบแบบประเมิน)" as evaluatio
 ' RELATIONSHIPS & CARDINALITIES
 ' ==========================================
 
-admin ||--o{ admin_blocked_email : "สั่งระงับสิทธิ์ (blocks)"
+user |o--o{ user : "กำหนดสิทธิ์พิเศษ / สั่งระงับสิทธิ์ (assigned_by / blocked_by)"
 
-category ||--o{ item : "จัดหมวดหมู่ (contains)"
-position ||--o{ item : "ตำแหน่งจัดเก็บ (located_at)"
-item ||--o{ unit : "มีชิ้นย่อย (has_units)"
-unit ||--o{ unit_review : "มีรีวิว (has_reviews)"
-
-student ||--o{ borrow_request : "ยื่นคำขอยืม (submits)"
-staff ||--o{ borrow_request : "อนุมัติคำขอยืม (approves)"
+user ||--o{ borrow_request : "ยื่นคำขอยืม (submits)"
+user ||--o{ borrow_request : "อนุมัติคำขอยืม (approves)"
 borrow_request ||--|{ borrow_item : "ประกอบด้วยรายการยืม (contains_items)"
-item ||--o{ borrow_item : "ถูกยืมในรายการ (ordered_in)"
-unit ||--o{ borrow_item : "ระบุชิ้นยืม (assigned_to)"
+material ||--o{ borrow_item : "ถูกเบิกในรายการ"
+durable_material ||--o{ borrow_item : "ถูกยืมในรายการ"
+equipment ||--o{ borrow_item : "ถูกยืมในรายการ"
 
 borrow_request ||--o{ return_request : "แจ้งส่งคืน (has_returns)"
-staff ||--o{ return_request : "ตรวจรับคืน (inspects)"
+user ||--o{ return_request : "ตรวจรับคืน (inspects)"
 return_request ||--|{ return_item : "ประกอบด้วยรายการคืน (contains_return_items)"
 borrow_item ||--o{ return_item : "อ้างอิงรายการยืม (returned_via)"
-unit ||--o{ return_item : "ระบุชิ้นคืน (returned_unit)"
 
-item ||--o{ queue : "มีคิวจอง (has_queues)"
-unit ||--o{ queue : "มีคิวจองรายชิ้น (unit_queues)"
-student ||--o{ queue : "ต่อคิว (joins_queue)"
+durable_material ||--o{ queue : "มีคิวจอง"
+equipment ||--o{ queue : "มีคิวจอง"
+user ||--o{ queue : "ต่อคิว (joins_queue)"
 
-student ||--o{ suggestion : "เสนอแนะ (proposes)"
-staff ||--o{ purchase_plan : "จัดการแผนจัดซื้อ (manages)"
+user ||--o{ suggestion : "เสนอแนะ (proposes)"
+suggestion |o--o| purchase_plan : "โอนเข้าแผนจัดซื้อ (promoted_to)"
+user ||--o{ purchase_plan : "จัดการแผนจัดซื้อ (manages)"
 
-borrow_request ||--o| evaluation : "ได้รับการประเมิน (evaluated_by)"
-student ||--o{ evaluation : "ตอบแบบประเมิน (answers)"
+borrow_item ||--o| review : "ถูกรีวิวหลังยืม (reviewed_by)"
+user ||--o{ review : "เขียนรีวิว (writes_review)"
+material |o--o{ review : "มีรีวิว"
+durable_material |o--o{ review : "มีรีวิว"
+equipment |o--o{ review : "มีรีวิว"
+
+user ||--o{ damage_report : "แจ้งปัญหา (reports)"
+equipment |o--o{ damage_report : "อ้างอิงครุภัณฑ์ที่ชำรุด"
+durable_material |o--o{ damage_report : "อ้างอิงวัสดุคงทนที่ชำรุด"
 
 @enduml

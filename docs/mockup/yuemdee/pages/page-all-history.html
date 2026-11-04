@@ -61,20 +61,26 @@ function p_all_history_init() { notifyParentPage("all-history"); p_all_history_r
       const q = document.getElementById("p_all_history_q").value.trim().toLowerCase();
       const from = document.getElementById("p_all_history_from").value;
       const to = document.getElementById("p_all_history_to").value;
-      let reqs = db("requests");
-      if (q) reqs = reqs.filter(r => { const s = studentById(r.student_id); return (s && s.name.toLowerCase().includes(q)) || r.student_id.toLowerCase().includes(q); });
-      if (from) reqs = reqs.filter(r => r.created_at.slice(0,10) >= from);
-      if (to) reqs = reqs.filter(r => r.created_at.slice(0,10) <= to);
+      let reqs = db("requests") || [];
+      if (q) reqs = reqs.filter(r => {
+        const uid = r.user_id || r.student_id || "";
+        const s = studentById(uid);
+        return (s && s.name.toLowerCase().includes(q)) || uid.toLowerCase().includes(q);
+      });
+      if (from) reqs = reqs.filter(r => (r.created_at || "").slice(0,10) >= from);
+      if (to) reqs = reqs.filter(r => (r.created_at || "").slice(0,10) <= to);
       reqs = reqs.sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
       const host = document.getElementById("p_all_history_rows");
       document.getElementById("p_all_history_empty").classList.toggle("hidden", reqs.length !== 0);
       host.innerHTML = reqs.map(r => {
-        const stu = studentById(r.student_id);
+        const uid = r.user_id || r.student_id || "";
+        const stu = studentById(uid);
+        const itemNames = (r.items || []).map(it => itemById(it.item_id)?.name || "สิ่งของ").join(", ");
         return `<tr class="hover:bg-gray-50 border-t border-gray-100">
           <td class="px-4 py-2 font-mono text-xs">#${r.id}</td>
-          <td class="px-4 py-2">${stu ? stu.name : r.student_id} <span class="text-xs text-gray-400 font-mono">(${r.student_id})</span></td>
-          <td class="px-4 py-2 text-xs">${r.items.map(it=>itemById(it.item_id)?.name).join(", ")}</td>
-          <td class="px-4 py-2 text-xs text-gray-500">${r.created_at}</td>
+          <td class="px-4 py-2">${stu ? stu.name : uid} <span class="text-xs text-gray-400 font-mono">(${uid})</span></td>
+          <td class="px-4 py-2 text-xs">${itemNames}</td>
+          <td class="px-4 py-2 text-xs text-gray-500">${r.created_at || "-"}</td>
           <td class="px-4 py-2">${badgeHtml(r.status)}</td>
         </tr>`;
       }).join("");

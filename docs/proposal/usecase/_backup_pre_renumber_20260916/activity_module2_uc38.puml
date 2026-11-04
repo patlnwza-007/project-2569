@@ -1,0 +1,82 @@
+@startuml activity_module2_uc38
+' ══════════════════════════════════════════════════════════════════
+' รองรับภาษาไทย — อ่านก่อน render:
+' 1. บันทึกไฟล์นี้เป็น UTF-8 (ไม่ต้องมี BOM) เสมอ
+' 2. ถ้า render ผ่าน CLI (plantuml.jar) ต้องระบุ flag encoding ด้วย:
+'      java -Dfile.encoding=UTF-8 -jar plantuml.jar -charset UTF-8 activity_catalog_uc38_unit_reviews.puml
+' 3. บังคับใช้ Smetana (pure-Java layout engine) แทน Graphviz/dot
+'    เพราะ Graphviz บางระบบ (โดยเฉพาะ Windows) อ่าน UTF-8 ไม่ตรง ทำให้ตัวอักษรไทยเพี้ยน/หาย
+!pragma layout smetana
+' 4. ฟอนต์ที่มีสระ/วรรณยุกต์ไทยครบและ render ผ่าน Java ได้เสถียร
+'    - Windows: "TH Sarabun New" (ฟอนต์มาตรฐานราชการ) หรือ "Tahoma" (มากับเครื่องอยู่แล้ว)
+'    - Linux / PlantUML online server: เปลี่ยนเป็น "Noto Sans Thai" หรือ "Loma"
+skinparam defaultFontName "TH Sarabun New"
+skinparam defaultFontSize 14
+' ══════════════════════════════════════════════════════════════════
+
+!theme plain
+skinparam titleFontName "TH Sarabun New"
+skinparam titleFontSize 20
+skinparam noteFontName "TH Sarabun New"
+skinparam ArrowFontName "TH Sarabun New"
+skinparam ArrowFontSize 12
+skinparam swimlaneTitleFontName "TH Sarabun New"
+skinparam swimlaneTitleFontSize 14
+
+' ===== Monochrome เท่านั้น =====
+skinparam activity {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  FontName "TH Sarabun New"
+  FontSize 13
+  DiamondBackgroundColor #FAFAFA
+  DiamondBorderColor #616161
+}
+skinparam partition {
+  BackgroundColor #FAFAFA
+  BorderColor #424242
+}
+
+title UC-38 · ดูประวัติรีวิวและคะแนนดาวสภาพครุภัณฑ์รายชิ้น — Activity Diagram\n<<extend>> ของ UC-03 · partition หน้าจอ = frontend:ItemDetail (แท็บ "รีวิว")
+
+note over
+  **หมายเหตุ:** ไฟล์นี้เคยถูกทำเครื่องหมายว่า "ยังไม่มี" ในบันทึกตรวจสอบความสอดคล้องฉบับก่อนหน้า
+  (conflict_review_log.md) จึงสร้างขึ้นในรอบนี้ให้ครบตาม use_case_description.md
+  ผู้ใช้ในไดอะแกรมนี้เป็นได้ทั้งนักศึกษาและเจ้าหน้าที่ (ทั้งคู่ดูรายละเอียดสิ่งของแบบเดียวกัน)
+end note
+
+|frontend:ItemDetail|
+start
+' สมมติว่า login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+note right
+  Pre-condition: เปิดหน้ารายละเอียดสิ่งของประเภทครุภัณฑ์อยู่แล้ว (UC-03)
+end note
+:สลับไปแท็บ "รีวิว" ของรหัส Asset Tag ชิ้นนี้;
+
+|backend|
+:ตรวจ session + สิทธิ์ (ผู้ใช้ที่ล็อกอินแล้ว);
+:ดึงคะแนนดาวเฉลี่ยและรายการรีวิวของรหัส Asset Tag ชิ้นนั้น (catalog:unit_reviews);
+
+|frontend:ItemDetail|
+if (ครุภัณฑ์ชิ้นนี้มีรีวิวหรือไม่?) then (ยังไม่มี)
+  :แสดงป้าย "ยังไม่มีรีวิว";
+else (มี)
+  :แสดงคะแนนดาวเฉลี่ย ⭐ พร้อมตัวกรองดาว (ทั้งหมด/5/4/3/2/1);
+  :ผู้ใช้เลือกตัวกรองดาวเพื่อดูเฉพาะรีวิวที่ต้องการ;
+  |backend|
+  :กรองรายการรีวิวตามดาวที่เลือก;
+  |frontend:ItemDetail|
+  :แสดงรายการรีวิวที่กรองแล้ว;
+endif
+
+stop
+
+legend right
+  |<back:white>    </back>| frontend:PageCode — หน้าจอที่ผู้ใช้เห็น (ตรงกับ state diagram) |
+  |<back:#F5F5F5>    </back>| backend (Django monolith) — เส้นขอบทึบ |
+  หมายเหตุ: ข้อมูลรีวิว/คะแนนดาวถูกเขียนจาก UC-15 (ประเมินความพึงพอใจรายชิ้น) — คนละรอบเวลา
+  ไม่วาดขั้นตอนการเขียนรีวิวซ้ำในไดอะแกรมนี้ (ดูรายละเอียดที่ activity_module5_uc15.puml)
+  หมายเหตุ: ทุก view ผ่าน login_required + permission — auth หลักเกิดตอน login ผ่าน UBU Single Sign-On (session)
+endlegend
+
+@enduml

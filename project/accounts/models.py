@@ -8,7 +8,6 @@ class UserProfile(models.Model):
     class Role(models.TextChoices):
         STUDENT = 'STUDENT', 'นักศึกษา (Student)'
         STAFF = 'STAFF', 'เจ้าหน้าที่ (Staff)'
-        ADMIN = 'ADMIN', 'ผู้ดูแลระบบ (Admin)'
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.STUDENT, verbose_name="บทบาทหลัก")
@@ -26,7 +25,9 @@ class UserProfile(models.Model):
         return f"{self.user.username} ({self.get_effective_role_display()})"
 
     def get_effective_role(self):
-        """คำนวณบทบาทที่มีผลใช้งานจริง (Role Override มีผลเหนือกว่า Role เริ่มต้น ตาม FR-17 / FR-34)"""
+        """คำนวณบทบาทที่มีผลใช้งานจริง (ถ้าเป็น superuser ให้สิทธิ์ STAFF หน้าบ้านอัตโนมัติ)"""
+        if self.user.is_superuser:
+            return self.Role.STAFF
         return self.role_override if self.role_override else self.role
 
     def get_effective_role_display(self):

@@ -9,8 +9,10 @@ from .forms import ItemForm
 def is_staff_user(user):
     if not user.is_authenticated:
         return False
+    if user.is_superuser:
+        return True
     try:
-        return user.profile.get_effective_role() in ['STAFF', 'ADMIN']
+        return user.profile.get_effective_role() == 'STAFF'
     except (AttributeError, Exception):
         return False
 

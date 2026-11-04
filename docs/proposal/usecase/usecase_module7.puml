@@ -1,4 +1,6 @@
-' โมดูล 7 (M7 · staff_inventory): การจัดการคลังสิ่งของและตั้งค่า — UC-21 ถึง UC-26
+' โมดูล 7 (M7 · staff_inventory): การจัดการคลังสิ่งของและตั้งค่า — UC-20 ถึง UC-25
+' หมายเหตุ: UC-23 ครอบคลุมวัสดุคงทนด้วย (เดิมมีเฉพาะครุภัณฑ์) และ UC-25 เพิ่มแท็บ "อัตราค่าปรับ"
+' (แท็บที่ 4 ของหน้าตั้งค่าคลัง) ตาม mockup ปัจจุบัน
 @startuml usecase_module7
 !theme plain
 skinparam defaultFontName TH Sarabun New
@@ -32,28 +34,28 @@ actor "เจ้าหน้าที่\n(Staff)" as Staff
 
 rectangle "โมดูล 7 · การจัดการคลังสิ่งของและตั้งค่า" {
   package "E1 · การจัดการคลังสิ่งของ" {
-    usecase "UC-21\nเพิ่ม/แก้ไขข้อมูล\nวัสดุและครุภัณฑ์" as UC21
-    usecase "UC-22\nดูภาพรวมสถานะ\nวัสดุครุภัณฑ์ในคลัง" as UC22
-    usecase "UC-23\nลบวัสดุออกจากระบบ" as UC23
-    usecase "UC-24\nเปลี่ยนสถานะครุภัณฑ์" as UC24
-    usecase "UC-25\nนำเข้าข้อมูลคลังแบบชุด" as UC25
+    usecase "UC-20\nเพิ่ม/แก้ไขข้อมูล\nวัสดุและครุภัณฑ์" as UC20
+    usecase "UC-21\nดูภาพรวมสถานะ\nวัสดุครุภัณฑ์ในคลัง" as UC21
+    usecase "UC-22\nลบวัสดุออกจากระบบ" as UC22
+    usecase "UC-23\nเปลี่ยนสถานะครุภัณฑ์/วัสดุคงทน" as UC23
+    usecase "UC-24\nนำเข้าข้อมูลคลังแบบชุด" as UC24
   }
 
   package "E2 · การตั้งค่าคลัง" {
-    usecase "UC-26\nจัดการข้อมูลพื้นฐานของคลัง" as UC26
+    usecase "UC-25\nจัดการข้อมูลพื้นฐานของคลัง\nและอัตราค่าปรับ" as UC25
   }
 }
 
+Staff -- UC20
 Staff -- UC21
 Staff -- UC22
 Staff -- UC23
 Staff -- UC24
 Staff -- UC25
-Staff -- UC26
 
-UC25 ..> UC21 : <<extend>>
-UC21 ..> UC22 : <<extend>>
-UC23 ..> UC22 : <<extend>>
-UC24 ..> UC22 : <<extend>>
+UC24 ..> UC20 : <<extend>>
+UC20 ..> UC21 : <<extend>>
+UC22 ..> UC21 : <<extend>>
+UC23 ..> UC21 : <<extend>>
 
 @enduml
