@@ -35,7 +35,7 @@
 <div id="view-request-form" class="w-full h-full overflow-y-auto p-6">
 <div class="max-w-xl mx-auto">
     <h1 class="text-2xl font-bold text-gray-800 mb-1">ยืนยันส่งคำขอยืม</h1>
-    <p class="text-sm text-gray-500 mb-6">กรอกเหตุผลการยืม</p>
+    <p class="text-sm text-gray-500 mb-6">ตรวจสอบรายการสิ่งของและยืนยันการส่งคำขอยืม</p>
 
     <div id="p_request_form_blocked-notice" class="hidden mb-4 bg-red-50 border border-red-300 text-red-700 rounded-xl p-4 text-sm"></div>
 
@@ -44,14 +44,36 @@
         <p class="text-sm font-semibold text-gray-700 mb-2">รายการที่จะยืม</p>
         <div id="p_request_form_summary" class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 space-y-1"></div>
       </div>
-      <div>
-        <label class="text-sm font-semibold text-gray-700">เหตุผลการยืม <span class="text-red-500">*</span></label>
-        <textarea id="p_request_form_f-reason" rows="2" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"></textarea>
-        <p id="p_request_form_err-reason" class="hidden text-xs text-red-600 mt-1">กรุณาระบุเหตุผลการยืม</p>
+
+      <!-- Special Long-term Borrowing Checkbox -->
+      <div class="border border-amber-200 bg-amber-50/60 rounded-xl p-4 transition-all">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" id="p_request_form_is_special" onchange="p_request_form_toggleSpecial()" class="mt-1 w-4 h-4 text-amber-600 rounded border-gray-300 focus:ring-amber-500 cursor-pointer">
+          <div class="flex-1">
+            <span class="text-sm font-bold text-gray-800">⚡ ขอยืมระยะยาวเป็นกรณีพิเศษ (เกินกำหนดมาตรฐาน / ยืมทั้งเทอม)</span>
+            <p class="text-xs text-gray-500 mt-0.5">เช่น ใช้ทำโครงงานปริญญานิพนธ์ (Senior Project), โครงการวิจัย, หรือกิจกรรมสโมสรตลอดภาคการศึกษา</p>
+          </div>
+        </label>
+
+        <!-- Dynamic Expand Box -->
+        <div id="p_request_form_special_box" class="hidden mt-4 pt-3 border-t border-amber-200/80 space-y-3">
+          <div>
+            <label class="text-xs font-bold text-gray-700 block">📅 วันที่ประสงค์จะส่งคืน <span class="text-red-500">*</span></label>
+            <input type="date" id="p_request_form_custom_due" value="2026-11-30" min="2026-07-25" class="mt-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+            <p class="text-[11px] text-gray-400 mt-0.5">* เจ้าหน้าที่มีสิทธิ์ปรับลดวันที่อนุญาตให้ยืมตามความเหมาะสมของคลัง</p>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-gray-700 block">📝 เหตุผลความจำเป็นในการขอยืมระยะยาว <span class="text-red-500">*</span></label>
+            <textarea id="p_request_form_special_reason" rows="2" placeholder="กรุณาระบุรายละเอียด เช่น โครงงานวิศวกรรม เรื่อง... อาจารย์ที่ปรึกษา อ.ดร. ... เพื่อใช้ประกอบการพิจารณาอนุมัติ" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white resize-none"></textarea>
+            <p id="p_request_form_err-special" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ กรุณาระบุวันที่คืนและเหตุผลความจำเป็นในการขอยืมระยะยาว</p>
+          </div>
+        </div>
       </div>
+
       <div class="flex gap-3 pt-2">
         <a href="javascript:void(0)" onclick="navigate('cart')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">← แก้ไขตะกร้า</a>
-        <button onclick="p_request_form_submitRequest()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2">ยืนยันส่งคำขอ</button>
+        <button onclick="p_request_form_submitRequest()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2 shadow-sm font-bold">ยืนยันส่งคำขอ →</button>
       </div>
     </div>
   </div>
@@ -77,29 +99,102 @@ function p_request_form_init() {
         return;
       }
 
-      document.getElementById("p_request_form_summary").innerHTML = cart.map(c => {
+      document.getElementById("p_request_form_summary").innerHTML = cart.map((c, idx) => {
         const i = itemById(c.item_id);
         const serialBadge = c.asset_tag ? `<span class="bg-blue-100 text-blue-900 font-mono text-xs px-2 py-0.5 rounded border border-blue-300 font-bold ml-1">🏷️ ${c.asset_tag}</span>` : "";
-        return `<div class="py-1">${i.image} ${i.name} × ${c.qty} <span class="text-xs text-gray-400">(${i.type === 'equipment' ? 'ครุภัณฑ์' : 'วัสดุ'})</span> ${serialBadge}</div>`;
+        const typeText = i?.type === 'equipment' ? 'ครุภัณฑ์' : i?.type === 'durable_material' ? 'วัสดุคงทน' : 'วัสดุสิ้นเปลือง';
+        const unitName = i?.unit || 'ชิ้น';
+        return `<div class="py-2.5 border-b border-gray-100 last:border-0">
+          <div class="flex items-center justify-between">
+            <span class="font-medium text-gray-800">${i?.image || "📦"} ${i?.name || ""} × ${c.qty} ${unitName} <span class="text-xs text-gray-400 font-normal">(${typeText})</span> ${serialBadge}</span>
+          </div>
+          <div class="mt-2 bg-white p-2.5 rounded-xl border border-gray-200">
+            <label class="block text-[11px] font-semibold text-gray-700 mb-1">
+              📸 ถ่ายรูปสภาพสิ่งของ/ตำหนิเดิมของชิ้นนี้ (ถ้ามี — เพื่อเป็นหลักฐานคุ้มครองตนเอง):
+            </label>
+            <input type="file" id="p_rf_photo_${idx}" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+          </div>
+        </div>`;
       }).join("");
     }
 
+    function p_request_form_toggleSpecial() {
+      const isSpecial = document.getElementById("p_request_form_is_special").checked;
+      document.getElementById("p_request_form_special_box").classList.toggle("hidden", !isSpecial);
+    }
+
     function p_request_form_submitRequest() {
-      const reason = document.getElementById("p_request_form_f-reason").value.trim();
-      let ok = true;
-      if (!reason) { document.getElementById("p_request_form_err-reason").classList.remove("hidden"); ok = false; }
-      else document.getElementById("p_request_form_err-reason").classList.add("hidden");
-      if (!ok) return;
+      const isSpecial = document.getElementById("p_request_form_is_special").checked;
+      let reason = "ยืมใช้งานปกติ";
+      let dueDate = null;
 
       const cart = db("cart");
+      const returnables = cart.filter(c => {
+        const t = itemById(c.item_id)?.type;
+        return t === "equipment" || t === "durable_material";
+      });
+
+      if (isSpecial) {
+        const specialReason = document.getElementById("p_request_form_special_reason").value.trim();
+        const customDueDate = document.getElementById("p_request_form_custom_due").value;
+        const errEl = document.getElementById("p_request_form_err-special");
+
+        if (!specialReason || !customDueDate) {
+          errEl.classList.remove("hidden");
+          return;
+        }
+        errEl.classList.add("hidden");
+        reason = "[ขอยืมระยะยาวพิเศษ] " + specialReason;
+        dueDate = customDueDate;
+      } else {
+        // Calculate standard due date if cart contains equipment or durable material
+        if (returnables.length > 0) {
+          const maxDays = Math.max(...returnables.map(c => itemById(c.item_id)?.max_borrow_days || 7));
+          const targetDate = new Date("2026-07-23T00:00:00");
+          targetDate.setDate(targetDate.getDate() + maxDays);
+          dueDate = targetDate.toISOString().slice(0, 10);
+        }
+      }
+
       const reqs = db("requests");
       const newId = nextId(reqs);
+
+      let firstPhoto = null;
+      const requestItems = cart.map((c, idx) => {
+        let photo = null;
+        const pInput = document.getElementById("p_rf_photo_" + idx);
+        if (pInput && pInput.files && pInput.files[0]) {
+          photo = URL.createObjectURL(pInput.files[0]);
+          if (!firstPhoto) firstPhoto = photo;
+        }
+        const itemObj = itemById(c.item_id);
+        const itemType = itemObj ? itemObj.type : "equipment";
+
+        return {
+          item_id: c.item_id,
+          material_id: itemType === "material" ? c.item_id : null,
+          durable_material_id: itemType === "durable_material" ? c.item_id : null,
+          equipment_id: itemType === "equipment" ? c.item_id : null,
+          asset_tag: c.asset_tag || null,
+          qty: c.qty || 1,
+          initial_photo: photo
+        };
+      });
+
       reqs.push({
-        id: newId, student_id: currentUserId(),
-        items: cart.map(c => ({ item_id: c.item_id, asset_tag: c.asset_tag || null, qty: c.qty })),
-        reason, use_date: null,
-        status: "PENDING", created_at: "2026-07-23 " + new Date().toTimeString().slice(0,5),
-        approved_at: null, reject_reason: "",
+        id: newId,
+        student_id: currentUserId(),
+        user_id: currentUserId(),
+        items: requestItems,
+        reason: reason,
+        use_date: "2026-07-23",
+        due_date: dueDate,
+        is_special: isSpecial,
+        status: "PENDING",
+        created_at: "2026-07-23 " + new Date().toTimeString().slice(0, 5),
+        approved_at: null,
+        reject_reason: "",
+        pickup_photo: firstPhoto
       });
       
       // Associate unit with request id if asset_tag specified
@@ -114,7 +209,7 @@ function p_request_form_init() {
       dbSave("requests", reqs);
       dbSave("units", units);
       dbSave("cart", []);
-      toastBanner("ส่งคำขอยืมสำเร็จ สถานะ: รออนุมัติ");
+      toastBanner("ส่งคำขอยืมสำเร็จ นำสิ่งของไปแสดงให้เจ้าหน้าที่ตรวจนับที่เคาน์เตอร์");
       setTimeout(() => navigate("request-list"), 700);
     }
 </script>

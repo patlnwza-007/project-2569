@@ -47,17 +47,19 @@ function p_queue_list_init() { notifyParentPage("queue-list"); p_queue_list_rend
 function p_queue_list_render() {
   const stu = currentUserId();
   const host = document.getElementById("p_queue_list_rows");
-  const queue = db("queue").filter(q => q.student_id === stu);
+  const allQueues = db("queue") || [];
+  const queue = allQueues.filter(q => (q.user_id === stu || q.student_id === stu) && q.status !== "CANCELLED" && q.status !== "EXPIRED");
 
   if (queue.length === 0) {
     host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center"><div class="text-4xl mb-2">⏳</div><p class="text-gray-600 font-semibold">คุณไม่ได้อยู่ในคิวใดๆ ขณะนี้</p></div>`;
     return;
   }
   host.innerHTML = queue.map(q => {
-    const item = itemById(q.item_id);
-    const itemQueue = db("queue").filter(x => q.asset_tag ? (x.asset_tag === q.asset_tag) : (x.item_id === q.item_id));
+    const targetItemId = q.equipment_id || q.durable_material_id || q.item_id;
+    const item = itemById(targetItemId);
+    const itemQueue = allQueues.filter(x => x.status !== "CANCELLED" && x.status !== "EXPIRED" && (q.asset_tag ? (x.asset_tag === q.asset_tag) : ((x.equipment_id || x.durable_material_id || x.item_id) === targetItemId)));
     const position = itemQueue.findIndex(x => x.id === q.id) + 1;
-    const isReady = position === 1 && item && item.qty_available > 0;
+    const isReady = (position === 1 && item && item.qty_available > 0) || q.status === "NOTIFIED";
     const tagBadge = q.asset_tag ? `<span class="bg-blue-100 text-blue-900 font-mono text-xs px-2 py-0.5 rounded border border-blue-300 font-bold ml-1">🏷️ รหัสชิ้น: ${q.asset_tag}</span>` : "";
 
     if (isReady) {
@@ -74,10 +76,10 @@ function p_queue_list_render() {
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-          <button onclick="p_queue_list_claimBorrow(${q.item_id}, '${q.asset_tag || ''}', ${q.id})" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm transition-all">
+          <button onclick="p_queue_list_claimBorrow(${targetItemId}, '${q.asset_tag || ''}', ${q.id})" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer">
             ⚡ ยืนยันยืมของชิ้นนี้เลย →
           </button>
-          <button onclick="p_queue_list_leaveQueue(${q.id})" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-xl px-3 py-2.5">
+          <button onclick="p_queue_list_leaveQueue(${q.id})" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-xl px-3 py-2.5 cursor-pointer">
             สละสิทธิ์
           </button>
         </div>
@@ -91,7 +93,7 @@ function p_queue_list_render() {
           <p class="text-xs text-gray-500">ลำดับคิวของคุณ: <span class="font-mono font-semibold text-blue-700">${position}</span> จากทั้งหมด ${itemQueue.length} คน <span class="text-gray-400 font-normal">(รอผู้ยืมเดิมคืนของ)</span></p>
         </div>
       </div>
-      <button onclick="p_queue_list_leaveQueue(${q.id})" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg px-3 py-1.5">ออกจากคิว</button>
+      <button onclick="p_queue_list_leaveQueue(${q.id})" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg px-3 py-1.5 cursor-pointer">ออกจากคิว</button>
     </div>`;
   }).join("");
 }
@@ -99,9 +101,10 @@ function p_queue_list_render() {
 function p_queue_list_claimBorrow(itemId, assetTag, qid) {
   // Clear cart and insert only this claimed queue item with asset_tag
   dbSave("cart", [{ item_id: itemId, asset_tag: assetTag || null, qty: 1 }]);
-  // Remove queue entry
-  let queue = db("queue");
-  queue = queue.filter(q => q.id !== qid);
+  // Update queue entry
+  let queue = db("queue") || [];
+  const q = queue.find(x => x.id === qid);
+  if (q) q.status = "CLAIMED";
   dbSave("queue", queue);
   toastBanner("ถึงคิวของคุณแล้ว! กำลังพานำส่งคำขอยืม...");
   setTimeout(() => navigate("request-form"), 500);
@@ -109,8 +112,9 @@ function p_queue_list_claimBorrow(itemId, assetTag, qid) {
 
 function p_queue_list_leaveQueue(qid) {
   if (!confirm("ยืนยันออกจากคิวนี้หรือไม่?")) return;
-  let queue = db("queue");
-  queue = queue.filter(q => q.id !== qid);
+  let queue = db("queue") || [];
+  const q = queue.find(x => x.id === qid);
+  if (q) q.status = "CANCELLED";
   dbSave("queue", queue);
   toastBanner("ออกจากคิวสำเร็จ");
   p_queue_list_render();

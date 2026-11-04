@@ -25,106 +25,353 @@
     font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
   }
   .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
-  .tab.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
   html, body { margin: 0; height: 100%; }
 </style>
-<title>YuemDee · pending-requests</title>
+<title>YuemDee · ตรวจเช็คและอนุมัติการยืมพัสดุ</title>
 </head>
 <body class="bg-gray-50" onload="p_pending_requests_init()">
 
 <div id="view-pending-requests" class="w-full h-full overflow-y-auto p-6">
-<div class="max-w-5xl mx-auto">
-    <div class="mb-5">
-      <h1 class="text-2xl font-bold text-gray-900">✅ คำขอยืมที่รออนุมัติ</h1>
-      <p class="text-sm text-gray-500 mt-0.5">พิจารณาอนุมัติหรือปฏิเสธคำขอยืมของนักศึกษาแต่ละรายการ (ปฏิเสธต้องระบุเหตุผลเสมอ)</p>
+  <div class="max-w-5xl mx-auto space-y-6">
+    <!-- Top Header Banner -->
+    <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-2xl">📋</span>
+          <h1 class="text-2xl font-bold text-gray-900">คำขอรออนุมัติ</h1>
+        </div>
+        <p class="text-xs md:text-sm text-gray-500">
+          ตรวจสอบรายการครุภัณฑ์และวัสดุก่อนกดยืนยันอนุมัติปล่อยของ <strong>(ระบบจะเปลี่ยนสถานะเป็นกำลังยืมทันที)</strong>
+        </p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-xs bg-amber-50 text-amber-900 font-bold px-3.5 py-2 rounded-2xl border border-amber-200 flex items-center gap-2 shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+          <span>รออนุมัติ:</span>
+          <strong id="p_pr_pending_counter" class="font-mono text-sm font-bold text-amber-950">0</strong>
+          <span>คำขอ</span>
+        </span>
+      </div>
     </div>
 
-    <div id="p_pending_requests_rows" class="space-y-3"></div>
+    <!-- Requests List Host -->
+    <div id="p_pending_requests_rows" class="space-y-5"></div>
+  </div>
+</div>
+
+<!-- Lightbox Modal for Student Evidence Photo -->
+<div id="p_photo_modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all" onclick="p_pending_requests_closePhotoModal()">
+  <div class="bg-white rounded-3xl max-w-lg w-full p-5 shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">📸</span>
+        <h3 id="p_photo_modal_title" class="font-bold text-sm text-gray-800">รูปถ่ายหลักฐานสภาพเดิมก่อนยืม</h3>
+      </div>
+      <button onclick="p_pending_requests_closePhotoModal()" class="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center text-xs font-bold transition-colors">✕</button>
+    </div>
+    <div class="flex justify-center bg-gray-900/5 rounded-2xl p-2 border border-gray-200 overflow-hidden">
+      <img id="p_photo_modal_img" src="" class="max-h-[60vh] object-contain rounded-xl" alt="รูปหลักฐานสภาพของ" />
+    </div>
+    <p class="text-[11px] text-gray-500 mt-2.5 text-center">
+      * รูปหลักฐานที่นักศึกษาถ่ายสภาพสิ่งของ/ตำหนิเดิมไว้ตอนส่งคำขอ เพื่อใช้ตรวจสอบเทียบสภาพตอนรับคืน
+    </p>
   </div>
 </div>
 
 <script src="../shared.js"></script>
 <script>
-function p_pending_requests_init() { notifyParentPage("pending-requests"); p_pending_requests_render(); }
+function p_pending_requests_init() {
+  notifyParentPage("pending-requests");
+  p_pending_requests_render();
+}
 
 function p_pending_requests_render() {
   const reqs = db("requests").filter(r => r.status === "PENDING");
+  const counterEl = document.getElementById("p_pr_pending_counter");
+  if (counterEl) counterEl.textContent = reqs.length;
+
   const host = document.getElementById("p_pending_requests_rows");
+  if (!host) return;
 
   if (reqs.length === 0) {
-    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+    host.innerHTML = `<div class="bg-white rounded-3xl border border-dashed border-gray-300 p-12 text-center shadow-xs">
       <div class="text-5xl mb-3">✅</div>
-      <p class="text-gray-700 font-semibold text-base">ไม่มีคำขอรออนุมัติในขณะนี้</p>
-      <p class="text-xs text-gray-400 mt-1">คำขอยืมใหม่จากนักศึกษาจะแสดงที่นี่เพื่อรอการอนุมัติ</p>
+      <p class="text-gray-800 font-bold text-base">ไม่มีคำขอยืมที่รออนุมัติขณะนี้</p>
+      <p class="text-xs text-gray-400 mt-1">เมื่อนักศึกษาส่งคำขอยืม รายการจะแสดงที่นี่เพื่อให้เจ้าหน้าที่ตรวจสอบและอนุมัติปล่อยของ</p>
     </div>`;
     return;
   }
 
+  const units = db("units");
+
   host.innerHTML = reqs.map(r => {
     const stu = studentById(r.student_id);
     let hasStockIssue = false;
-    const units = db("units");
 
-    const itemBadges = r.items.map(it => {
+    // Item checklist rows
+    const itemRowsHtml = r.items.map((it, idx) => {
       const i = itemById(it.item_id);
       const isShort = i && i.qty_available < it.qty;
       if (isShort) hasStockIssue = true;
+      const isEquip = i && i.type === 'equipment';
+      const isDurable = i && i.type === 'durable_material';
+      const tag = it.asset_tag || (units.find(u => u.item_id === it.item_id && u.status === "AVAILABLE")?.asset_tag || "");
+      const itemPhoto = it.initial_photo || (idx === 0 ? r.pickup_photo : null);
 
-      const chosenSerialDisplay = (i && i.type === 'equipment')
-        ? `<div class="mt-1 flex items-center gap-2 text-xs bg-blue-50/80 p-2 rounded-xl border border-blue-200">
-            <span class="font-bold text-blue-900 shrink-0">🏷️ รหัสชิ้นที่นักศึกษาเลือกยืม:</span>
-            <span class="font-mono font-bold text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-300">${it.asset_tag || (units.find(u => u.item_id === it.item_id && u.status === "AVAILABLE")?.asset_tag || "UBU-EQ-001-01")}</span>
-          </div>`
-        : '';
+      return `
+        <div id="p_pr_row_${r.id}_${idx}" class="py-3 px-3.5 rounded-2xl transition-all border border-transparent hover:border-gray-200 hover:bg-gray-50/70">
+          <div class="flex items-center justify-between gap-3">
+            <!-- Left: Checkbox + Item Info -->
+            <label class="flex items-center gap-3 cursor-pointer min-w-0 flex-1">
+              <input type="checkbox" id="p_pr_chk_${r.id}_${idx}" checked 
+                onchange="p_pending_requests_toggleItem(${r.id}, ${idx})" 
+                class="w-5 h-5 text-emerald-600 rounded-md border-gray-300 focus:ring-emerald-500 cursor-pointer transition-all">
+              
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xl shrink-0">${i?.image || "📦"}</span>
+                  <span class="font-bold text-sm text-gray-900 truncate">${i?.name || "ไม่พบสิ่งของ"}</span>
+                  <span class="text-xs font-mono bg-gray-100 text-gray-800 font-bold px-2 py-0.5 rounded-md">×${it.qty} ${i?.unit || 'ชิ้น'}</span>
+                  ${isEquip && tag ? `<span class="bg-blue-50 text-blue-800 border border-blue-200 font-mono text-xs px-2 py-0.5 rounded-md font-bold">🏷️ ${tag}</span>` : ''}
+                  ${isDurable ? `<span class="bg-sky-50 text-sky-800 border border-sky-200 text-xs px-2 py-0.5 rounded-md font-bold">🔌 วัสดุคงทน (ยืม)</span>` : ''}
+                  <span class="text-[11px] ${isShort ? 'bg-red-50 text-red-700 font-bold border border-red-200' : 'bg-gray-100 text-gray-500'} px-2 py-0.5 rounded-md">
+                    ${isShort ? `⚠️ สต็อกไม่พอ (เหลือ ${i?.qty_available || 0})` : `คงเหลือ ${i?.qty_available || 0} ${i?.unit || 'ชิ้น'}`}
+                  </span>
+                </div>
+                <div id="p_pr_hint_${r.id}_${idx}" class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                  <span>✓</span> ตรวจพบของจริงบนโต๊ะ — เจ้าหน้าที่ยืนยันให้ยืมชิ้นนี้
+                </div>
+              </div>
+            </label>
 
-      return `<div class="my-1.5">
-        <div class="flex items-center gap-2 text-sm text-gray-800">
-          <span class="text-base">${i?.image || "📦"}</span>
-          <span class="font-medium">${i?.name || "?"}</span>
-          <span class="text-gray-500 font-mono text-xs">×${it.qty}</span>
-          <span class="text-xs ${isShort ? 'bg-red-100 text-red-700 font-bold' : 'bg-gray-100 text-gray-500'} px-2 py-0.5 rounded-full">
-            ${isShort ? `⚠️ สต็อกไม่พอ (เหลือ ${i?.qty_available || 0})` : `คงเหลือ ${i?.qty_available || 0}`}
-          </span>
+            <!-- Right: Evidence Photo Thumbnail -->
+            <div class="shrink-0 flex items-center gap-2">
+              ${itemPhoto ? `
+                <button type="button" onclick="p_pending_requests_openPhotoModal('${itemPhoto}', '${(i?.name || 'หลักฐาน').replace(/'/g, "\\'")}')" 
+                  class="group relative flex items-center gap-1.5 p-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-800 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs" 
+                  title="คลิกเพื่อดูรูปขยาย">
+                  <img src="${itemPhoto}" class="w-8 h-8 object-cover rounded-lg border border-blue-300 group-hover:scale-105 transition-transform" alt="รูปหลักฐาน" />
+                  <span class="hidden sm:inline pr-1">📸 รูปตำหนิเดิม</span>
+                </button>
+              ` : `
+                <span class="text-[10px] text-gray-400 italic px-2 py-1 bg-gray-50 rounded-lg">ไม่มีตำหนิเดิม</span>
+              `}
+            </div>
+          </div>
         </div>
-        ${chosenSerialDisplay}
-      </div>`;
+      `;
     }).join("");
 
-    const warnBox = hasStockIssue
-      ? `<p class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 mt-2 font-medium">⚠️ คำขอนี้มีสิ่งของที่สต็อกในคลังไม่เพียงพอ หากอนุมัติ สต็อกจะหมดทันที</p>`
-      : "";
-
-    return `<div class="bg-white rounded-2xl border ${hasStockIssue ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200'} shadow-sm p-4 hover:shadow-md transition-all flex items-start justify-between gap-4">
-      <div class="flex-1 min-w-0">
-        <div class="flex flex-wrap items-center gap-2 mb-1">
-          <span class="text-xs text-gray-400 font-mono">คำขอ #${r.id}</span>
-          <span class="text-xs font-bold text-gray-800">${stu ? stu.name : r.student_id}</span>
-          <span class="text-xs text-gray-400 font-mono">(${r.student_id})</span>
-          <span class="text-xs text-gray-400 ml-auto">ส่งเมื่อ ${r.created_at || "-"}</span>
+    // Special Loan Accordion/Box
+    const specialBox = r.is_special ? `
+      <div class="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200 text-xs mt-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+          <span class="font-bold text-amber-900 flex items-center gap-1.5">
+            <span>⚡</span> คำขอยืมระยะยาวเป็นกรณีพิเศษ
+          </span>
+          <span class="bg-amber-200 text-amber-950 font-mono font-bold px-2.5 py-0.5 rounded-lg text-[11px]">
+            นศ. ขอส่งคืน: ${r.custom_due_date || '-'}
+          </span>
         </div>
-        <div class="my-2">${itemBadges}</div>
-        <p class="text-xs text-gray-500">เหตุผล: ${r.reason || "-"}${r.use_date ? ` · วันที่ใช้งาน: <strong>${r.use_date}</strong>` : ""}</p>
+        <div class="flex items-center gap-2 mt-2 pt-2 border-t border-amber-200/60">
+          <label class="text-gray-700 font-semibold text-xs">วันคืนที่เจ้าหน้าที่กำหนด:</label>
+          <input type="date" id="appr_due_${r.id}" value="${r.custom_due_date || '2026-11-30'}" 
+            class="border border-amber-300 rounded-lg px-2.5 py-1 text-xs bg-white font-medium focus:ring-2 focus:ring-amber-400 focus:outline-none text-gray-800" />
+          <span class="text-[11px] text-gray-500">(ปรับลดวันคืนได้ตามความเหมาะสม)</span>
+        </div>
+      </div>
+    ` : "";
+
+    const warnBox = hasStockIssue ? `
+      <div class="p-3 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-medium flex items-center gap-2 mt-3">
+        <span>⚠️</span> คำขอนี้มีสิ่งของที่สต็อกไม่เพียงพอ หากยืนยันปล่อยของ สต็อกจะหมดทันที
+      </div>
+    ` : "";
+
+    return `
+      <div class="bg-white rounded-3xl border border-gray-200 shadow-xs p-6 hover:shadow-md transition-all duration-200">
+        <!-- 1. Header: Student Info Bar (No Avatar, Clean Tags) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-4 border-b border-gray-100">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-xl">
+              คำขอ #${r.id}
+            </span>
+            <span class="font-bold text-gray-900 text-sm flex items-center gap-1.5">
+              <span>🎓</span> [${r.student_id}] ${stu ? stu.name : r.student_id}
+            </span>
+            ${stu && stu.phone ? `
+              <span class="text-xs text-gray-600 font-semibold bg-gray-100 border border-gray-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                <span>📞</span> ${stu.phone}
+              </span>
+            ` : ''}
+            ${r.is_special ? `
+              <span class="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                ⚡ ขอยืมพิเศษ
+              </span>
+            ` : ''}
+          </div>
+          <div class="text-xs text-gray-400 font-medium">
+            🕒 ส่งคำขอเมื่อ ${r.created_at || '-'}
+          </div>
+        </div>
+
+        <!-- 2. Checklist Section -->
+        <div class="my-3.5">
+          <div class="flex items-center justify-between pb-2 mb-1 text-xs">
+            <span class="font-bold text-gray-800 flex items-center gap-1.5">
+              <span>☑️</span> รายการสิ่งของในคำขอ (${r.items.length} รายการ):
+            </span>
+            <button type="button" onclick="p_pending_requests_toggleAll(${r.id})" 
+              class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer">
+              <span>✓</span> เลือกทั้งหมด
+            </button>
+          </div>
+
+          <div class="divide-y divide-gray-100 bg-gray-50/40 rounded-2xl border border-gray-100 p-1">
+            ${itemRowsHtml}
+          </div>
+        </div>
+
+        <!-- Reason Note -->
+        <div class="text-xs text-gray-600 bg-gray-50 rounded-xl px-3.5 py-2.5 border border-gray-100 flex items-center gap-2">
+          <span class="font-bold text-gray-700">💬 วัตถุประสงค์:</span>
+          <span>${r.reason || "ยืมใช้งานปกติ"}</span>
+          ${r.use_date ? `<span class="text-gray-400 ml-auto">วันที่ใช้งาน: <strong>${r.use_date}</strong></span>` : ''}
+        </div>
+
+        ${specialBox}
         ${warnBox}
+
+        <!-- 3. Full-width Action Footer -->
+        <div class="mt-5 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <button onclick="p_pending_requests_rejectOne(${r.id})" 
+            class="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-200">
+            ✕ ปฏิเสธคำขอ
+          </button>
+
+          <button id="p_pr_btn_confirm_${r.id}" onclick="p_pending_requests_confirmHandover(${r.id})" 
+            class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl px-6 py-3 transition-all shadow-sm shadow-emerald-200 flex items-center justify-center gap-2 cursor-pointer">
+            <span>✓</span> ตรวจของครบแล้ว — ปล่อยของ <span id="p_pr_counter_${r.id}">(${r.items.length}/${r.items.length} ชิ้น)</span> →
+          </button>
+        </div>
       </div>
-      <div class="flex flex-col gap-2 shrink-0">
-        <button onclick="p_pending_requests_approveOne(${r.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm">✓ อนุมัติ</button>
-        <button onclick="p_pending_requests_rejectOne(${r.id})" class="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl px-4 py-2 transition-colors">✕ ปฏิเสธ</button>
-      </div>
-    </div>`;
+    `;
   }).join("");
 }
 
-function p_pending_requests_toggleSelectAll(checked) {
-  document.querySelectorAll("#view-pending-requests .sel").forEach(cb => cb.checked = checked);
+function p_pending_requests_toggleItem(rid, idx) {
+  const chk = document.getElementById(`p_pr_chk_${rid}_${idx}`);
+  const row = document.getElementById(`p_pr_row_${rid}_${idx}`);
+  const hint = document.getElementById(`p_pr_hint_${rid}_${idx}`);
+
+  if (chk.checked) {
+    row.classList.remove("opacity-50", "bg-gray-100");
+    hint.className = "text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1";
+    hint.innerHTML = "<span>✓</span> ตรวจพบของจริงบนโต๊ะ — เจ้าหน้าที่ยืนยันให้ยืมชิ้นนี้";
+  } else {
+    row.classList.add("opacity-50", "bg-gray-100");
+    hint.className = "text-[11px] text-red-600 font-bold mt-1 flex items-center gap-1";
+    hint.innerHTML = "<span>✕</span> ของขาด / ไม่ได้นำชิ้นนี้ไป (ตัดออกจากคำขอ ไม่ตัดสต็อก)";
+  }
+
+  p_pending_requests_updateFooterCounter(rid);
 }
 
-function p_pending_requests_approveRequest(r) {
+function p_pending_requests_toggleAll(rid) {
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === rid);
+  if (!r) return;
+
+  // Check if all are currently checked
+  const allChecked = r.items.every((_, idx) => {
+    const chk = document.getElementById(`p_pr_chk_${rid}_${idx}`);
+    return chk && chk.checked;
+  });
+
+  const targetState = !allChecked;
+
+  r.items.forEach((_, idx) => {
+    const chk = document.getElementById(`p_pr_chk_${rid}_${idx}`);
+    if (chk) {
+      chk.checked = targetState;
+      p_pending_requests_toggleItem(rid, idx);
+    }
+  });
+}
+
+function p_pending_requests_updateFooterCounter(rid) {
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === rid);
+  if (!r) return;
+
+  let checkedCount = 0;
+  r.items.forEach((_, idx) => {
+    const chk = document.getElementById(`p_pr_chk_${rid}_${idx}`);
+    if (chk && chk.checked) checkedCount++;
+  });
+
+  const counterEl = document.getElementById(`p_pr_counter_${rid}`);
+  if (counterEl) {
+    counterEl.textContent = `(${checkedCount}/${r.items.length} ชิ้น)`;
+  }
+
+  const confirmBtn = document.getElementById(`p_pr_btn_confirm_${rid}`);
+  if (confirmBtn) {
+    if (checkedCount === 0) {
+      confirmBtn.classList.add("opacity-50");
+    } else {
+      confirmBtn.classList.remove("opacity-50");
+    }
+  }
+}
+
+function p_pending_requests_confirmHandover(id) {
+  const reqs = db("requests");
+  const r = reqs.find(x => x.id === id);
+  if (!r || r.status !== "PENDING") {
+    toastBanner("รายการนี้ถูกดำเนินการไปแล้ว ข้ามรายการนี้", "error");
+    p_pending_requests_render();
+    return;
+  }
+
+  // Inspect checkboxes per item
+  const checkedItems = [];
+  const uncheckedItems = [];
+
+  r.items.forEach((it, idx) => {
+    const chk = document.getElementById(`p_pr_chk_${id}_${idx}`);
+    if (chk && chk.checked) {
+      checkedItems.push(it);
+    } else {
+      uncheckedItems.push(it);
+    }
+  });
+
+  if (checkedItems.length === 0) {
+    toastBanner("⚠️ กรุณาติ๊กให้ยืมอย่างน้อย 1 รายการ หรือกดปุ่มปฏิเสธคำขอ", "error");
+    return;
+  }
+
+  const confirmMsg = uncheckedItems.length > 0
+    ? `ยืนยันปล่อยของคำขอ #${id}?\n\n⚠️ คุณติ๊กยืนยันนำไปจริง ${checkedItems.length} รายการ และติ๊กออก ${uncheckedItems.length} รายการ (รายการที่ติ๊กออกจะถูกยกเลิกและไม่ตัดสต็อก)`
+    : `ยืนยันการตรวจนับของจริงและปล่อยของคำขอ #${id} ครบทุกชิ้น?`;
+
+  if (!confirm(confirmMsg)) return;
+
   const items = db("items");
   const units = db("units");
 
+  // Keep only checked items
+  r.items = checkedItems;
+
+  let hasReturnable = false;
+
   r.items.forEach(it => {
     const item = items.find(i => i.id === it.item_id);
-    if (item) item.qty_available = Math.max(0, item.qty_available - it.qty);
+    if (item) {
+      item.qty_available = Math.max(0, item.qty_available - it.qty);
+      if (item.type === "equipment" || item.type === "durable_material") hasReturnable = true;
+    }
 
     if (item && item.type === "equipment") {
       const selectedTag = it.asset_tag;
@@ -140,20 +387,51 @@ function p_pending_requests_approveRequest(r) {
     }
   });
 
+  const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  r.approved_at = nowStr;
+  r.approved_by = currentUserId() || "STAFF01";
+  r.picked_up_at = nowStr;
+
+  // Set return due date
+  if (r.is_special) {
+    const customInput = document.getElementById("appr_due_" + r.id);
+    if (customInput && customInput.value) {
+      r.custom_due_date = customInput.value;
+      r.due_date = customInput.value;
+    }
+  } else {
+    // Standard loan days calculation
+    const returnableDays = r.items.map(it => itemById(it.item_id))
+      .filter(i => i && (i.type === "equipment" || i.type === "durable_material"))
+      .map(i => i.max_borrow_days || 7);
+    const maxDays = returnableDays.length ? Math.max(...returnableDays) : 7;
+    const due = new Date();
+    due.setDate(due.getDate() + maxDays);
+    r.due_date = due.toISOString().slice(0, 10);
+  }
+
+  // Ensure pickup_photo points to student's initial evidence photo
+  if (!r.pickup_photo) {
+    const itemWithPhoto = r.items.find(it => it.initial_photo);
+    if (itemWithPhoto) r.pickup_photo = itemWithPhoto.initial_photo;
+  }
+
+  // Transition status directly to BORROWING or ISSUED
+  if (hasReturnable) {
+    r.status = "BORROWING";
+  } else {
+    r.status = "ISSUED";
+  }
+
   dbSave("items", items);
   dbSave("units", units);
-  r.status = "APPROVED_WAIT_PICKUP";
-  r.approved_at = "2026-07-23 " + new Date().toTimeString().slice(0, 5);
-}
-
-function p_pending_requests_approveOne(id) {
-  const reqs = db("requests");
-  const r = reqs.find(x => x.id === id);
-  if (!r || r.status !== "PENDING") { toastBanner("รายการนี้ถูกยกเลิกหรือดำเนินการไปแล้ว ข้ามรายการนี้", "error"); p_pending_requests_render(); return; }
-  if (!confirm(`ยืนยันอนุมัติคำขอ #${id}?`)) return;
-  p_pending_requests_approveRequest(r);
   dbSave("requests", reqs);
-  toastBanner("อนุมัติคำขอ #" + id + " สำเร็จ สถานะเปลี่ยนเป็นรอรับของ");
+
+  const summaryToast = uncheckedItems.length > 0
+    ? `ตรวจของเรียบร้อย — ยืนยันการยืมคำขอ #${id} สำเร็จ (${checkedItems.length} ชิ้นปล่อยยืม, ${uncheckedItems.length} ชิ้นยกเลิก)`
+    : `ตรวจของครบถ้วน — ยืนยันการยืมคำขอ #${id} สำเร็จ (สถานะ: กำลังยืม)`;
+
+  toastBanner(summaryToast);
   p_pending_requests_render();
 }
 
@@ -164,10 +442,29 @@ function p_pending_requests_rejectOne(id) {
   const reqs = db("requests");
   const r = reqs.find(x => x.id === id);
   if (!r || r.status !== "PENDING") { toastBanner("รายการนี้ถูกยกเลิกหรือดำเนินการไปแล้ว ข้ามรายการนี้", "error"); p_pending_requests_render(); return; }
-  r.status = "REJECTED"; r.reject_reason = reason.trim();
+  r.status = "REJECTED";
+  r.reject_reason = reason.trim();
+  r.approved_by = currentUserId() || "STAFF01";
   dbSave("requests", reqs);
   toastBanner("ปฏิเสธคำขอ #" + id + " เรียบร้อยแล้ว");
   p_pending_requests_render();
+}
+
+// Lightbox modal helpers
+function p_pending_requests_openPhotoModal(url, title) {
+  const modal = document.getElementById("p_photo_modal");
+  const img = document.getElementById("p_photo_modal_img");
+  const titleEl = document.getElementById("p_photo_modal_title");
+  if (!modal || !img) return;
+
+  img.src = url;
+  if (titleEl) titleEl.textContent = "📸 รูปถ่ายสภาพเดิม: " + title;
+  modal.classList.remove("hidden");
+}
+
+function p_pending_requests_closePhotoModal() {
+  const modal = document.getElementById("p_photo_modal");
+  if (modal) modal.classList.add("hidden");
 }
 </script>
 </body>

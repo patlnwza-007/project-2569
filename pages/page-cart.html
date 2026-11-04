@@ -59,6 +59,20 @@
 
     <!-- Summary bar + actions (shown when cart not empty) -->
     <div id="p_cart_footer" class="hidden bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+      <!-- Snipe Alert Banner -->
+      <div id="p_cart_snipe_alert" class="hidden mb-4 bg-red-50 border-2 border-red-300 text-red-900 rounded-2xl p-3.5 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">⚠️</span>
+          <div>
+            <p class="font-bold text-red-900" id="p_cart_snipe_title">มีรายการในตะกร้าถูกยืมตัดหน้าหรือไม่พร้อมใช้งาน</p>
+            <p class="text-xs text-red-700 mt-0.5">กรุณากด "จองคิวแทน" หรือนำออกจากตะกร้าก่อนกดยืนยันส่งคำขอยืม</p>
+          </div>
+        </div>
+        <button onclick="p_cart_removeAllSnipped()" class="shrink-0 bg-white border border-red-300 hover:bg-red-100 text-red-800 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1">
+          <span>🗑️</span> ลบรายการที่หมดทั้งหมด
+        </button>
+      </div>
+
       <div id="p_cart_summary" class="flex flex-wrap gap-3 text-sm text-gray-600 mb-4 pb-3 border-b border-gray-100"></div>
       <div class="flex items-center justify-between gap-3">
         <a href="javascript:void(0)" onclick="navigate('item-list')"
@@ -67,6 +81,19 @@
           class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-6 py-2.5 shadow-sm shadow-blue-200 transition-all">
           ยืนยันส่งคำขอยืม →
         </button>
+      </div>
+
+      <!-- Testing Sandbox Controls for Demo -->
+      <div class="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+        <span class="flex items-center gap-1 font-medium text-gray-400"><span>🛠️</span> เครื่องมือทดสอบจำลอง (Prototype Demo):</span>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="p_cart_simulateSnipe()" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg transition-colors font-bold flex items-center gap-1 cursor-pointer">
+            <span>⚡</span> จำลองคนอื่นยืมตัดหน้า
+          </button>
+          <button type="button" onclick="p_cart_resetSnipe()" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 rounded-lg transition-colors cursor-pointer">
+            ↺ คืนค่าสต็อกพร้อมยืม
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -78,16 +105,20 @@ function p_cart_init() { notifyParentPage("cart"); p_cart_render(); }
 
 function p_cart_render() {
   const cart = db("cart");
+  const units = db("units");
   const host = document.getElementById("p_cart_rows");
   const footer = document.getElementById("p_cart_footer");
   const summaryEl = document.getElementById("p_cart_summary");
   const mixWarn = document.getElementById("p_cart_mix_warning");
   const submitBtn = document.getElementById("p_cart_submit-btn");
+  const snipeAlert = document.getElementById("p_cart_snipe_alert");
+  const snipeTitle = document.getElementById("p_cart_snipe_title");
 
   // ── Empty state ──────────────────────────────────────────────────────────
   if (cart.length === 0) {
     if (footer) footer.classList.add("hidden");
     if (mixWarn) mixWarn.classList.add("hidden");
+    if (snipeAlert) snipeAlert.classList.add("hidden");
     host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
       <div class="text-5xl mb-3">🛒</div>
       <p class="text-gray-700 font-semibold text-base">ตะกร้าว่างเปล่า</p>
@@ -101,82 +132,282 @@ function p_cart_render() {
   }
 
   // ── Render items ──────────────────────────────────────────────────────────
-  const hasEquip = cart.some(c => itemById(c.item_id)?.type === "equipment");
-  const hasMat   = cart.some(c => itemById(c.item_id)?.type === "material");
-  if (mixWarn) mixWarn.classList.toggle("hidden", !(hasEquip && hasMat));
+  let hasSnipped = false;
+  let snippedCount = 0;
+
+  const hasEquip   = cart.some(c => itemById(c.item_id)?.type === "equipment");
+  const hasDurable = cart.some(c => itemById(c.item_id)?.type === "durable_material");
+  const hasMat     = cart.some(c => itemById(c.item_id)?.type === "material");
+  if (mixWarn) mixWarn.classList.toggle("hidden", !((hasEquip || hasDurable) && hasMat));
 
   host.innerHTML = cart.map(c => {
     const item = itemById(c.item_id);
     if (!item) return "";
     const isEquip = item.type === "equipment";
+    const isDurable = item.type === "durable_material";
     const typeBadge = isEquip
       ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">ครุภัณฑ์</span>`
-      : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100">วัสดุเบิกใช้</span>`;
-    const daysHint = isEquip && item.max_borrow_days
+      : isDurable
+      ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200">วัสดุคงทน</span>`
+      : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100">วัสดุสิ้นเปลือง</span>`;
+    const daysHint = (isEquip || isDurable) && item.max_borrow_days
       ? `<span class="text-[10px] text-gray-400">ยืมได้สูงสุด ${item.max_borrow_days} วัน</span>`
       : "";
 
-    return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-all">
-      <div class="flex items-center gap-4">
-        <!-- Item icon -->
-        <div class="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-3xl shrink-0">${item.image}</div>
-        <!-- Info -->
-        <div class="flex-1 min-w-0">
-          <div class="flex flex-wrap items-center gap-2 mb-1">
-            <p class="font-semibold text-gray-900 text-sm">${item.name}</p>
-            ${typeBadge}
+    // Check snipe / availability
+    let isSnipped = false;
+    let snipeReason = "";
+    if (isEquip) {
+      if (c.asset_tag) {
+        const u = units.find(x => x.asset_tag === c.asset_tag);
+        if (u && u.status === "BORROWED") {
+          isSnipped = true;
+          snipeReason = "ครุภัณฑ์นี้ถูกยืมไปแล้ว (มีคนอื่นยืมตัดหน้า)";
+        } else if (u && u.status === "DAMAGED") {
+          isSnipped = true;
+          snipeReason = "ครุภัณฑ์นี้ชำรุด/งดบริการชั่วคราว";
+        }
+      }
+    } else {
+      if (item.qty_available <= 0) {
+        isSnipped = true;
+        snipeReason = isDurable ? "วัสดุคงทนถูกยืมหมดแล้ว (มีคนอื่นยืมตัดหน้า)" : "วัสดุเบิกหมดแล้ว (มีคนอื่นเบิกตัดหน้า)";
+      }
+    }
+
+    if (isSnipped) {
+      hasSnipped = true;
+      snippedCount++;
+    }
+
+    return `<div class="${
+      isSnipped 
+        ? 'bg-slate-100 border-2 border-slate-300 shadow-none' 
+        : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'
+    } rounded-2xl p-4 transition-all">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-4 flex-1 min-w-0">
+          <!-- Item icon -->
+          <div class="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center text-3xl shrink-0 ${isSnipped ? 'grayscale opacity-60' : ''}">${item.image}</div>
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <p class="font-semibold text-gray-900 text-sm ${isSnipped ? 'line-through text-slate-500' : ''}">${item.name}</p>
+              ${typeBadge}
+            </div>
+            ${isSnipped ? `
+              <div class="mt-1">
+                <span class="inline-flex items-center gap-1.5 bg-slate-800 text-white font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                  <span>🔴</span> ${snipeReason}
+                </span>
+              </div>
+              ${isEquip && c.asset_tag ? `<p class="text-xs text-slate-500 mt-1">รหัสพัสดุ: <span class="font-mono font-bold text-slate-700">${c.asset_tag}</span> (ถูกยืมตัดหน้าแล้ว)</p>` : ''}
+              ${!isEquip ? `<p class="text-xs text-slate-500 mt-1">สต็อกในคลังหมดแล้ว ไม่สามารถส่ง${isDurable ? 'ยืม' : 'เบิก'}ชิ้นนี้ได้</p>` : ''}
+            ` : `
+              ${isEquip ? (c.asset_tag 
+                ? `<div class="mt-1"><span class="inline-flex items-center gap-1.5 bg-blue-600 text-white font-mono text-xs px-2.5 py-1 rounded-lg font-bold shadow-xs">🏷️ ยืมครุภัณฑ์รหัสชิ้น: ${c.asset_tag}</span></div>` 
+                : `<div class="mt-1"><a href="javascript:void(0)" onclick="navigate('item-detail', {id: ${item.id}})" class="inline-flex items-center gap-1.5 bg-red-100 text-red-800 font-mono text-xs px-2.5 py-1 rounded-lg font-bold border border-red-300 hover:bg-red-200">⚠️ ยังไม่ได้เลือกรหัสชิ้น (กดเลือกรหัสที่นี่ →)</a></div>`
+              ) : ''}
+              <div class="flex items-center gap-3 text-xs text-gray-400 mt-1">
+                <span>คงเหลือในคลัง: <strong class="text-gray-600">${item.qty_available}</strong> ${item.unit || 'ชิ้น'}</span>
+                ${daysHint}
+              </div>
+              <p id="err-${item.id}" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ จำนวนเกินที่มีในคลัง (สูงสุด ${item.qty_available} ${item.unit || 'ชิ้น'})</p>
+            `}
           </div>
-          ${isEquip ? (c.asset_tag 
-            ? `<div class="mt-1"><span class="inline-flex items-center gap-1.5 bg-blue-600 text-white font-mono text-xs px-2.5 py-1 rounded-lg font-bold shadow-xs">🏷️ ยืมครุภัณฑ์รหัสชิ้น: ${c.asset_tag}</span></div>` 
-            : `<div class="mt-1"><a href="javascript:void(0)" onclick="navigate('item-detail', {id: ${item.id}})" class="inline-flex items-center gap-1.5 bg-red-100 text-red-800 font-mono text-xs px-2.5 py-1 rounded-lg font-bold border border-red-300 hover:bg-red-200">⚠️ ยังไม่ได้เลือกรหัสชิ้น (กดเลือกรหัสที่นี่ →)</a></div>`
-          ) : ''}
-          <div class="flex items-center gap-3 text-xs text-gray-400 mt-1">
-            <span>คงเหลือในคลัง: <strong class="text-gray-600">${item.qty_available}</strong></span>
-            ${daysHint}
-          </div>
-          <p id="err-${item.id}" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ จำนวนเกินที่มีในคลัง (สูงสุด ${item.qty_available})</p>
         </div>
-        <!-- Qty controls -->
-        <div class="flex items-center gap-2 shrink-0">
-          <button onclick="p_cart_stepQty(${item.id}, -1)"
-            class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-lg flex items-center justify-center transition-colors">−</button>
-          <input type="number" min="1" max="${item.qty_available}" value="${c.qty}"
-            onchange="p_cart_updateQty(${item.id}, this.value)"
-            class="w-14 border border-gray-300 rounded-lg px-1 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-2 focus:ring-blue-300">
-          <button onclick="p_cart_stepQty(${item.id}, 1)"
-            class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-lg flex items-center justify-center transition-colors">+</button>
+
+        <!-- Controls -->
+        <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-gray-200">
+          ${isSnipped ? `
+            ${(isEquip || isDurable) ? `
+              <button onclick="p_cart_convertToQueue(${item.id}, '${c.asset_tag || ''}')" 
+                class="bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-slate-950 text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer">
+                <span>⏳</span> จองคิวแทน
+              </button>
+            ` : `<span class="text-xs text-slate-400 font-medium">วัสดุหมดคลัง (ไม่ต้องคืน)</span>`}
+            <button onclick="p_cart_removeItem(${item.id}, '${c.asset_tag || ''}')" title="ลบรายการ"
+              class="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-100/60 rounded-xl p-2 transition-colors cursor-pointer text-sm">
+              🗑️
+            </button>
+          ` : `
+            ${isEquip ? `
+              <span class="text-xs font-mono font-bold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs select-none">1 ${item.unit || 'ชิ้น'}</span>
+            ` : `
+              <button onclick="p_cart_stepQty(${item.id}, -1)"
+                class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-lg flex items-center justify-center transition-colors">−</button>
+              <input type="number" min="1" max="${item.qty_available}" value="${c.qty}"
+                onchange="p_cart_updateQty(${item.id}, this.value)"
+                class="w-14 border border-gray-300 rounded-lg px-1 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <button onclick="p_cart_stepQty(${item.id}, 1)"
+                class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-lg flex items-center justify-center transition-colors">+</button>
+            `}
+            <!-- Remove -->
+            <button onclick="p_cart_removeItem(${item.id}, '${c.asset_tag || ''}')" title="ลบรายการ"
+              class="shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl p-2 transition-colors">🗑️</button>
+          `}
         </div>
-        <!-- Remove -->
-        <button onclick="p_cart_removeItem(${item.id})" title="ลบรายการ"
-          class="shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl p-2 transition-colors">🗑️</button>
       </div>
     </div>`;
   }).join("");
 
   // ── Summary bar ──────────────────────────────────────────────────────────
   if (footer) footer.classList.remove("hidden");
-  if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove("opacity-40", "cursor-not-allowed"); }
+
+  if (snipeAlert) {
+    if (hasSnipped) {
+      snipeAlert.classList.remove("hidden");
+      if (snipeTitle) snipeTitle.innerText = `มีรายการในตะกร้าถูกยืมตัดหน้า (${snippedCount} รายการ)`;
+    } else {
+      snipeAlert.classList.add("hidden");
+    }
+  }
+
+  if (submitBtn) { 
+    if (hasSnipped) {
+      submitBtn.disabled = true;
+      submitBtn.className = "bg-gray-300 text-gray-500 text-sm font-semibold rounded-xl px-6 py-2.5 cursor-not-allowed transition-all select-none";
+      submitBtn.innerText = "มีรายการถูกยืมตัดหน้า (ไม่สามารถส่งคำขอได้)";
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.className = "bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-6 py-2.5 shadow-sm shadow-blue-200 transition-all cursor-pointer";
+      submitBtn.innerText = "ยืนยันส่งคำขอยืม →";
+    }
+  }
 
   if (summaryEl) {
-    const totalItems = cart.reduce((s, c) => s + (c.qty || 1), 0);
-    const equipCount = cart.filter(c => itemById(c.item_id)?.type === "equipment").length;
-    const matCount   = cart.filter(c => itemById(c.item_id)?.type === "material").length;
-    const maxDays    = hasEquip
-      ? Math.max(...cart.filter(c => itemById(c.item_id)?.type === "equipment").map(c => itemById(c.item_id)?.max_borrow_days || 7))
+    const totalItems   = cart.reduce((s, c) => s + (c.qty || 1), 0);
+    const equipCount   = cart.filter(c => itemById(c.item_id)?.type === "equipment").length;
+    const durableCount = cart.filter(c => itemById(c.item_id)?.type === "durable_material").length;
+    const matCount     = cart.filter(c => itemById(c.item_id)?.type === "material").length;
+    const returnables  = cart.filter(c => { const t = itemById(c.item_id)?.type; return t === "equipment" || t === "durable_material"; });
+    const maxDays      = returnables.length
+      ? Math.max(...returnables.map(c => itemById(c.item_id)?.max_borrow_days || 7))
       : 0;
 
     summaryEl.innerHTML = [
       `<span class="flex items-center gap-1.5"><span class="text-base">🛒</span> รวม <strong>${cart.length}</strong> รายการ (<strong>${totalItems}</strong> ชิ้น)</span>`,
-      equipCount > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-400 inline-block"></span> ครุภัณฑ์ ${equipCount} รายการ</span>` : "",
-      matCount   > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-teal-400 inline-block"></span> วัสดุ ${matCount} รายการ</span>` : "",
-      maxDays    > 0 ? `<span class="flex items-center gap-1">⏰ กำหนดคืนภายใน <strong>${maxDays}</strong> วัน</span>` : "",
+      equipCount   > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-400 inline-block"></span> ครุภัณฑ์ ${equipCount} รายการ</span>` : "",
+      durableCount > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-400 inline-block"></span> วัสดุคงทน ${durableCount} รายการ</span>` : "",
+      matCount     > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-teal-400 inline-block"></span> วัสดุ ${matCount} รายการ</span>` : "",
+      maxDays      > 0 ? `<span class="flex items-center gap-1">⏰ กำหนดคืนภายใน <strong>${maxDays}</strong> วัน</span>` : "",
     ].filter(Boolean).join("");
   }
 }
 
+function p_cart_convertToQueue(id, assetTag) {
+  const item = itemById(id);
+  if (!item || item.type === "material") {
+    toastBanner("วัสดุสิ้นเปลืองไม่สามารถจองคิวได้", "error");
+    return;
+  }
+  const queue = db("queue");
+  const stu = currentUserId();
+  const name = item ? item.name : "สิ่งของ";
+
+  const exists = assetTag
+    ? queue.some(q => q.item_id === id && q.asset_tag === assetTag && q.student_id === stu)
+    : queue.some(q => q.item_id === id && !q.asset_tag && q.student_id === stu);
+
+  if (!exists) {
+    const queueObj = {
+      id: nextId(queue),
+      item_id: id,
+      student_id: stu,
+      status: "WAITING",
+      joined_at: "2026-07-23 " + new Date().toTimeString().slice(0, 5)
+    };
+    if (item.type === "equipment") {
+      queueObj.equipment_id = id;
+      queueObj.asset_tag = assetTag || null;
+    } else {
+      queueObj.durable_material_id = id;
+    }
+    queue.push(queueObj);
+    dbSave("queue", queue);
+  }
+
+  p_cart_removeItem(id, assetTag);
+  toastBanner(`⏳ ย้าย "${name}" ไปยังรายการจองคิวของคุณเรียบร้อยแล้ว`, "info");
+}
+
+function p_cart_removeAllSnipped() {
+  const units = db("units");
+  let cart = db("cart");
+  cart = cart.filter(c => {
+    const item = itemById(c.item_id);
+    if (!item) return false;
+    if (item.type === "equipment") {
+      const u = c.asset_tag ? units.find(x => x.asset_tag === c.asset_tag) : null;
+      return !(u && (u.status === "BORROWED" || u.status === "DAMAGED"));
+    }
+    return item.qty_available > 0;
+  });
+  dbSave("cart", cart);
+  toastBanner("🗑️ นำรายการที่ไม่พร้อมให้บริการออกจากตะกร้าแล้ว");
+  p_cart_render();
+}
+
+function p_cart_simulateSnipe() {
+  const cart = db("cart");
+  if (cart.length === 0) {
+    toastBanner("กรุณาเพิ่มสิ่งของลงในตะกร้าก่อนทดสอบการจำลอง", "info");
+    return;
+  }
+  const units = db("units");
+  const items = db("items");
+
+  let modified = false;
+  // Mark equipment in cart as BORROWED
+  const eq = cart.find(c => itemById(c.item_id)?.type === "equipment" && c.asset_tag);
+  if (eq) {
+    const u = units.find(x => x.asset_tag === eq.asset_tag);
+    if (u) { u.status = "BORROWED"; modified = true; }
+  }
+
+  // Mark material or durable_material in cart as 0 qty_available
+  const mat = cart.find(c => {
+    const t = itemById(c.item_id)?.type;
+    return t === "material" || t === "durable_material";
+  });
+  if (mat) {
+    const i = items.find(x => x.id === mat.item_id);
+    if (i) { i.qty_available = 0; modified = true; }
+  }
+
+  if (modified) {
+    dbSave("units", units);
+    dbSave("items", items);
+    toastBanner("⚡ จำลอง: มีผู้ใช้อื่นกดยืมตัดหน้าเรียบร้อยแล้ว!", "error");
+    p_cart_render();
+  }
+}
+
+function p_cart_resetSnipe() {
+  const units = db("units");
+  const items = db("items");
+  const cart = db("cart");
+
+  cart.forEach(c => {
+    if (c.asset_tag) {
+      const u = units.find(x => x.asset_tag === c.asset_tag);
+      if (u) u.status = "AVAILABLE";
+    }
+    const i = items.find(x => x.id === c.item_id);
+    if (i && (i.type === "material" || i.type === "durable_material") && i.qty_available <= 0) {
+      i.qty_available = i.qty_total || 10;
+    }
+  });
+
+  dbSave("units", units);
+  dbSave("items", items);
+  toastBanner("↺ คืนค่าสต็อกและสถานะพร้อมให้ยืมตามปกติแล้ว");
+  p_cart_render();
+}
+
 function p_cart_stepQty(id, delta) {
   const cart = db("cart");
-  const c = cart.find(x => x.item_id === id);
+  const c = cart.find(x => x.item_id === id && !x.asset_tag);
   if (!c) return;
   const item = itemById(id);
   const newQty = Math.min(item.qty_available, Math.max(1, (c.qty || 1) + delta));
@@ -190,7 +421,8 @@ function p_cart_updateQty(id, val) {
   const item = itemById(id);
   const errEl = document.getElementById("err-" + id);
   const cart = db("cart");
-  const c = cart.find(x => x.item_id === id);
+  const c = cart.find(x => x.item_id === id && !x.asset_tag);
+  if (!c) return;
   if (qty > item.qty_available) {
     if (errEl) errEl.classList.remove("hidden");
     c.qty = item.qty_available;
@@ -202,9 +434,13 @@ function p_cart_updateQty(id, val) {
   p_cart_render();
 }
 
-function p_cart_removeItem(id) {
+function p_cart_removeItem(id, assetTag) {
   let cart = db("cart");
-  cart = cart.filter(c => c.item_id !== id);
+  if (assetTag) {
+    cart = cart.filter(c => !(c.item_id === id && c.asset_tag === assetTag));
+  } else {
+    cart = cart.filter(c => !(c.item_id === id && !c.asset_tag));
+  }
   dbSave("cart", cart);
   toastBanner("ลบรายการออกจากตะกร้าแล้ว");
   p_cart_render();
@@ -213,6 +449,22 @@ function p_cart_removeItem(id) {
 function p_cart_goRequestForm() {
   const cart = db("cart");
   if (cart.length === 0) return;
+  const units = db("units");
+
+  const hasSnipped = cart.some(c => {
+    const item = itemById(c.item_id);
+    if (!item) return false;
+    if (item.type === "equipment") {
+      const u = c.asset_tag ? units.find(x => x.asset_tag === c.asset_tag) : null;
+      return u && (u.status === "BORROWED" || u.status === "DAMAGED");
+    }
+    return item.qty_available <= 0 || (c.qty > item.qty_available);
+  });
+  if (hasSnipped) {
+    toastBanner("⚠️ มีรายการถูกยืมตัดหน้าหรือจำนวนเกินคงเหลือในคลัง กรุณาปรับปรุงก่อนส่งคำขอ", "error");
+    return;
+  }
+
   const missingEquip = cart.find(c => {
     const item = itemById(c.item_id);
     return item && item.type === "equipment" && !c.asset_tag;

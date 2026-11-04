@@ -36,7 +36,7 @@
 <div class="max-w-xl mx-auto">
     <a href="javascript:void(0)" onclick="navigate('item-overview')" class="text-sm text-blue-600 hover:underline">← กลับภาพรวมคลัง</a>
     <h1 id="p_item_form_title" class="text-2xl font-bold text-gray-800 mt-2 mb-1">เพิ่มสิ่งของใหม่</h1>
-    <p class="text-sm text-gray-500 mb-6">หมวดหมู่และตำแหน่งต้องตั้งค่าไว้ก่อนที่หน้าตั้งค่าคลัง (UC-26)</p>
+    <p class="text-sm text-gray-500 mb-6">กำหนดรายละเอียดสิ่งของ หมวดหมู่ และตำแหน่งจัดเก็บในคลังโดยตรง</p>
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
       <div><label class="text-sm font-semibold text-gray-700">ชื่อสิ่งของ <span class="text-red-500">*</span></label>
         <input id="p_item_form_f-name" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
@@ -45,24 +45,45 @@
       <div class="grid grid-cols-2 gap-3">
         <div><label class="text-sm font-semibold text-gray-700">หมวดหมู่ <span class="text-red-500">*</span></label>
           <select id="p_item_form_f-cat" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></select></div>
-        <div><label class="text-sm font-semibold text-gray-700">ตำแหน่งวาง <span class="text-red-500">*</span></label>
-          <select id="p_item_form_f-pos" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></select></div>
+        <div><label class="text-sm font-semibold text-gray-700">ตำแหน่งจัดเก็บ (location) <span class="text-red-500">*</span></label>
+          <input id="p_item_form_f-loc" placeholder="เช่น ห้อง EN6-101 · ตู้ A1 ชั้น 2" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div><label class="text-sm font-semibold text-gray-700">ประเภท <span class="text-red-500">*</span></label>
           <select id="p_item_form_f-type" onchange="p_item_form_toggleDays()" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-            <option value="material">วัสดุ (เบิก ไม่ต้องคืน)</option>
-            <option value="equipment">ครุภัณฑ์ (ยืม ต้องคืน)</option>
+            <option value="material">วัสดุสิ้นเปลือง (เบิก ไม่ต้องคืน)</option>
+            <option value="durable_material">วัสดุคงทน (ยืม ต้องคืน · นับจำนวนรวม)</option>
+            <option value="equipment">ครุภัณฑ์ (ยืม ต้องคืน · ติดตามรายชิ้น)</option>
           </select>
         </div>
         <div><label class="text-sm font-semibold text-gray-700">จำนวนทั้งหมด <span class="text-red-500">*</span></label>
           <input id="p_item_form_f-qty" type="number" min="1" oninput="p_item_form_renderUnitInputs()" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
         </div>
       </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-semibold text-gray-700">หน่วยนับ (เช่น เครื่อง, ตัว, รีม, แพ็ค) <span class="text-red-500">*</span></label>
+          <input id="p_item_form_f-unit" placeholder="เช่น เครื่อง, ชิ้น, รีม" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+        <div><label class="text-sm font-semibold text-gray-700">ราคาจัดซื้อเดิม (บาท)</label>
+          <input id="p_item_form_f-price" type="number" min="0" placeholder="เช่น 25000" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+      </div>
 
-      <!-- Max borrow days for Equipment -->
-      <div id="p_item_form_days-field"><label class="text-sm font-semibold text-gray-700">จำนวนวันสูงสุดที่ยืมได้ (ครุภัณฑ์)</label>
-        <input id="p_item_form_f-days" type="number" min="1" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <!-- Max borrow days & Fine rate per day for Equipment and Durable Material -->
+      <div id="p_item_form_days-field" class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-semibold text-gray-700">จำนวนวันสูงสุดที่ยืมได้</label>
+          <input id="p_item_form_f-days" type="number" min="1" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="text-sm font-semibold text-gray-700">อัตราค่าปรับล่าช้า (บาท/วัน)</label>
+          <input id="p_item_form_f-fine" type="number" min="0" placeholder="เช่น 20" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+      </div>
+
+      <!-- Description field -->
+      <div><label class="text-sm font-semibold text-gray-700">รายละเอียด / หมายเหตุสภาพสิ่งของ (description)</label>
+        <textarea id="p_item_form_f-desc" rows="2" placeholder="ระบุรายละเอียด การใช้งาน หรือหมายเหตุสภาพสิ่งของ..." class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
       </div>
 
       <!-- Asset Tags Generator Box for Equipment -->
@@ -99,28 +120,37 @@ function p_item_form_init() {
   notifyParentPage("item-form");
   editId = null;
   document.getElementById("p_item_form_f-cat").innerHTML = db("categories").map(c => `<option value="${c.id}">${c.name}</option>`).join("");
-  document.getElementById("p_item_form_f-pos").innerHTML = db("positions").map(p => `<option value="${p.id}">${p.name}</option>`).join("");
 
   const id = qparam("id");
   if (id) {
     editId = Number(id);
     const item = itemById(editId);
     if (item) {
+      const pos = positionById(item.position_id);
       document.getElementById("p_item_form_title").textContent = "แก้ไขสิ่งของ";
       document.getElementById("p_item_form_f-name").value = item.name;
       document.getElementById("p_item_form_f-image").value = item.image;
       document.getElementById("p_item_form_f-cat").value = item.category_id;
-      document.getElementById("p_item_form_f-pos").value = item.position_id;
+      document.getElementById("p_item_form_f-loc").value = item.location || (pos ? pos.name : "");
       document.getElementById("p_item_form_f-type").value = item.type;
       document.getElementById("p_item_form_f-qty").value = item.qty_total;
+      document.getElementById("p_item_form_f-unit").value = item.unit || "ชิ้น";
+      document.getElementById("p_item_form_f-price").value = item.price || "";
       document.getElementById("p_item_form_f-days").value = item.max_borrow_days || "";
+      document.getElementById("p_item_form_f-fine").value = item.fine_rate_per_day !== undefined && item.fine_rate_per_day !== null ? item.fine_rate_per_day : 20;
+      document.getElementById("p_item_form_f-desc").value = item.description || "";
     }
   } else {
     document.getElementById("p_item_form_title").textContent = "เพิ่มสิ่งของใหม่";
     document.getElementById("p_item_form_f-name").value = "";
     document.getElementById("p_item_form_f-image").value = "";
+    document.getElementById("p_item_form_f-loc").value = "ห้อง EN6-101 · ตู้ A1 ชั้น 1";
     document.getElementById("p_item_form_f-qty").value = "1";
+    document.getElementById("p_item_form_f-unit").value = "ชิ้น";
+    document.getElementById("p_item_form_f-price").value = "";
     document.getElementById("p_item_form_f-days").value = "7";
+    document.getElementById("p_item_form_f-fine").value = "20";
+    document.getElementById("p_item_form_f-desc").value = "";
     document.getElementById("p_item_form_f-prefix").value = "UBU-EQ-";
   }
 
@@ -128,8 +158,11 @@ function p_item_form_init() {
 }
 
 function p_item_form_toggleDays() {
-  const isEquip = document.getElementById("p_item_form_f-type").value === "equipment";
-  document.getElementById("p_item_form_days-field").classList.toggle("hidden", !isEquip);
+  const type = document.getElementById("p_item_form_f-type").value;
+  const isEquip = type === "equipment";
+  const isDurable = type === "durable_material";
+  const hasDays = isEquip || isDurable;
+  document.getElementById("p_item_form_days-field").classList.toggle("hidden", !hasDays);
   document.getElementById("p_item_form_units-box").classList.toggle("hidden", !isEquip);
   if (isEquip) p_item_form_renderUnitInputs();
 }
@@ -172,24 +205,32 @@ function p_item_form_autoGenerateTags() {
 
 function p_item_form_save() {
   const name = document.getElementById("p_item_form_f-name").value.trim();
+  const loc = document.getElementById("p_item_form_f-loc").value.trim();
   const qty = Number(document.getElementById("p_item_form_f-qty").value);
   const type = document.getElementById("p_item_form_f-type").value;
 
-  if (!name || isNaN(qty) || qty <= 0) {
+  if (!name || !loc || isNaN(qty) || qty <= 0) {
     document.getElementById("p_item_form_err").classList.remove("hidden");
     return;
   }
   document.getElementById("p_item_form_err").classList.add("hidden");
 
   const items = db("items");
+  const isBorrowable = (type === "equipment" || type === "durable_material");
+  const fineVal = Number(document.getElementById("p_item_form_f-fine").value);
   const data = {
     name,
     image: document.getElementById("p_item_form_f-image").value.trim() || "📦",
     category_id: Number(document.getElementById("p_item_form_f-cat").value),
-    position_id: Number(document.getElementById("p_item_form_f-pos").value),
+    location: loc,
     type,
     qty_total: qty,
-    max_borrow_days: type === "equipment" ? (Number(document.getElementById("p_item_form_f-days").value) || 7) : null,
+    unit: document.getElementById("p_item_form_f-unit").value.trim() || "ชิ้น",
+    price: Number(document.getElementById("p_item_form_f-price").value) || 0,
+    purchase_price: Number(document.getElementById("p_item_form_f-price").value) || 0,
+    max_borrow_days: isBorrowable ? (Number(document.getElementById("p_item_form_f-days").value) || 7) : null,
+    fine_rate_per_day: isBorrowable ? (!isNaN(fineVal) && fineVal >= 0 ? fineVal : 20) : null,
+    description: document.getElementById("p_item_form_f-desc").value.trim(),
     base_status: "พร้อมให้ยืม",
   };
 
@@ -228,7 +269,7 @@ function p_item_form_save() {
     dbSave("units", remainingUnits);
   }
 
-  toastBanner("บันทึกข้อมูลสิ่งของและรหัสครุภัณฑ์เรียบร้อยแล้ว");
+  toastBanner("บันทึกข้อมูลสิ่งของเรียบร้อยแล้ว");
   setTimeout(() => navigate("item-overview"), 600);
 }
 </script>

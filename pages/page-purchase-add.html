@@ -60,8 +60,15 @@ function p_purchase_add_init() { notifyParentPage("purchase-add"); p_purchase_ad
     function p_purchase_add_add() {
       const name = document.getElementById("p_purchase_add_f-name").value.trim();
       if (!name) { toastBanner("กรุณากรอกชื่อสิ่งของ", "error"); return; }
-      const list = db("purchases");
-      list.push({ id: nextId(list), name, detail: document.getElementById("p_purchase_add_f-detail").value.trim(), created_by: currentUserId(), created_at: "2026-07-23 " + new Date().toTimeString().slice(0,5) });
+      const list = db("purchases") || [];
+      list.push({
+        id: nextId(list),
+        suggestion_id: null,
+        name,
+        detail: document.getElementById("p_purchase_add_f-detail").value.trim(),
+        created_by: currentUserId() || "STAFF01",
+        created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
+      });
       dbSave("purchases", list);
       document.getElementById("p_purchase_add_f-name").value = ""; document.getElementById("p_purchase_add_f-detail").value = "";
       toastBanner("บันทึกรายการจัดซื้อสำเร็จ");

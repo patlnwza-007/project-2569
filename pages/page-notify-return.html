@@ -32,55 +32,167 @@
 </head>
 <body class="bg-gray-50" onload="p_notify_return_init()">
 
-<div id="view-notify-return" class="w-full h-full overflow-y-auto p-6">
-  <div class="max-w-2xl mx-auto">
+<div id="view-notify-return" class="w-full h-full overflow-y-auto p-4 sm:p-6">
+  <div class="max-w-3xl mx-auto space-y-5">
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-5">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <a href="javascript:void(0)" onclick="navigate('request-list')" class="text-sm text-blue-600 hover:underline inline-flex items-center gap-1 mb-1">← กลับหน้าหลัก</a>
-        <h1 class="text-2xl font-bold text-gray-900">↩️ แจ้งคืนครุภัณฑ์</h1>
-        <p class="text-sm text-gray-500 mt-0.5">นำของมาคืนที่คลัง แล้วกดแจ้งคืนเพื่อรอเจ้าหน้าที่ตรวจรับ</p>
+        <a href="javascript:void(0)" onclick="navigate('request-list')" class="text-sm text-blue-600 hover:underline inline-flex items-center gap-1 mb-1 font-medium">← กลับหน้ารายการคำขอ</a>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2"><span>📦</span> รายการครุภัณฑ์ที่ต้องส่งคืน</h1>
+        <p class="text-sm text-gray-500 mt-0.5">รายการครุภัณฑ์ที่คุณกำลังถือครองและอยู่ระหว่างการยืม</p>
       </div>
     </div>
 
     <!-- Overdue alert (injected dynamically) -->
-    <div id="p_notify_return_overdue_alert" class="hidden mb-5"></div>
+    <div id="p_notify_return_overdue_alert" class="hidden"></div>
 
-    <!-- Bulk return (shown when >1 item) -->
-    <div id="p_notify_return_bulk" class="hidden mb-4">
-      <button onclick="p_notify_return_bulkNotify()"
-        class="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold rounded-2xl py-3 transition-colors">
-        ↩️ แจ้งคืนทั้งหมดพร้อมกัน
-      </button>
+    <!-- Active Borrowing Equipment Cards -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-bold text-gray-800 flex items-center gap-2">
+          <span>📦</span> รายการครุภัณฑ์ที่คุณกำลังถือครองอยู่
+        </h2>
+        <span id="p_notify_return_count_badge" class="text-xs bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-full"></span>
+      </div>
+
+      <div id="p_notify_return_rows" class="space-y-4"></div>
     </div>
 
-    <!-- Item rows -->
-    <div id="p_notify_return_rows" class="space-y-4"></div>
+  </div>
+</div>
+
+<!-- Photo Preview Modal -->
+<div id="p_nr_photo_modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+  <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-150">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 id="p_nr_photo_title" class="font-bold text-sm text-gray-800 flex items-center gap-2">
+        <span>📸</span> ภาพถ่ายสภาพครุภัณฑ์
+      </h3>
+      <button onclick="p_notify_return_closePhotoModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 flex items-center justify-center text-sm transition-colors cursor-pointer">✕</button>
+    </div>
+    <div class="p-4 bg-gray-900 flex items-center justify-center min-h-[250px] max-h-[70vh] overflow-hidden">
+      <img id="p_nr_photo_img" src="" alt="Equipment preview" class="max-w-full max-h-[65vh] object-contain rounded-xl shadow-md">
+    </div>
+    <div class="p-3.5 bg-gray-50 border-t border-gray-100 flex justify-end">
+      <button onclick="p_notify_return_closePhotoModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold rounded-xl transition-colors cursor-pointer">ปิดหน้าต่าง</button>
+    </div>
   </div>
 </div>
 
 <script src="../shared.js"></script>
 <script>
-function p_notify_return_init() { notifyParentPage("notify-return"); p_notify_return_render(); }
+function p_notify_return_init() {
+  notifyParentPage("notify-return");
+  p_notify_return_render();
+}
+
+function p_notify_return_getItemUnits(r) {
+  const units = db("units") || [];
+  const list = [];
+  (r.items || []).forEach((it, itIdx) => {
+    const item = itemById(it.item_id);
+    if (item && item.type === "material") return; // Consumables do not need return
+    const isEquip = !item || item.type === "equipment";
+    const isDurable = item && item.type === "durable_material";
+    let assigned = units.filter(u => u.item_id === it.item_id && u.current_request_id === r.id);
+    if (assigned.length === 0 && it.asset_tag) {
+      const u = units.find(x => x.asset_tag === it.asset_tag);
+      if (u) assigned.push(u);
+    }
+    if (assigned.length === 0 && isEquip) {
+      const fallbacks = units.filter(u => u.item_id === it.item_id && u.status === "BORROWED").slice(0, it.qty || 1);
+      assigned.push(...fallbacks);
+    }
+
+    if (isEquip) {
+      const count = Math.max(1, it.qty || 1, assigned.length);
+      for (let k = 0; k < count; k++) {
+        const u = assigned[k];
+        list.push({
+          item_id: it.item_id,
+          name: item?.name || "ครุภัณฑ์",
+          image: item?.image || "📦",
+          unit: item?.unit || "ชิ้น",
+          price: item?.purchase_price || item?.price || 0,
+          asset_tag: u ? u.asset_tag : (it.asset_tag || `UBU-EQ-${it.item_id}-${k+1}`),
+          unit_record: u || null,
+          returned: it.returned === true || (u && (u.status === "AVAILABLE" || u.status === "DAMAGED" || u.status === "LOST")),
+          returned_at: it.returned_at || (u ? u.returned_at : null),
+          pending_return: it.pending_return === true,
+          pending_condition: it.pending_condition || "normal",
+          pending_note: it.pending_note || "",
+          orig_item_idx: itIdx,
+          is_equipment: true,
+          is_durable_material: false,
+          initial_photo: it.initial_photo || (u && u.initial_photo) || null
+        });
+      }
+    } else {
+      list.push({
+        item_id: it.item_id,
+        name: item?.name || "วัสดุคงทน",
+        image: item?.image || "📦",
+        unit: item?.unit || "ชิ้น",
+        price: item?.purchase_price || item?.price || 0,
+        qty: it.qty || 1,
+        asset_tag: null,
+        unit_record: null,
+        returned: it.returned === true,
+        returned_at: it.returned_at || null,
+        pending_return: it.pending_return === true,
+        pending_condition: it.pending_condition || "normal",
+        pending_note: it.pending_note || "",
+        orig_item_idx: itIdx,
+        is_equipment: false,
+        is_durable_material: true,
+        initial_photo: it.initial_photo || null
+      });
+    }
+  });
+  return list;
+}
+
+const p_nr_selected = {};
+const p_nr_conditions = {};
+const p_nr_notes = {};
+
+function p_notify_return_setCondition(rid, origItemIdx, cond, ev) {
+  if (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  p_nr_conditions[`${rid}_${origItemIdx}`] = cond;
+  p_notify_return_render();
+}
 
 function p_notify_return_render() {
   const stu = currentUserId();
   const highlight = qparam("rid") ? Number(qparam("rid")) : null;
-  const reqs = db("requests").filter(r => r.student_id === stu && r.status === "BORROWING")
+  const allReqs = db("requests") || [];
+  const reqs = allReqs.filter(r => r.student_id === stu && (r.status === "BORROWING" || r.status === "RETURN_PENDING"))
     .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
+
   const host = document.getElementById("p_notify_return_rows");
   const alertEl = document.getElementById("p_notify_return_overdue_alert");
-  const bulkEl  = document.getElementById("p_notify_return_bulk");
+  const countBadge = document.getElementById("p_notify_return_count_badge");
+
+  if (countBadge) {
+    countBadge.textContent = `${reqs.length} คำขอ`;
+  }
 
   // ── Empty state ──────────────────────────────────────────────────────────
   if (reqs.length === 0) {
     if (alertEl) alertEl.classList.add("hidden");
-    if (bulkEl)  bulkEl.classList.add("hidden");
-    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+    host.innerHTML = `<div class="bg-white rounded-3xl border border-dashed border-gray-300 p-12 text-center shadow-2xs">
       <div class="text-5xl mb-3">✅</div>
-      <p class="text-gray-700 font-semibold text-base">ไม่มีครุภัณฑ์ที่ต้องคืนในขณะนี้</p>
-      <p class="text-xs text-gray-400 mt-1">เมื่อคุณยืมครุภัณฑ์และถึงเวลาคืน รายการจะแสดงที่นี่</p>
+      <p class="text-gray-800 font-bold text-lg">ไม่มีสิ่งของ/ครุภัณฑ์ที่ต้องคืนในขณะนี้</p>
+      <p class="text-xs text-gray-500 mt-1">คุณไม่มีรายการที่กำลังยืมอยู่ หรือคืนของครบทุกรายการเรียบร้อยแล้ว</p>
+      <div class="mt-4">
+        <a href="javascript:void(0)" onclick="navigate('request-list')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 font-semibold rounded-xl text-xs hover:bg-blue-100 transition-colors">
+          ดูประวัติการยืม-คืนของฉัน →
+        </a>
+      </div>
     </div>`;
     return;
   }
@@ -89,127 +201,443 @@ function p_notify_return_render() {
   const overdueReqs = reqs.filter(r => daysLeft(r.due_date) < 0);
   if (alertEl) {
     if (overdueReqs.length > 0) {
-      alertEl.className = "mb-5 bg-red-50 border border-red-300 text-red-800 rounded-2xl p-4";
+      alertEl.className = "bg-red-50 border border-red-300 text-red-800 rounded-2xl p-4 shadow-2xs";
       alertEl.innerHTML = `
-        <div class="font-bold text-sm mb-1.5">🚨 มี ${overdueReqs.length} รายการเกินกำหนดคืน!</div>
-        <ul class="list-disc list-inside space-y-0.5 text-xs">
-          ${overdueReqs.map(r => `<li>คำขอ #${r.id} — เกินกำหนด <strong>${Math.abs(daysLeft(r.due_date))}</strong> วัน</li>`).join("")}
+        <div class="font-bold text-sm mb-1.5 flex items-center gap-2">
+          <span>🚨</span> มี ${overdueReqs.length} คำขอที่เกินกำหนดคืนแล้ว!
+        </div>
+        <ul class="list-disc list-inside space-y-0.5 text-xs text-red-700">
+          ${overdueReqs.map(r => `<li>คำขอ #${r.id} — เกินกำหนด <strong>${Math.abs(daysLeft(r.due_date))}</strong> วัน (มีค่าปรับวันละ ${getFineRatePerDay(r)} บ.)</li>`).join("")}
         </ul>
-        <p class="text-xs mt-2 text-red-600 font-medium">กรุณานำของมาคืนโดยเร็วที่สุด เพื่อหลีกเลี่ยงการถูกระงับสิทธิ์</p>`;
+        <p class="text-xs mt-2 text-red-600 font-semibold">กรุณานำสิ่งของมาส่งที่เคาน์เตอร์ EN6-101 โดยเร็วที่สุดเพื่อหยุดการสะสมค่าปรับ</p>`;
       alertEl.classList.remove("hidden");
     } else {
       alertEl.classList.add("hidden");
     }
   }
 
-  // ── Bulk return button ──────────────────────────────────────────────────
-  if (bulkEl) bulkEl.classList.toggle("hidden", reqs.length < 2);
-
   // ── Render each request card ──────────────────────────────────────────
   host.innerHTML = reqs.map(r => {
     const dl = daysLeft(r.due_date);
     const isOverdue = dl < 0;
-    const isNear    = dl >= 0 && dl <= 2;
+    const isNear = dl >= 0 && dl <= 2;
+    const fine = calculateOverdueFine(r);
+    const isPendingConfirmation = r.status === "RETURN_PENDING" || (r.items && r.items.some(it => it.pending_return === true));
+    
     const highlightCls = r.id === highlight ? "border-blue-400 ring-2 ring-blue-100" :
-                         isOverdue ? "border-red-400 ring-2 ring-red-100" :
-                         isNear    ? "border-amber-400 ring-2 ring-amber-100" : "border-gray-200";
-    const dueBadge = isOverdue
-      ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">เกินกำหนด ${Math.abs(dl)} วัน</span>`
-      : isNear
-      ? `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">อีก ${dl} วัน</span>`
-      : `<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-[10px]">อีก ${dl} วัน</span>`;
+                         isPendingConfirmation ? "border-amber-300 ring-2 ring-amber-100" :
+                         isOverdue ? "border-red-300" :
+                         isNear ? "border-amber-300" : "border-gray-200";
 
-    const itemLines = r.items.map(it => {
-      const i = itemById(it.item_id);
-      return `<div class="flex items-center gap-2 text-sm text-gray-800">
-        <span class="text-xl">${i?.image || "📦"}</span>
-        <span class="font-medium">${i?.name || "?"}</span>
-        <span class="text-gray-400 text-xs">×${it.qty}</span>
-      </div>`;
+    const statusBadge = isPendingConfirmation
+      ? `<span class="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full flex items-center gap-1"><span>🟡</span> รอเจ้าหน้าที่ตรวจรับคืน</span>`
+      : `<span class="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">กำลังยืม</span>`;
+
+    const dueBadge = isOverdue
+      ? `<span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-bold">เกินกำหนด ${Math.abs(dl)} วัน</span>`
+      : isNear
+      ? `<span class="bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-bold">อีก ${dl} วัน</span>`
+      : `<span class="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-xs font-medium">อีก ${dl} วัน</span>`;
+
+    const pieces = p_notify_return_getItemUnits(r);
+    const unreturnedPieces = pieces.filter(p => !p.returned);
+    const returnedPieces = pieces.filter(p => p.returned);
+
+    const selectablePieces = unreturnedPieces.filter(p => !p.pending_return);
+    const pendingPieces = unreturnedPieces.filter(p => p.pending_return);
+
+    // Count selected
+    let selectedCount = 0;
+    selectablePieces.forEach(p => {
+      const key = `${r.id}_${p.orig_item_idx}`;
+      if (p_nr_selected[key] !== false) selectedCount++;
+    });
+
+    // Render unreturned pieces cards
+    const unreturnedHtml = unreturnedPieces.map(p => {
+      const photoBtn = p.initial_photo
+        ? `<button type="button" onclick="p_notify_return_openPhotoModal('${p.initial_photo}', '${p.name} (${p.asset_tag || ''})')" class="text-[11px] text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-lg transition-colors inline-flex items-center gap-1 font-semibold cursor-pointer">
+            <span>📷</span> ดูรูปตอนรับของ
+          </button>`
+        : '';
+
+      if (p.pending_return) {
+        const cond = p.pending_condition || "normal";
+        const note = p.pending_note || "";
+        const itemPrice = p.price || 0;
+
+        let badgeBg = "border-amber-300 bg-amber-50/70";
+        let icon = "🟡";
+        let titleMsg = "<span>⏳</span> <strong>แจ้งส่งคืนแล้ว</strong> — นำชิ้นนี้มาแสดงที่เคาน์เตอร์ EN6-101 เพื่อตรวจรับคืน";
+        if (cond === "damaged") {
+          badgeBg = "border-amber-400 bg-amber-50/90";
+          icon = "⚠️";
+          titleMsg = `<span>⚠️</span> <strong>แจ้งส่งคืน (สภาพชำรุด)</strong>: "${note || 'มีตำหนิ/ชำรุด'}" — นำของมาให้เจ้าหน้าที่ตรวจที่เคาน์เตอร์`;
+        } else if (cond === "lost") {
+          badgeBg = "border-red-300 bg-red-50/80";
+          icon = "🔴";
+          titleMsg = `<span>🔴</span> <strong>แจ้งสิ่งของ/ครุภัณฑ์สูญหาย</strong> (คิดค่าชดใช้ ${itemPrice.toLocaleString()} บ.): "${note || 'สูญหาย'}" — ติดต่อชำระเงินที่เคาน์เตอร์`;
+        }
+
+        return `
+          <div class="p-3.5 rounded-2xl border ${badgeBg} transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-lg shrink-0">${icon}</span>
+              <span class="text-2xl shrink-0 p-1.5 bg-white rounded-xl border border-gray-200 shadow-2xs">${p.image}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-sm text-gray-900">${p.name}</span>
+                  ${p.asset_tag ? `<span class="bg-white/80 border border-gray-300 font-mono text-xs px-2 py-0.5 rounded-md font-bold text-gray-800">🏷️ ${p.asset_tag}</span>` : `<span class="text-xs font-mono bg-white/80 border border-gray-300 px-2 py-0.5 rounded-md font-bold text-gray-800">×${p.qty || 1} ${p.unit}</span>`}
+                </div>
+                <p class="text-[11px] text-gray-800 font-medium mt-0.5 flex items-center gap-1">
+                  ${titleMsg}
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 self-start sm:self-center shrink-0">
+              ${photoBtn}
+              <button type="button" onclick="p_notify_return_cancelPiece(${r.id}, ${p.orig_item_idx})" class="text-[11px] text-red-600 hover:text-red-800 bg-white hover:bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer flex items-center gap-1">
+                <span>✕</span> ยกเลิกการแจ้ง
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      const key = `${r.id}_${p.orig_item_idx}`;
+      const isSelected = p_nr_selected[key] !== false;
+      const cond = p_nr_conditions[key] || "normal";
+      const isNorm = cond === "normal";
+      const isDmg = cond === "damaged";
+      const isLost = cond === "lost";
+      const note = p_nr_notes[key] || "";
+      const itemPrice = p.price || 0;
+
+      return `
+        <div class="p-3.5 rounded-2xl border transition-all shadow-2xs ${isSelected ? 'border-blue-400 bg-blue-50/30 ring-1 ring-blue-200' : 'border-gray-200 bg-white opacity-70'}">
+          <!-- Top selectable row -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer" onclick="p_notify_return_togglePiece(${r.id}, ${p.orig_item_idx}, !${isSelected})">
+            <div class="flex items-center gap-3 min-w-0">
+              <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()" onchange="p_notify_return_togglePiece(${r.id}, ${p.orig_item_idx}, this.checked)" class="w-5 h-5 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 cursor-pointer shrink-0">
+              <span class="text-2xl shrink-0 p-1.5 bg-white rounded-xl border border-gray-100 shadow-2xs">${p.image}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-sm text-gray-900">${p.name}</span>
+                  ${p.asset_tag ? `<span class="bg-blue-50 text-blue-800 border border-blue-200 font-mono text-xs px-2 py-0.5 rounded-md font-bold">🏷️ ${p.asset_tag}</span>` : `<span class="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-bold">×${p.qty || 1} ${p.unit}</span>`}
+                </div>
+                <p class="text-[11px] ${isSelected ? 'text-blue-700 font-semibold' : 'text-gray-500'} mt-0.5 flex items-center gap-1">
+                  <span>${isSelected ? (isLost ? '🔴 ระบุ: สูญหาย' : isDmg ? '⚠️ ระบุ: ชำรุด' : '✓ ติ๊กเลือกแล้ว — สภาพปกติ') : '⏳ ยังไม่คืน — ถือครองและใช้งานต่อ'}</span>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 self-start sm:self-center shrink-0">
+              ${photoBtn}
+              <span class="text-[11px] ${isSelected ? (isLost ? 'bg-red-600 text-white' : isDmg ? 'bg-amber-600 text-white' : 'bg-blue-600 text-white') : 'bg-gray-100 text-gray-600'} font-bold px-2.5 py-1 rounded-lg transition-colors">
+                ${isSelected ? (isLost ? '🔴 สูญหาย' : isDmg ? '⚠️ คืนชำรุด' : '✓ เลือกคืน') : 'ใช้ต่อ'}
+              </span>
+            </div>
+          </div>
+
+          <!-- Condition Switcher and details (Shown when selected) -->
+          ${isSelected ? `
+            <div class="mt-3 pt-2.5 border-t border-blue-100/80 space-y-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span class="text-xs font-bold text-gray-700 flex items-center gap-1">
+                  <span>🛠️</span> สภาพสิ่งของที่จะส่งคืน:
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <button type="button" onclick="p_notify_return_setCondition(${r.id}, ${p.orig_item_idx}, 'normal', event)"
+                    class="px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${isNorm ? 'border-emerald-400 bg-emerald-50 text-emerald-800 shadow-2xs' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}">
+                    ✅ สภาพปกติ
+                  </button>
+                  <button type="button" onclick="p_notify_return_setCondition(${r.id}, ${p.orig_item_idx}, 'damaged', event)"
+                    class="px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${isDmg ? 'border-amber-400 bg-amber-50 text-amber-900 shadow-2xs' : 'border-gray-200 bg-white text-gray-600 hover:bg-amber-50 hover:text-amber-800'}">
+                    ⚠️ ชำรุด/มีตำหนิ
+                  </button>
+                  <button type="button" onclick="p_notify_return_setCondition(${r.id}, ${p.orig_item_idx}, 'lost', event)"
+                    class="px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${isLost ? 'border-red-400 bg-red-50 text-red-900 shadow-2xs' : 'border-gray-200 bg-white text-gray-600 hover:bg-red-50 hover:text-red-800'}">
+                    🔴 สูญหาย
+                  </button>
+                </div>
+              </div>
+
+              ${isDmg ? `
+                <div class="p-2.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1 text-xs">
+                  <label class="font-bold text-amber-900 flex items-center gap-1">
+                    <span>📝</span> ระบุอาการชำรุด (เพื่อความสะดวกรวดเร็วในการตรวจรับ):
+                  </label>
+                  <input type="text" value="${note}" oninput="p_nr_notes['${key}'] = this.value"
+                    placeholder="เช่น ตัวล็อกหัก, สายไฟขาด, หน้าจอไม่ติด..."
+                    class="w-full text-xs px-3 py-1.5 bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-gray-800">
+                </div>
+              ` : ''}
+
+              ${isLost ? `
+                <div class="p-2.5 bg-red-50/90 border border-red-200 rounded-xl space-y-1.5 text-xs">
+                  <div class="font-bold text-red-900 flex items-center justify-between flex-wrap gap-1">
+                    <span>🔴 แจ้งสิ่งของ/ครุภัณฑ์สูญหาย</span>
+                    <span class="bg-white px-2 py-0.5 rounded border border-red-200 font-mono text-red-700">ราคาจัดซื้อเดิม: <strong>${itemPrice.toLocaleString()} บาท</strong></span>
+                  </div>
+                  <p class="text-[11px] text-red-700">
+                    ⚠️ กรณีสูญหาย ผู้ยืมต้องชำระค่าชดใช้ตามระเบียบพัสดุ กรุณานำเงินมาชำระที่เคาน์เตอร์ EN6-101 ตอนมาติดต่อ
+                  </p>
+                  <input type="text" value="${note}" oninput="p_nr_notes['${key}'] = this.value"
+                    placeholder="ระบุสาเหตุการสูญหาย เช่น ทำหล่นหายระหว่างจัดกิจกรรม, โดนขโมย (มีใบแจ้งความ)..."
+                    class="w-full text-xs px-3 py-1.5 bg-white border border-red-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500 text-gray-800">
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+      `;
     }).join("");
 
-    return `<div class="bg-white rounded-2xl border ${highlightCls} shadow-sm p-5 hover:shadow-md transition-all">
-      <!-- Request meta -->
-      <div class="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <span class="text-xs text-gray-400 font-mono">คำขอ #${r.id}</span>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="text-xs text-gray-500">กำหนดคืน: <strong class="${isOverdue ? "text-red-600" : "text-gray-800"}">${r.due_date}</strong></span>
-            ${dueBadge}
+    // Already returned pieces (from previous partial returns)
+    // Already returned pieces (from previous partial returns)
+    const returnedHtml = returnedPieces.map(p => {
+      const isEval = isPieceEvaluated(r.id, p.orig_item_idx, p.asset_tag);
+      const evalData = isEval ? getPieceEvaluation(r.id, p.orig_item_idx, p.asset_tag) : null;
+      return `
+        <div class="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 opacity-95">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-emerald-600 font-bold text-sm shrink-0">✓</span>
+            <span class="text-xl opacity-80 shrink-0">${p.image}</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-xs sm:text-sm text-gray-700 line-through truncate">${p.name}</span>
+                ${p.asset_tag ? `<span class="bg-emerald-100 text-emerald-800 font-mono text-[10px] px-2 py-0.5 rounded font-bold">🏷️ ${p.asset_tag}</span>` : ''}
+              </div>
+              <p class="text-[10px] text-emerald-700 mt-0.5">✓ คืนเข้าคลังแล้ว ${p.returned_at ? `เมื่อ ${p.returned_at}` : ''}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            ${isEval ? `
+              <span class="text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-2xs">
+                <span>⭐</span> ประเมินแล้ว (${evalData?.rating || 5}★)
+              </span>
+            ` : `
+              <a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}, item_idx: ${p.orig_item_idx}})" class="text-[11px] bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-2xs transition-all cursor-pointer">
+                <span>⭐</span> ประเมินชิ้นนี้
+              </a>
+            `}
           </div>
         </div>
-        <!-- Main notify button -->
-        <button onclick="p_notify_return_openDialog(${r.id})"
-          class="shrink-0 ${isOverdue ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} text-white text-sm font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm">
-          ↩️ แจ้งคืน
-        </button>
-      </div>
-      <!-- Items -->
-      <div class="space-y-1.5 mb-3">${itemLines}</div>
-      <!-- Condition note input -->
-      <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
-        <label class="text-xs font-semibold text-gray-500 mb-1.5 block">📝 บันทึกสภาพของก่อนคืน (ไม่บังคับ)</label>
-        <div class="flex gap-3 mb-2">
-          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-            <input type="radio" name="cond_${r.id}" value="normal" checked class="text-blue-600"> สภาพปกติ
-          </label>
-          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-            <input type="radio" name="cond_${r.id}" value="damaged" class="text-red-500"> ชำรุด/สูญหายบางส่วน
-          </label>
+      `;
+    }).join("");
+
+    const evalProgress = getRequestEvaluationProgress(r.id);
+
+    return `
+      <div id="p_nr_card_${r.id}" class="bg-white rounded-3xl border ${highlightCls} shadow-sm p-5 md:p-6 space-y-4 hover:shadow-md transition-all">
+        <!-- Card Top Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-mono font-bold text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-0.5 rounded-lg">คำขอ #${r.id}</span>
+              ${r.return_summary ? `<span class="bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs px-2.5 py-0.5 rounded-lg">⚠️ ${r.return_summary}</span>` : ''}
+              ${dueBadge}
+            </div>
+            <p class="text-xs text-gray-500 mt-1">กำหนดคืน: <strong class="${isOverdue ? 'text-red-600' : 'text-gray-800'}">${r.due_date}</strong> · ยืมเมื่อ: <strong>${r.created_at || '-'}</strong></p>
+          </div>
+          <div class="flex items-center gap-1.5 self-start sm:self-auto">
+            <span class="text-xs text-gray-500 font-medium">สถานะ:</span>
+            ${statusBadge}
+          </div>
         </div>
-        <textarea id="note_${r.id}" rows="2" placeholder="หมายเหตุเพิ่มเติม เช่น มีรอยขีดข่วน, สายหายไป 1 เส้น ..."
-          class="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none mb-2"></textarea>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-700 mb-1">📸 ถ่ายรูป/แนบรูปหลักฐานสภาพครุภัณฑ์ ณ วันคืน:</label>
-          <input type="file" id="photo_${r.id}" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+
+        <!-- Overdue Fine Note (if any) -->
+        ${fine > 0 ? `
+          <div class="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 flex items-center justify-between gap-2">
+            <span>💸 <strong>ค่าปรับค้างชำระ:</strong> ${fine} บาท (${getOverdueDays(r)} วัน × ${getFineRatePerDay(r)} บ./วัน)</span>
+            <span class="text-[11px] text-red-600 font-bold">ชำระที่เคาน์เตอร์ตอนคืน</span>
+          </div>
+        ` : ''}
+
+        <!-- Checklist Header with Select All / Deselect All -->
+        <div class="space-y-2">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-bold text-gray-700">
+            <div class="flex items-center gap-2">
+              <span>📋 เลือกรายการที่จะส่งคืน (${unreturnedPieces.length} ชิ้นที่ยังค้างส่ง):</span>
+            </div>
+            ${selectablePieces.length > 0 ? `
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="p_notify_return_selectAll(${r.id})" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer">
+                  ✓ เลือกทั้งหมด
+                </button>
+              </div>
+            ` : ''}
+          </div>
+          <p class="text-[11px] text-gray-400 font-normal">
+            * สามารถติ๊กเลือกเฉพาะชิ้นที่นำมาคืนในรอบนี้ได้ ชิ้นที่ไม่ติ๊กจะคงสถานะยืมใช้งานต่อไป
+          </p>
+          <div class="space-y-2">
+            ${unreturnedHtml}
+            ${returnedHtml}
+          </div>
+        </div>
+
+        <!-- Action Footer -->
+        <div class="pt-3.5 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="text-xs text-gray-600">
+            ${selectablePieces.length > 0 
+              ? `เลือกแล้ว <strong class="text-blue-700 font-bold text-sm">${selectedCount}</strong> จาก ${selectablePieces.length} ชิ้นที่ยังไม่คืน`
+              : (pendingPieces.length > 0
+                 ? `<span class="text-amber-800 font-bold">🟡 แจ้งส่งคืนแล้ว ${pendingPieces.length} ชิ้น (รอเจ้าหน้าที่ตรวจรับที่เคาน์เตอร์)</span>`
+                 : `<span class="text-emerald-600 font-bold">✓ คืนครบทุกชิ้นเรียบร้อยแล้ว</span>`)}
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            ${selectablePieces.length > 0 ? `
+              <button onclick="p_notify_return_submitPending(${r.id})" ${selectedCount === 0 ? 'disabled' : ''} class="px-5 py-2.5 ${selectedCount > 0 ? 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white shadow-xs hover:shadow cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed'} font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all">
+                <span>↩️</span> แจ้งส่งคืน ${selectedCount} ชิ้นที่เลือก
+              </button>
+            ` : (pendingPieces.length > 0 ? `
+              <div class="px-4 py-2 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs flex items-center gap-1.5">
+                <span>🏢</span> นำของมาแสดงที่เคาน์เตอร์ EN6-101 เพื่อตรวจรับ
+              </div>
+            ` : `
+              <span class="px-4 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold rounded-xl text-xs flex items-center gap-1.5">
+                <span>✓</span> ส่งคืนเข้าคลังครบแล้ว
+              </span>
+            `)}
+          </div>
         </div>
       </div>
-    </div>`;
+    `;
   }).join("");
 }
 
-function p_notify_return_openDialog(rid) {
-  const cond = document.querySelector(`input[name="cond_${rid}"]:checked`)?.value || "normal";
-  const note = document.getElementById("note_" + rid)?.value || "";
-  const isDamaged = cond === "damaged";
-  const msg = isDamaged
-    ? `ยืนยันแจ้งคืนคำขอ #${rid}?\n\n⚠️ คุณระบุว่าสิ่งของ "ชำรุด/สูญหาย" — เจ้าหน้าที่จะได้รับทราบและดำเนินการต่อไป`
-    : `ยืนยันแจ้งคืนคำขอ #${rid}?\n\nนำของมาที่คลังก่อนกดยืนยัน เจ้าหน้าที่จะตรวจรับและอัปเดตสถานะให้`;
-  if (!confirm(msg)) return;
-  p_notify_return_doNotify(rid, cond, note);
+function p_notify_return_togglePiece(rid, origItemIdx, checked) {
+  p_nr_selected[`${rid}_${origItemIdx}`] = checked;
+  p_notify_return_render();
 }
 
-function p_notify_return_doNotify(rid, cond, note) {
-  const reqs = db("requests");
+function p_notify_return_selectAll(rid, selectAll) {
+  const reqs = db("requests") || [];
   const r = reqs.find(x => x.id === rid);
-  r.status = "RETURN_PENDING";
-  r.return_notified_at = "2026-07-23 " + new Date().toTimeString().slice(0, 5);
-  r.return_condition = cond || "normal";
-  r.return_note = note || "";
-  const photoInput = document.getElementById("photo_" + rid);
-  if (photoInput && photoInput.files && photoInput.files[0]) {
-    r.return_photo = URL.createObjectURL(photoInput.files[0]);
+  if (!r) return;
+
+  const selectable = (r.items || []).map((it, idx) => ({ it, idx })).filter(x => {
+    const item = itemById(x.it.item_id);
+    if (item && item.type === "material") return false;
+    return !x.it.returned && !x.it.pending_return;
+  });
+  let targetState;
+  if (typeof selectAll === "boolean") {
+    targetState = selectAll;
   } else {
-    r.return_photo = "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=300"; // default mock return photo
+    const allSelected = selectable.every(x => p_nr_selected[`${rid}_${x.idx}`] !== false);
+    targetState = !allSelected;
   }
-  dbSave("requests", reqs);
-  toastBanner("แจ้งคืนสำเร็จ รอเจ้าหน้าที่ตรวจรับ" + (cond === "damaged" ? " (แจ้งชำรุด)" : ""));
+
+  selectable.forEach(x => {
+    p_nr_selected[`${rid}_${x.idx}`] = targetState;
+  });
   p_notify_return_render();
 }
 
-function p_notify_return_bulkNotify() {
-  const stu = currentUserId();
-  const reqs = db("requests").filter(r => r.student_id === stu && r.status === "BORROWING");
-  if (!confirm(`ยืนยันแจ้งคืนทั้งหมด ${reqs.length} รายการพร้อมกัน?\n\nนำของทั้งหมดมาที่คลังก่อนกดยืนยัน`)) return;
-  reqs.forEach(r => {
-    r.status = "RETURN_PENDING";
-    r.return_notified_at = "2026-07-23 " + new Date().toTimeString().slice(0, 5);
-    r.return_condition = "normal";
+function p_notify_return_submitPending(rid) {
+  const reqs = db("requests") || [];
+  const r = reqs.find(x => x.id === rid);
+  if (!r) return;
+
+  const returnRequests = db("return_requests") || [];
+  const returnItems = db("return_items") || [];
+  const newReturnReqId = returnRequests.length > 0 ? Math.max(...returnRequests.map(x => x.id || 0)) + 1 : 1;
+  const newReturnItems = [];
+
+  let count = 0;
+  (r.items || []).forEach((it, idx) => {
+    const item = itemById(it.item_id);
+    if (item && item.type === "material") return;
+    const key = `${rid}_${idx}`;
+    const isSelected = p_nr_selected[key] !== false;
+    if (!it.returned && !it.pending_return && isSelected) {
+      it.pending_return = true;
+      const rawCond = p_nr_conditions[key] || "normal";
+      const cond = rawCond.toLowerCase();
+      const enumCond = cond === "lost" ? "LOST" : (cond === "damaged" ? "DAMAGED" : "NORMAL");
+      it.pending_condition = cond;
+      it.pending_note = (cond !== "normal") ? (p_nr_notes[key] || "") : "";
+
+      const itemPrice = item?.purchase_price || item?.price || 0;
+      newReturnItems.push({
+        id: returnItems.length + newReturnItems.length + 1,
+        return_request_id: newReturnReqId,
+        borrow_item_id: it.id || (idx + 1),
+        qty_returned: it.qty || 1,
+        condition_status: enumCond,
+        lost_compensation: enumCond === "LOST" ? itemPrice : 0,
+        lost_paid: false
+      });
+      count++;
+    }
   });
-  const allReqs = db("requests").map(r => reqs.find(x => x.id === r.id) || r);
-  dbSave("requests", allReqs);
-  toastBanner(`แจ้งคืนทั้งหมด ${reqs.length} รายการสำเร็จ รอเจ้าหน้าที่ตรวจรับ`);
+
+  if (count === 0) {
+    toastBanner("กรุณาเลือกสิ่งของอย่างน้อย 1 ชิ้นเพื่อส่งคืน", "error");
+    return;
+  }
+
+  r.status = "RETURN_PENDING";
+  dbSave("requests", reqs);
+
+  // Sync to RETURN_REQUEST and RETURN_ITEM tables in ERD
+  returnRequests.push({
+    id: newReturnReqId,
+    borrow_request_id: r.id,
+    inspected_by: null,
+    status: "RETURN_PENDING",
+    return_photo: null,
+    custom_fine: calculateOverdueFine(r) || 0,
+    fine_paid: false,
+    fine_reason: null,
+    note: (r.items || []).filter(it => it.pending_return && it.pending_note).map(it => it.pending_note).join("; ") || null,
+    created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    returned_at: null
+  });
+  returnItems.push(...newReturnItems);
+  dbSave("return_requests", returnRequests);
+  dbSave("return_items", returnItems);
+
+  toastBanner(`แจ้งส่งคืน ${count} ชิ้นเรียบร้อย กรุณานำสิ่งของมาแสดงที่เคาน์เตอร์`);
   p_notify_return_render();
+}
+
+function p_notify_return_cancelPiece(rid, origItemIdx) {
+  const reqs = db("requests") || [];
+  const r = reqs.find(x => x.id === rid);
+  if (!r) return;
+
+  if (r.items && r.items[origItemIdx]) {
+    r.items[origItemIdx].pending_return = false;
+    delete r.items[origItemIdx].pending_condition;
+    delete r.items[origItemIdx].pending_note;
+  }
+
+  const hasAnyPending = (r.items || []).some(it => it.pending_return === true);
+  if (!hasAnyPending) {
+    r.status = "BORROWING";
+  }
+
+  dbSave("requests", reqs);
+  toastBanner("ยกเลิกการแจ้งส่งคืนชิ้นนี้เรียบร้อยแล้ว", "info");
+  p_notify_return_render();
+}
+
+function p_notify_return_openPhotoModal(url, title) {
+  const modal = document.getElementById("p_nr_photo_modal");
+  const img = document.getElementById("p_nr_photo_img");
+  const titleEl = document.getElementById("p_nr_photo_title");
+  if (img) img.src = url;
+  if (titleEl) titleEl.innerHTML = `<span>📸</span> ${title || 'ภาพถ่ายสภาพครุภัณฑ์'}`;
+  if (modal) modal.classList.remove("hidden");
+  document.body.classList.add("overflow-hidden");
+}
+
+function p_notify_return_closePhotoModal() {
+  const modal = document.getElementById("p_nr_photo_modal");
+  if (modal) modal.classList.add("hidden");
+  document.body.classList.remove("overflow-hidden");
 }
 </script>
 </body>

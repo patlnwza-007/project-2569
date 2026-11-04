@@ -53,16 +53,24 @@
 function p_history_init() {
       notifyParentPage("history");
       const stu = currentUserId();
-      const reqs = db("requests").filter(r => r.student_id === stu).sort((a,b)=> (b.created_at||"").localeCompare(a.created_at||""));
+      const reqs = (db("requests") || []).filter(r => (r.user_id === stu || r.student_id === stu)).sort((a,b)=> (b.created_at||"").localeCompare(a.created_at||""));
       const evals = db("eval_responses");
       const host = document.getElementById("p_history_rows");
       if (reqs.length === 0) { document.getElementById("p_history_empty").classList.remove("hidden"); return; }
       host.innerHTML = reqs.map(r => {
-        const names = r.items.map(it => itemById(it.item_id)?.name).join(", ");
-        const evaluated = evals.some(e => e.request_id === r.id);
+        const names = (r.items || []).map(it => itemById(it.item_id)?.name || "สิ่งของ").join(", ");
+        const progress = getRequestEvaluationProgress(r.id);
         let evalCell = "-";
-        if (r.status === "RETURNED") {
-          evalCell = evaluated ? `<span class="text-green-600 text-xs">ประเมินแล้ว</span>` : `<a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}})" class="text-blue-600 text-xs hover:underline">ประเมินเลย</a>`;
+        if (r.status === "RETURNED" || r.status === "ISSUED") {
+          if (progress.allDone) {
+            evalCell = `<span class="text-emerald-600 font-bold text-xs flex items-center gap-1"><span>✓</span> รีวิวครบแล้ว</span>`;
+          } else if (progress.evaluated > 0) {
+            evalCell = `<a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}})" class="text-amber-600 font-bold text-xs hover:underline flex items-center gap-1"><span>⭐</span> รีวิวต่อ →</a>`;
+          } else {
+            evalCell = `<a href="javascript:void(0)" onclick="navigate('evaluation', {rid: ${r.id}})" class="text-blue-600 font-bold text-xs hover:underline flex items-center gap-1"><span>⭐</span> รีวิวรายชิ้น</a>`;
+          }
+        } else if (r.status === "BORROWING" || r.status === "RETURN_PENDING") {
+          evalCell = `<a href="javascript:void(0)" onclick="navigate('request-list')" class="text-blue-600 font-bold text-xs hover:underline flex items-center gap-1"><span>📍</span> แจ้งย้ายที่ตั้ง</a>`;
         }
         return `<tr class="hover:bg-gray-50 border-t border-gray-100">
           <td class="px-4 py-2 font-mono text-xs">#${r.id}</td>

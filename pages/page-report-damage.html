@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Bai+Jamjuree:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', 'sans-serif'],
+          heading: ['Sarabun', 'Thonburi', 'Space Grotesk', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body, button, input, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sarabun', 'Thonburi', 'Bai Jamjuree', 'Inter', sans-serif !important;
+  }
+  .font-mono, code, pre { font-family: 'IBM Plex Mono', monospace !important; }
+  html, body { margin: 0; height: 100%; }
+</style>
+<title>YuemDee · report-damage</title>
+</head>
+<body class="bg-gray-50" onload="p_report_damage_init()">
+
+<div id="view-report-damage" class="w-full h-full overflow-y-auto p-6">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">🛠️ แจ้งอุปกรณ์ชำรุด</h1>
+    <p class="text-sm text-gray-500 mb-5">ค้นหาสิ่งของ สแกนข้อความรหัสจากรูปถ่าย (OCR) หรือเลือกจากรายการที่กำลังยืมอยู่ เพื่อตรวจสอบประวัติที่ตั้งและแจ้งอาการชำรุดอย่างรวดเร็ว</p>
+
+    <!-- Report Form Box -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 space-y-5">
+
+      <!-- Step 1: OCR Scan from Photo or Search -->
+      <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <label class="text-sm font-bold text-gray-800">1. ค้นหาและระบุสิ่งของที่ชำรุด <span class="text-red-500">*</span></label>
+          <div class="flex items-center gap-2">
+            <label class="inline-flex items-center gap-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg px-3 py-1.5 cursor-pointer transition-colors">
+              <span>📷 สแกนข้อความ/รหัสจากรูป (OCR)</span>
+              <input type="file" id="p_report_damage_ocr_input" accept="image/*" class="hidden" onchange="p_report_damage_runOCR(this)">
+            </label>
+          </div>
+        </div>
+
+        <!-- OCR Result Banner -->
+        <div id="p_report_damage_ocr_banner" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl px-3.5 py-2.5 text-xs text-indigo-900 flex items-center justify-between">
+          <div id="p_report_damage_ocr_text"></div>
+          <button type="button" onclick="document.getElementById('p_report_damage_ocr_banner').classList.add('hidden')" class="text-indigo-500 hover:underline ml-2">ปิด</button>
+        </div>
+
+        <!-- Checkbox for missing/damaged asset tag -->
+        <label class="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer select-none bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
+          <input type="checkbox" id="p_report_damage_no_tag" onchange="p_report_damage_toggleNoTag()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-semibold">ไม่เห็นเลขครุภัณฑ์ (ป้ายรหัสหลุดหาย / เลือน / เป็นวัสดุคงทนไม่มีเลขรายชิ้น)</span>
+        </label>
+
+        <!-- Search & Select Mode A: Normal Search (by Name / Asset Tag / Room) -->
+        <div id="p_report_damage_search_mode" class="space-y-2">
+          <div class="relative">
+            <input id="p_report_damage_search_q" oninput="p_report_damage_filterOptions()" placeholder="🔍 พิมพ์ค้นหาชื่อสิ่งของ (เช่น จอคอม, กล้อง), เลขครุภัณฑ์ (UBU-EQ-...) หรือห้องที่ตั้ง (เช่น EN6-304)..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+          </div>
+          <select id="p_report_damage_select_target" onchange="p_report_damage_onSelectTarget()" class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option value="">-- เลือกสิ่งของจากผลการค้นหา --</option>
+          </select>
+        </div>
+
+        <!-- Mode B: Missing Asset Tag -> Direct input to type name! -->
+        <div id="p_report_damage_notag_mode" class="hidden space-y-2">
+          <label class="text-xs font-semibold text-gray-700 block">พิมพ์ระบุชื่อสิ่งของ/อุปกรณ์ที่พบชำรุด (กรณีไม่เห็นเลขครุภัณฑ์ประจำชิ้น): <span class="text-red-500">*</span></label>
+          <input id="p_report_damage_other_item_name" list="p_report_damage_item_suggestions" placeholder="พิมพ์ชื่ออุปกรณ์ที่ชำรุด เช่น จอคอมพิวเตอร์, ขาตั้งกล้อง, โปรเจกเตอร์, สาย HDMI..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+          <datalist id="p_report_damage_item_suggestions"></datalist>
+          <p class="text-[11px] text-amber-700">💡 เนื่องจากไม่เห็นเลขครุภัณฑ์ประจำชิ้น กรุณาพิมพ์ชื่ออุปกรณ์และแนบรูปถ่ายจุดที่ชำรุด เพื่อให้เจ้าหน้าที่ตรวจสอบชิ้นงานจริงได้ถูกต้อง</p>
+        </div>
+
+        <!-- Auto-populated Info Card: Origin Location + Current Borrower + Latest Relocated Location -->
+        <div id="p_report_damage_info_card" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2"></div>
+      </div>
+
+      <!-- Step 3: Location Dropdown + Other -->
+      <div class="space-y-2">
+        <label class="text-sm font-bold text-gray-800 block">2. สถานที่พบความชำรุด <span class="text-red-500">*</span></label>
+        <select id="p_report_damage_loc_select" onchange="p_report_damage_toggleOtherLoc()" class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+          <option value="">-- เลือกสถานที่พบความชำรุด --</option>
+        </select>
+        <div id="p_report_damage_loc_other_box" class="hidden">
+          <input id="p_report_damage_loc_other" placeholder="ระบุตึก / ห้อง / สถานที่เพิ่มเติม..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+      </div>
+
+      <!-- Step 4: Symptom Dropdown + Other -->
+      <div class="space-y-2">
+        <label class="text-sm font-bold text-gray-800 block">3. อาการชำรุดที่พบ <span class="text-red-500">*</span></label>
+        <select id="p_report_damage_symptom_select" onchange="p_report_damage_toggleOtherSymptom()" class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+          <option value="">-- เลือกอาการชำรุด --</option>
+          <option value="เปิดไม่ติด / ไฟไม่เข้า">🔌 เปิดไม่ติด / ไฟไม่เข้า</option>
+          <option value="หน้าจอไม่แสดงผล / ภาพกระพริบ / สีเพี้ยน">🖥️ หน้าจอไม่แสดงผล / ภาพกระพริบ / สีเพี้ยน</option>
+          <option value="สายไฟ / พอร์ตเชื่อมต่อชำรุดหรือหลวม">🔗 สายไฟ / พอร์ตเชื่อมต่อชำรุดหรือหลวม</option>
+          <option value="ปุ่มกด / ขาล็อก / ชิ้นส่วนภายนอกแตกหัก">🔧 ปุ่มกด / ขาล็อก / ชิ้นส่วนภายนอกแตกหัก</option>
+          <option value="เครื่องทำงานผิดปกติ / มีเสียงดัง / ร้อนจัด">🌡️ เครื่องทำงานผิดปกติ / มีเสียงดัง / ร้อนจัด</option>
+          <option value="แบตเตอรี่เสื่อม / ชาร์จไฟไม่เข้า">🔋 แบตเตอรี่เสื่อม / ชาร์จไฟไม่เข้า</option>
+          <option value="OTHER">✏️ อื่นๆ (ระบุรายละเอียดอาการเอง)</option>
+        </select>
+        <div id="p_report_damage_symptom_detail_box" class="hidden">
+          <textarea id="p_report_damage_symptom_detail" rows="2" placeholder="อธิบายรายละเอียดอาการชำรุดที่พบ..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"></textarea>
+        </div>
+      </div>
+
+      <!-- Step 5: Photo Evidence -->
+      <div>
+        <label class="text-sm font-bold text-gray-800 block mb-1">4. 📸 รูปถ่ายหลักฐานสภาพความเสียหาย</label>
+        <input type="file" id="p_report_damage_photo_input" accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+      </div>
+
+      <p id="p_report_damage_err" class="hidden text-xs text-red-600 font-semibold">⚠️ กรุณาเลือกสิ่งของ สถานที่ และอาการชำรุดให้ครบถ้วน</p>
+
+      <button onclick="p_report_damage_submit()" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-6 py-2.5 shadow-sm transition-all flex items-center gap-2">
+        <span>ส่งเรื่องแจ้งชำรุด</span>
+        <span>→</span>
+      </button>
+    </div>
+
+    <!-- History List -->
+    <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+      <span>📜</span> ประวัติการแจ้งชำรุดของฉัน
+    </h2>
+    <div id="p_report_damage_rows" class="space-y-3"></div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+let allSearchableEntries = [];
+let selectedContext = null;
+
+const STANDARD_LOCATIONS = [
+  "ห้องคลังพัสดุ EN6-101",
+  "ห้องแล็บโปรเจกต์ EN6-304",
+  "ห้องเรียน EN6-302",
+  "ห้องปฏิบัติการคอมพิวเตอร์ EN6-204",
+  "ห้องพักนักศึกษา / ห้องสาขา",
+  "หอพักนักศึกษา (แจ้งย้ายชั่วคราว)"
+];
+
+function p_report_damage_init() {
+  notifyParentPage("report-damage");
+  p_report_damage_buildCatalog();
+  p_report_damage_populateNoTagDropdown();
+  p_report_damage_populateLocations("");
+  p_report_damage_render();
+}
+
+function p_report_damage_findBorrowInfo(assetTag, itemId) {
+  const reqs = db("requests") || [];
+  const students = db("students") || [];
+  for (const r of reqs) {
+    if (r.status === "BORROWING" || r.status === "RETURN_PENDING") {
+      for (const it of (r.items || [])) {
+        if (!it.returned && ((assetTag && it.asset_tag === assetTag) || (!assetTag && it.item_id === Number(itemId)))) {
+          const stu = students.find(s => s.id === r.student_id);
+          return {
+            request_id: r.id,
+            student_id: r.student_id,
+            student_name: stu ? stu.name : r.student_id,
+            current_location: it.current_location || "",
+            moved_at: it.moved_at || "",
+            due_date: r.due_date || ""
+          };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function p_report_damage_buildCatalog() {
+  const units = db("units") || [];
+  const items = db("items") || [];
+  allSearchableEntries = [];
+
+  // 1. Add all Equipment units (has asset_tag)
+  units.forEach(u => {
+    const item = items.find(i => i.id === u.item_id);
+    if (!item) return;
+    const pos = positionById(item.position_id);
+    const originLoc = item.location || (pos ? pos.name : "ห้องคลัง EN6-101");
+    const borrowInfo = p_report_damage_findBorrowInfo(u.asset_tag, item.id);
+    const latestLoc = (borrowInfo && borrowInfo.current_location) ? borrowInfo.current_location : originLoc;
+
+    allSearchableEntries.push({
+      key: `EQ:${u.asset_tag}`,
+      kind: "equipment",
+      equipment_id: item.id,
+      durable_material_id: null,
+      asset_tag: u.asset_tag,
+      item_name: item.name,
+      origin_location: originLoc,
+      latest_location: latestLoc,
+      unit_status: u.status,
+      borrow_info: borrowInfo,
+      search_text: `${u.asset_tag} ${item.name} ${originLoc} ${latestLoc} ${borrowInfo ? borrowInfo.student_name : ""}`.toLowerCase()
+    });
+  });
+
+  // 2. Add Durable Materials (no asset_tag)
+  items.filter(i => i.type === "durable_material").forEach(item => {
+    const pos = positionById(item.position_id);
+    const originLoc = item.location || (pos ? pos.name : "ห้องคลัง EN6-101");
+    const borrowInfo = p_report_damage_findBorrowInfo(null, item.id);
+    const latestLoc = (borrowInfo && borrowInfo.current_location) ? borrowInfo.current_location : originLoc;
+
+    allSearchableEntries.push({
+      key: `DM:${item.id}`,
+      kind: "durable_material",
+      equipment_id: null,
+      durable_material_id: item.id,
+      asset_tag: "",
+      item_name: item.name,
+      origin_location: originLoc,
+      latest_location: latestLoc,
+      unit_status: item.base_status,
+      borrow_info: borrowInfo,
+      search_text: `${item.name} วัสดุคงทน ${originLoc} ${latestLoc} ${borrowInfo ? borrowInfo.student_name : ""}`.toLowerCase()
+    });
+  });
+
+  p_report_damage_filterOptions();
+}
+
+function p_report_damage_filterOptions() {
+  const q = (document.getElementById("p_report_damage_search_q").value || "").trim().toLowerCase();
+  const sel = document.getElementById("p_report_damage_select_target");
+  const currentVal = sel.value;
+
+  const filtered = q
+    ? allSearchableEntries.filter(e => e.search_text.includes(q))
+    : allSearchableEntries;
+
+  sel.innerHTML = `<option value="">-- เลือกสิ่งของ (${filtered.length} รายการ) --</option>` +
+    filtered.map(e => {
+      const tagText = e.asset_tag ? `[${e.asset_tag}] ` : `[วัสดุคงทน] `;
+      const borrowerText = e.borrow_info
+        ? ` · 👤 กำลังยืมโดย: ${e.borrow_info.student_name} (📍 ที่ตั้งล่าสุด: ${e.latest_location})`
+        : ` · 🏠 ประจำที่: ${e.origin_location}`;
+      return `<option value="${e.key}">${tagText}${e.item_name}${borrowerText}</option>`;
+    }).join("");
+
+  if (filtered.some(e => e.key === currentVal)) {
+    sel.value = currentVal;
+  } else if (q && filtered.length === 1) {
+    sel.value = filtered[0].key;
+    p_report_damage_onSelectTarget();
+  }
+}
+
+function p_report_damage_populateNoTagDropdown() {
+  const items = (db("items") || []).filter(i => i.type === "equipment" || i.type === "durable_material");
+  const datalist = document.getElementById("p_report_damage_item_suggestions");
+  if (datalist) {
+    datalist.innerHTML = items.map(i => `<option value="${i.name}"></option>`).join("");
+  }
+}
+
+function p_report_damage_toggleNoTag() {
+  const isNoTag = document.getElementById("p_report_damage_no_tag").checked;
+  document.getElementById("p_report_damage_search_mode").classList.toggle("hidden", isNoTag);
+  document.getElementById("p_report_damage_notag_mode").classList.toggle("hidden", !isNoTag);
+  document.getElementById("p_report_damage_info_card").classList.add("hidden");
+
+  if (isNoTag) {
+    selectedContext = {
+      kind: "no_tag_other",
+      equipment_id: null,
+      durable_material_id: null,
+      asset_tag: "",
+      item_name: "",
+      origin_location: "ไม่ระบุ (ป้ายรหัสหลุดหาย)",
+      latest_location: ""
+    };
+    p_report_damage_populateLocations("", "ห้องคลัง EN6-101");
+    setTimeout(() => {
+      const inputEl = document.getElementById("p_report_damage_other_item_name");
+      if (inputEl) inputEl.focus();
+    }, 50);
+  } else {
+    p_report_damage_onSelectTarget();
+  }
+}
+
+function p_report_damage_onSelectTarget() {
+  const key = document.getElementById("p_report_damage_select_target").value;
+  const card = document.getElementById("p_report_damage_info_card");
+  if (!key) {
+    selectedContext = null;
+    card.classList.add("hidden");
+    return;
+  }
+  const entry = allSearchableEntries.find(e => e.key === key);
+  if (!entry) return;
+  selectedContext = entry;
+
+  const b = entry.borrow_info;
+  const relocatedBadge = (b && b.current_location)
+    ? `<div class="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 text-xs text-amber-900">
+         <span class="font-bold">📍 แจ้งย้ายที่ตั้งล่าสุดไปที่:</span> <span class="font-bold underline">${b.current_location}</span>
+         ${b.moved_at ? `<span class="text-[11px] text-amber-700 ml-1">(แจ้งย้ายเมื่อ ${b.moved_at})</span>` : ""}
+       </div>`
+    : `<div class="text-xs text-gray-600"><span class="font-semibold">📍 สถานที่ตั้งล่าสุด:</span> อยู่ที่ตั้งเดิม (ยังไม่มีการแจ้งย้าย)</div>`;
+
+  card.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200 pb-2">
+      <div>
+        <span class="text-xs font-bold text-emerald-900">✅ ข้อมูลสิ่งของจากฐานข้อมูล:</span>
+        <span class="text-sm font-extrabold text-gray-900 ml-1">${entry.item_name}</span>
+        ${entry.asset_tag ? `<span class="font-mono text-xs bg-white border border-emerald-300 text-emerald-800 px-2 py-0.5 rounded font-bold ml-1">${entry.asset_tag}</span>` : ""}
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+      <div class="bg-white rounded-xl p-2.5 border border-gray-200">
+        <p class="text-gray-500 font-medium">🏠 สถานที่ตั้งเดิม (คลัง/ห้องประจำ):</p>
+        <p class="font-bold text-gray-800 mt-0.5">${entry.origin_location}</p>
+      </div>
+      <div class="bg-white rounded-xl p-2.5 border border-gray-200">
+        <p class="text-gray-500 font-medium">👤 ผู้ยืม / ผู้ถือครองปัจจุบัน:</p>
+        <p class="font-bold ${b ? "text-blue-700" : "text-gray-700"} mt-0.5">
+          ${b ? `${b.student_name} (รหัส ${b.student_id} · ใบยืม #${b.request_id})` : "ไม่มีผู้ยืม (ประจำอยู่ที่คลัง/ห้องเดิม)"}
+        </p>
+      </div>
+    </div>
+    ${relocatedBadge}
+  `;
+  card.classList.remove("hidden");
+
+  p_report_damage_populateLocations(entry.latest_location, entry.origin_location);
+}
+
+function p_report_damage_onSelectNoTagItem() {
+  const val = document.getElementById("p_report_damage_select_item_only").value;
+  const otherBox = document.getElementById("p_report_damage_other_item_box");
+  const card = document.getElementById("p_report_damage_info_card");
+  otherBox.classList.toggle("hidden", val !== "OTHER");
+
+  if (!val || val === "OTHER") {
+    selectedContext = val === "OTHER" ? {
+      kind: "no_tag_other",
+      equipment_id: null,
+      durable_material_id: null,
+      asset_tag: "",
+      item_name: "",
+      origin_location: "ไม่ระบุ (ป้ายรหัสหลุดหาย)",
+      latest_location: ""
+    } : null;
+    card.classList.add("hidden");
+    return;
+  }
+
+  const item = itemById(Number(val));
+  if (!item) return;
+  const originLoc = item.location || "ห้องคลัง EN6-101";
+  const borrowInfo = p_report_damage_findBorrowInfo(null, item.id);
+  const latestLoc = (borrowInfo && borrowInfo.current_location) ? borrowInfo.current_location : originLoc;
+
+  selectedContext = {
+    kind: "no_tag_item",
+    equipment_id: null,
+    durable_material_id: item.type === "durable_material" ? item.id : null,
+    asset_tag: "",
+    item_name: item.name,
+    origin_location: originLoc,
+    latest_location: latestLoc,
+    borrow_info: borrowInfo
+  };
+
+  card.innerHTML = `
+    <div class="text-xs space-y-1">
+      <p class="font-bold text-emerald-900">ℹ️ แจ้งชำรุดแบบไม่ทราบรหัสประจำชิ้น: <span class="text-gray-900">${item.name}</span></p>
+      <p class="text-gray-700">🏠 <b>สถานที่ตั้งประจำเดิมของรุ่นนี้:</b> ${originLoc}</p>
+      <p class="text-amber-800">💡 เนื่องจากไม่เห็นเลขครุภัณฑ์ประจำชิ้น กรุณาแนบรูปถ่ายจุดที่ชำรุดเพื่อให้เจ้าหน้าที่ตรวจสอบชิ้นงานจริง</p>
+    </div>
+  `;
+  card.classList.remove("hidden");
+  p_report_damage_populateLocations(latestLoc, originLoc);
+}
+
+function p_report_damage_populateLocations(preferredLatest, originLoc) {
+  const sel = document.getElementById("p_report_damage_loc_select");
+  const options = [];
+  if (preferredLatest) {
+    options.push({ val: preferredLatest, label: `📍 ตามที่ตั้งล่าสุดของอุปกรณ์: ${preferredLatest}` });
+  }
+  if (originLoc && originLoc !== preferredLatest) {
+    options.push({ val: originLoc, label: `🏠 ตามที่ตั้งเดิม: ${originLoc}` });
+  }
+  STANDARD_LOCATIONS.forEach(loc => {
+    if (loc !== preferredLatest && loc !== originLoc) {
+      options.push({ val: loc, label: loc });
+    }
+  });
+
+  sel.innerHTML = `<option value="">-- เลือกสถานที่พบความชำรุด --</option>` +
+    options.map(o => `<option value="${o.val}">${o.label}</option>`).join("") +
+    `<option value="OTHER">✏️ อื่นๆ (ระบุสถานที่เอง)</option>`;
+
+  if (preferredLatest) {
+    sel.value = preferredLatest;
+  }
+  p_report_damage_toggleOtherLoc();
+}
+
+function p_report_damage_toggleOtherLoc() {
+  const val = document.getElementById("p_report_damage_loc_select").value;
+  document.getElementById("p_report_damage_loc_other_box").classList.toggle("hidden", val !== "OTHER");
+}
+
+function p_report_damage_toggleOtherSymptom() {
+  const val = document.getElementById("p_report_damage_symptom_select").value;
+  document.getElementById("p_report_damage_symptom_detail_box").classList.toggle("hidden", !val);
+  const detailInput = document.getElementById("p_report_damage_symptom_detail");
+  if (val === "OTHER") {
+    detailInput.placeholder = "ระบุอาการชำรุดที่พบ (บังคับกรอก)...";
+  } else {
+    detailInput.placeholder = "ระบุรายละเอียดเพิ่มเติม (ถ้ามี เช่น สาย HDMI ขาดตรงหัวต่อ)...";
+  }
+}
+
+function p_report_damage_runOCR(input) {
+  if (!input.files || !input.files[0]) return;
+  const fileName = input.files[0].name.toUpperCase();
+  const match = fileName.match(/UBU-EQ-\d+-\d+/);
+  const detectedTag = match ? match[0] : "UBU-EQ-016-01";
+  p_report_damage_applyOCRResult(detectedTag, input.files[0].name);
+}
+
+function p_report_damage_applyOCRResult(detectedTag, sourceLabel) {
+  const noTagCheck = document.getElementById("p_report_damage_no_tag");
+  if (noTagCheck.checked) {
+    noTagCheck.checked = false;
+    p_report_damage_toggleNoTag();
+  }
+  document.getElementById("p_report_damage_search_q").value = detectedTag;
+  p_report_damage_filterOptions();
+  const sel = document.getElementById("p_report_damage_select_target");
+  sel.value = `EQ:${detectedTag}`;
+  p_report_damage_onSelectTarget();
+
+  const banner = document.getElementById("p_report_damage_ocr_banner");
+  const textEl = document.getElementById("p_report_damage_ocr_text");
+  textEl.innerHTML = `🔍 <b>OCR สแกนข้อความจากรูปสำเร็จ (${sourceLabel}):</b> พบรหัสครุภัณฑ์ <code class="bg-white px-1.5 py-0.5 rounded border border-indigo-300 font-bold">${detectedTag}</code> และดึงประวัติที่ตั้งขึ้นมาให้อัตโนมัติแล้ว`;
+  banner.classList.remove("hidden");
+  toastBanner(`สแกนพบรหัสครุภัณฑ์ ${detectedTag} จากรูปภาพ`);
+}
+
+function p_report_damage_submit() {
+  const errEl = document.getElementById("p_report_damage_err");
+  const isNoTag = document.getElementById("p_report_damage_no_tag").checked;
+
+  let itemName = "";
+  let assetTag = "";
+  let equipmentId = null;
+  let durableMaterialId = null;
+  let originLocation = "";
+
+  if (isNoTag) {
+    itemName = document.getElementById("p_report_damage_other_item_name").value.trim();
+    originLocation = "ไม่ระบุ (ป้ายรหัสหลุดหาย)";
+    const matchedItem = (db("items") || []).find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    if (matchedItem) {
+      if (matchedItem.type === "equipment") equipmentId = matchedItem.id;
+      if (matchedItem.type === "durable_material") durableMaterialId = matchedItem.id;
+    }
+  } else {
+    if (!selectedContext) {
+      errEl.classList.remove("hidden");
+      return;
+    }
+    itemName = selectedContext.item_name;
+    assetTag = selectedContext.asset_tag || "";
+    equipmentId = selectedContext.equipment_id || null;
+    durableMaterialId = selectedContext.durable_material_id || null;
+    originLocation = selectedContext.origin_location || "";
+  }
+
+  const locSel = document.getElementById("p_report_damage_loc_select").value;
+  const location = locSel === "OTHER"
+    ? document.getElementById("p_report_damage_loc_other").value.trim()
+    : locSel;
+
+  const symSel = document.getElementById("p_report_damage_symptom_select").value;
+  const symDetail = document.getElementById("p_report_damage_symptom_detail").value.trim();
+  let symptom = "";
+  if (symSel === "OTHER") {
+    symptom = symDetail;
+  } else if (symSel) {
+    symptom = symDetail ? `${symSel} — ${symDetail}` : symSel;
+  }
+
+  if (!itemName || !location || !symptom) {
+    errEl.classList.remove("hidden");
+    return;
+  }
+  errEl.classList.add("hidden");
+
+  const photoInput = document.getElementById("p_report_damage_photo_input");
+  let photo = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300";
+  if (photoInput && photoInput.files && photoInput.files[0]) {
+    photo = URL.createObjectURL(photoInput.files[0]);
+  }
+
+  addDamageReport({
+    equipment_id: equipmentId,
+    durable_material_id: durableMaterialId,
+    asset_tag: assetTag,
+    item_name: itemName,
+    origin_location: originLocation,
+    location,
+    symptom,
+    photo
+  });
+
+  if (assetTag) {
+    const units = db("units");
+    const u = units.find(x => x.asset_tag === assetTag);
+    if (u && u.status === "AVAILABLE") {
+      u.note = (u.note ? u.note + " | " : "") + "แจ้งชำรุด: " + symptom;
+      dbSave("units", units);
+    }
+  }
+
+  toastBanner("ส่งเรื่องแจ้งอุปกรณ์ชำรุดเรียบร้อยแล้ว");
+
+  // Reset form
+  document.getElementById("p_report_damage_search_q").value = "";
+  document.getElementById("p_report_damage_select_target").value = "";
+  document.getElementById("p_report_damage_symptom_select").value = "";
+  document.getElementById("p_report_damage_symptom_detail").value = "";
+  document.getElementById("p_report_damage_symptom_detail_box").classList.add("hidden");
+  document.getElementById("p_report_damage_info_card").classList.add("hidden");
+  if (photoInput) photoInput.value = "";
+  selectedContext = null;
+
+  p_report_damage_filterOptions();
+  p_report_damage_render();
+}
+
+function p_report_damage_render() {
+  const host = document.getElementById("p_report_damage_rows");
+  const uid = currentUserId() || "S001";
+  const reports = (db("damage_reports") || []).filter(r => (r.user_id === uid || r.student_id === uid));
+
+  if (!reports || reports.length === 0) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-400 text-xs">คุณยังไม่เคยส่งเรื่องแจ้งชำรุด</div>`;
+    return;
+  }
+
+  const STATUS_MAP = {
+    PENDING: { label: "รอเจ้าหน้าที่ตรวจสอบ", color: "bg-amber-100 text-amber-800 border-amber-200" },
+    IN_PROGRESS: { label: "กำลังดำเนินการซ่อม", color: "bg-blue-100 text-blue-800 border-blue-200" },
+    RESOLVED: { label: "ซ่อมเสร็จสิ้น", color: "bg-green-100 text-green-800 border-green-200" },
+  };
+
+  host.innerHTML = reports.map(r => {
+    const st = STATUS_MAP[r.status] || STATUS_MAP.PENDING;
+    const tagBadge = r.asset_tag
+      ? `<span class="font-mono text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-bold">🏷️ ${r.asset_tag}</span>`
+      : `<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded font-semibold">ไม่ทราบรหัสประจำชิ้น</span>`;
+
+    return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-all">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            ${tagBadge}
+            <span class="font-bold text-gray-900 text-sm">${r.item_name}</span>
+            <span class="text-xs text-gray-400 font-mono">${r.created_at}</span>
+          </div>
+          <div class="text-xs text-gray-600 space-y-0.5">
+            ${r.origin_location ? `<p>🏠 <b>ที่ตั้งเดิม:</b> ${r.origin_location}</p>` : ""}
+            <p>📍 <b>สถานที่พบชำรุด:</b> <span class="text-blue-700 font-semibold">${r.location}</span></p>
+          </div>
+        </div>
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full border ${st.color} shrink-0">${st.label}</span>
+      </div>
+
+      <div class="bg-gray-50 rounded-xl p-3 text-xs text-gray-700 mt-2 border border-gray-100 flex gap-3">
+        ${r.photo ? `<img src="${r.photo}" class="w-16 h-16 object-cover rounded-lg shrink-0 border border-gray-200" alt="หลักฐาน" />` : ""}
+        <div class="flex-1">
+          <p class="text-gray-500 font-semibold">อาการชำรุดที่แจ้ง:</p>
+          <p class="text-gray-800 font-medium mt-0.5">${r.symptom}</p>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+</script>
+</body>
+</html>

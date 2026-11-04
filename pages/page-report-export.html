@@ -59,7 +59,7 @@ function p_report_export_init() {
 const REPORTS = [
   { id: 1, name: "สรุปสถานะการยืม-คืนรายเดือน", filter: r => true },
   { id: 2, name: "ของชำรุด", isDamaged: true, filter: () => true },
-  { id: 3, name: "รายงานคนค้างส่ง", isOverdue: true, filter: r => r.status === "BORROWING" && daysLeft(r.due_date) < 0 },
+  { id: 3, name: "รายงานคนค้างส่ง", isOverdue: true, filter: r => (r.status === "BORROWING" || r.status === "RETURN_PENDING") && daysLeft(r.due_date) < 0 },
   { id: 4, name: "คำเสนอแนะสิ่งของ", isSuggestion: true, filter: () => true },
 ];
 
@@ -96,11 +96,12 @@ function p_report_export_render() {
           rows.push(`[รายการ] ${i.name} — สถานะพื้นฐาน: ชำรุด (จำนวนทั้งหมด ${i.qty_total} ชิ้น)`);
         });
       } else if (rep.isOverdue) {
-        const overdues = db("requests").filter(r => r.status === "BORROWING" && daysLeft(r.due_date) < 0);
+        const overdues = db("requests").filter(r => (r.status === "BORROWING" || r.status === "RETURN_PENDING") && daysLeft(r.due_date) < 0);
         overdues.forEach(r => {
-          const student = studentById(r.student_id);
+          const uid = r.user_id || r.student_id;
+          const student = studentById(uid);
           const days = Math.abs(daysLeft(r.due_date));
-          rows.push(`ผู้ยืม: ${student ? student.name : r.student_id} (${r.student_id}) — คำขอ #${r.id} — กำหนดคืน: ${r.due_date} (เกินกำหนด ${days} วัน)`);
+          rows.push(`ผู้ยืม: ${student ? student.name : uid} (${uid}) — คำขอ #${r.id} — กำหนดคืน: ${r.due_date} (เกินกำหนด ${days} วัน)`);
         });
       } else if (rep.isSuggestion) {
         rows = db("suggestions").map(s => `${s.name} — โดย ${studentById(s.student_id)?.name || s.student_id || 'นักศึกษา'} — สถานะ: ${STATUS_LABEL[s.status]||s.status}${s.detail ? ' (' + s.detail + ')' : ''}`);
@@ -126,8 +127,8 @@ function p_report_export_render() {
 
     function p_report_export_exportCSV() {
       const items = db("items");
-      let csv = "id,name,type,category,position,qty_total,qty_available,status\n";
-      items.forEach(i => { csv += `${i.id},"${i.name}",${i.type},"${categoryById(i.category_id)?.name||''}","${positionById(i.position_id)?.name||''}",${i.qty_total},${i.qty_available},"${i.base_status}"\n`; });
+      let csv = "id,name,type,category,location,qty_total,qty_available,status\n";
+      items.forEach(i => { csv += `${i.id},"${i.name}",${i.type},"${categoryById(i.category_id)?.name||''}","${i.location || positionById(i.position_id)?.name || ''}",${i.qty_total},${i.qty_available},"${i.base_status}"\n`; });
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "inventory_export.csv"; a.click();
       toastBanner("ส่งออกไฟล์ CSV สำเร็จ");
