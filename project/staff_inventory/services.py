@@ -29,14 +29,13 @@ DURABLE_CHOICES = [  # ตัดสินใจ M7 ข้อ 3
 # ---- UC-20 เพิ่ม / แก้ไข -----------------------------------------------------
 @transaction.atomic
 def add_items(item_type, common, sub, asset_tags=()):
-    """เพิ่มสิ่งของ · ครุภัณฑ์ N ชิ้น = N แถว คัดลอกข้อมูลรุ่นให้ทุกชิ้น (รหัสซ้ำ → ไม่บันทึกทั้งชุด)"""
+    """เพิ่มสิ่งของ · ครุภัณฑ์เพิ่มได้ครั้งละ 1 ชิ้น (ผู้ใช้เลือก 2026-11-13 · เพิ่มหลายชิ้นจะทำผ่าน CSV ภายหลัง)"""
     if item_type == Item.ItemType.EQUIPMENT:
-        tags = [t.strip() for t in asset_tags]
-        if not tags or any(not t for t in tags):
-            raise ValidationError({"asset_tag": "กรุณากรอกรหัสครุภัณฑ์ให้ครบทุกชิ้น"})
-        dup_in_form = sorted({t for t in tags if tags.count(t) > 1})
-        if dup_in_form:
-            raise ValidationError({"asset_tag": f"รหัสครุภัณฑ์ซ้ำกันในฟอร์ม: {', '.join(dup_in_form)}"})
+        tags = [t.strip() for t in asset_tags if t.strip()]
+        if not tags:
+            raise ValidationError({"asset_tag": "กรุณากรอกรหัสครุภัณฑ์"})
+        if len(tags) > 1:
+            raise ValidationError({"asset_tag": "เพิ่มครุภัณฑ์ได้ครั้งละ 1 ชิ้น"})
         dup_in_db = list(Equipment.objects.filter(asset_tag__in=tags).values_list("asset_tag", flat=True))
         if dup_in_db:
             raise ValidationError({"asset_tag": f"รหัสครุภัณฑ์นี้มีในระบบแล้ว: {', '.join(sorted(dup_in_db))}"})

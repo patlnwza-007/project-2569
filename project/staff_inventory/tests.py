@@ -99,24 +99,23 @@ class AddItemTests(Fixture):
         self.assertEqual((item.material.qty_total, item.material.qty_available), (20, 20))
         self.assertEqual(item.base_status, Item.BaseStatus.AVAILABLE)
 
-    def test_add_equipment_creates_one_row_per_tag(self):
+    def test_add_one_equipment_piece(self):
+        """เพิ่มครุภัณฑ์ได้ครั้งละ 1 ชิ้น (ผู้ใช้เลือก) · มีช่องรหัสช่องเดียว"""
+        r = self.client.get(ADD)
+        self.assertContains(r, 'name="asset_tag"', count=1)
         r = self.client.post(ADD, {"item_type": "EQUIPMENT", "name": "กล้อง", "unit": "ตัว", "purchase_price": "30000",
-                                   "max_borrow_days": "3", "fine_rate_per_day": "150",
-                                   "asset_tag": ["UBU-EQ-003-01", "UBU-EQ-003-02", "UBU-EQ-003-03"]})
+                                   "max_borrow_days": "3", "fine_rate_per_day": "150", "asset_tag": "UBU-EQ-003-01"})
         self.assertRedirects(r, OVERVIEW)
-        cams = Item.objects.filter(name="กล้อง")
-        self.assertEqual(cams.count(), 3)
-        self.assertTrue(all(c.equipment.max_borrow_days == 3 and c.purchase_price == 30000 for c in cams))
-        self.assertTrue(all(c.equipment.status == Equipment.Status.AVAILABLE for c in cams))
+        cam = Item.objects.get(name="กล้อง")
+        self.assertEqual((cam.equipment.asset_tag, cam.equipment.max_borrow_days, cam.equipment.status),
+                         ("UBU-EQ-003-01", 3, Equipment.Status.AVAILABLE))
 
-    def test_duplicate_tag_rejects_whole_batch(self):
+    def test_tag_errors(self):
         before = Item.objects.count()
-        r = self.post(item_type="EQUIPMENT", asset_tag=["UBU-EQ-009-01", "UBU-EQ-001-01"])
-        self.assertContains(r, "มีในระบบแล้ว: UBU-EQ-001-01")
-        r = self.post(item_type="EQUIPMENT", asset_tag=["UBU-EQ-009-01", "UBU-EQ-009-01"])
-        self.assertContains(r, "ซ้ำกันในฟอร์ม: UBU-EQ-009-01")
-        r = self.post(item_type="EQUIPMENT", asset_tag=["UBU-EQ-009-01", "  "])
-        self.assertContains(r, "กรอกรหัสครุภัณฑ์ให้ครบทุกชิ้น")
+        self.assertContains(self.post(item_type="EQUIPMENT", asset_tag="UBU-EQ-001-01"), "มีในระบบแล้ว: UBU-EQ-001-01")
+        self.assertContains(self.post(item_type="EQUIPMENT", asset_tag="  "), "กรุณากรอกรหัสครุภัณฑ์")
+        self.assertContains(self.post(item_type="EQUIPMENT", asset_tag=["UBU-EQ-009-01", "UBU-EQ-009-02"]),
+                            "เพิ่มครุภัณฑ์ได้ครั้งละ 1 ชิ้น")
         self.assertEqual(Item.objects.count(), before)
 
     def test_required_fields_by_type(self):

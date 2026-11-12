@@ -4,9 +4,7 @@
 {% block title %}{% if item %}แก้ไขสิ่งของ{% else %}เพิ่มสิ่งของ{% endif %} · YuemDee{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto"
-     x-data="{ type: '{{ type }}', tags: {{ asset_tags|default:''|length|default:1 }} || 1,
-               values: [{% for t in asset_tags %}'{{ t|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}] }">
+<div class="max-w-2xl mx-auto" x-data="{ type: '{{ type }}' }">
     <a href="{% url 'staff_inventory:item_overview' %}" class="text-sm text-gray-500 hover:text-blue-600">← กลับไปภาพรวมคลัง</a>
     <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-1">{% if item %}แก้ไขข้อมูลสิ่งของ{% else %}เพิ่มสิ่งของเข้าคลัง{% endif %}</h1>
     <p class="text-sm text-gray-500 mb-6">
@@ -42,14 +40,14 @@
         </div>
 
         <!-- วัสดุสิ้นเปลือง / วัสดุคงทน -->
-        <div x-show="type === 'MATERIAL' || type === 'DURABLE_MATERIAL'" class="p-4 bg-teal-50/50 border border-teal-100 rounded-2xl space-y-4">
+        <div x-cloak x-show="type === 'MATERIAL' || type === 'DURABLE_MATERIAL'" class="p-4 bg-teal-50/50 border border-teal-100 rounded-2xl space-y-4">
             <p class="text-xs font-bold text-teal-800">📦 จำนวนในคลัง</p>
             {% include 'staff_inventory/_field.html' with field=form.qty_total %}
             {% if item and not item.is_equipment %}<p class="text-[11px] text-gray-500">คงเหลือปัจจุบัน {{ item.detail.qty_available }} / {{ item.detail.qty_total }} {{ item.unit }} · แก้จำนวนทั้งหมดแล้วจำนวนคงเหลือจะปรับตามส่วนต่าง</p>{% endif %}
         </div>
 
         <!-- วัสดุคงทน / ครุภัณฑ์ -->
-        <div x-show="type === 'DURABLE_MATERIAL' || type === 'EQUIPMENT'" class="p-4 bg-sky-50/50 border border-sky-100 rounded-2xl space-y-4">
+        <div x-cloak x-show="type === 'DURABLE_MATERIAL' || type === 'EQUIPMENT'" class="p-4 bg-sky-50/50 border border-sky-100 rounded-2xl space-y-4">
             <p class="text-xs font-bold text-sky-800">⏱️ กติกาการยืม</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {% include 'staff_inventory/_field.html' with field=form.max_borrow_days %}
@@ -58,22 +56,12 @@
         </div>
 
         {% if not item %}
-        <!-- ครุภัณฑ์: รหัสทีละชิ้น (เฉพาะเพิ่มใหม่ — UC-20 ข้อ 3) -->
-        <div x-show="type === 'EQUIPMENT'" id="p_item_form_tags" class="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-3">
-            <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-bold text-indigo-800">🏷️ รหัสครุภัณฑ์รายชิ้น (Asset Tag)</p>
-                <label class="text-xs text-gray-600 flex items-center gap-2">จำนวนชิ้น
-                    <input type="number" min="1" max="100" x-model.number="tags" class="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm">
-                </label>
-            </div>
-            <p class="text-[11px] text-gray-500">กรอกรหัสบนตัวเครื่องทุกชิ้น ระบบไม่สร้างรหัสให้ · ระบบจะสร้าง 1 รายการต่อ 1 ชิ้น และคัดลอกข้อมูลรุ่นให้ทุกชิ้น</p>
-            <template x-for="i in Math.max(1, Math.min(tags || 1, 100))" :key="i">
-                <div class="flex items-center gap-2">
-                    <span class="w-8 text-xs text-gray-400 text-right" x-text="i + '.'"></span>
-                    <input type="text" name="asset_tag" :value="values[i - 1] || ''" placeholder="เช่น UBU-EQ-001-01" :disabled="type !== 'EQUIPMENT'"
-                           class="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
-                </div>
-            </template>
+        <!-- ครุภัณฑ์: รหัสประจำชิ้น (เพิ่มได้ครั้งละ 1 ชิ้น — ผู้ใช้เลือก; เพิ่มหลายชิ้นจะทำผ่าน CSV ภายหลัง) -->
+        <div x-cloak x-show="type === 'EQUIPMENT'" id="p_item_form_tags" class="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
+            <label for="p_item_form_asset_tag" class="block text-xs font-bold text-indigo-800">🏷️ รหัสครุภัณฑ์ (Asset Tag) <span class="text-red-500">*</span></label>
+            <input type="text" id="p_item_form_asset_tag" name="asset_tag" value="{{ asset_tag }}" placeholder="เช่น UBU-EQ-001-01" :disabled="type !== 'EQUIPMENT'"
+                   class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+            <p class="text-[11px] text-gray-500">กรอกรหัสบนตัวเครื่อง ระบบไม่สร้างรหัสให้ · เพิ่มได้ครั้งละ 1 ชิ้น (1 รายการ = 1 ชิ้น)</p>
             {% if tag_error %}<p id="p_item_form_tag_error" class="text-xs text-red-600 font-medium">⚠️ {{ tag_error }}</p>{% endif %}
         </div>
         {% endif %}

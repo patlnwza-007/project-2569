@@ -52,7 +52,7 @@ def item_overview_view(request):
 def item_add_view(request):
     """UC-20 เพิ่มสิ่งของ (ItemAddEditView) · ครุภัณฑ์กรอก asset tag ทีละชิ้น"""
     form = ItemForm(request.POST or None, request.FILES or None, initial={"item_type": Item.ItemType.MATERIAL})
-    asset_tags = request.POST.getlist("asset_tag")
+    asset_tags = request.POST.getlist("asset_tag")  # เพิ่มครุภัณฑ์ได้ครั้งละ 1 ชิ้น
     tag_error = None
     if request.method == "POST" and form.is_valid():
         t, common, sub = form.split()
@@ -64,11 +64,10 @@ def item_add_view(request):
             for field, msgs in errors.items():
                 form.add_error(field if field in form.fields else None, msgs)
         else:
-            label = f"{len(created)} ชิ้น" if t == Item.ItemType.EQUIPMENT else ""
-            messages.success(request, f"เพิ่ม \"{created[0].name}\" {label} เข้าคลังเรียบร้อย".replace("  ", " "))
+            messages.success(request, f"เพิ่ม \"{created[0]}\" เข้าคลังเรียบร้อย")
             return redirect(OVERVIEW)
     return render(request, "staff_inventory/item_form.html", {
-        "form": form, "item": None, "asset_tags": asset_tags or [""], "tag_error": tag_error,
+        "form": form, "item": None, "asset_tag": (asset_tags or [""])[0], "tag_error": tag_error,
         "type": form["item_type"].value() or Item.ItemType.MATERIAL,
     })
 
