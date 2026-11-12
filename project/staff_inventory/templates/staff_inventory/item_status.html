@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load catalog_tags inventory_tags %}
+{# UC-23 รูปแบบ 1 · mockup page-item-status-change.html — แสดงเฉพาะชิ้นที่เลือก #}
+
+{% block title %}เปลี่ยนสถานะ · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto" x-data="{ status: '{{ form.status.value }}' }">
+    <a href="{% url 'staff_inventory:item_overview' %}" class="text-sm text-gray-500 hover:text-blue-600">← กลับไปภาพรวมคลัง</a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-6">เปลี่ยนสถานะ{% if item.is_equipment %}ครุภัณฑ์{% else %}วัสดุคงทน{% endif %}</h1>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+        <div class="flex items-center gap-4 pb-4 border-b border-gray-100">
+            <div class="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-3xl overflow-hidden">
+                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{{ item|item_icon }}{% endif %}
+            </div>
+            <div>
+                <p class="font-bold text-gray-900">{{ item.name }}</p>
+                {% if item.is_equipment %}<span class="font-mono text-xs font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}
+                <div class="mt-1 text-xs text-gray-500 flex items-center gap-1.5">สถานะปัจจุบัน: {% inventory_status item %}</div>
+            </div>
+        </div>
+
+        {% if on_loan %}
+        <div id="p_item_status_on_loan" class="border border-amber-300 bg-amber-50 text-amber-900 text-sm rounded-xl p-3">
+            ครุภัณฑ์ชิ้นนี้กำลังถูกยืมอยู่ เปลี่ยนสถานะได้หลังตรวจรับคืนสำเร็จ
+        </div>
+        {% else %}
+        <form method="post" class="space-y-4" novalidate>
+            {% csrf_token %}
+            {% for e in form.non_field_errors %}<p class="text-sm text-red-600">{{ e }}</p>{% endfor %}
+            <div>
+                <p class="block text-xs font-bold text-gray-700 mb-2">สถานะใหม่</p>
+                <div class="space-y-2">
+                    {% for radio in form.status %}
+                    <label class="flex items-center gap-2.5 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="status" value="{{ radio.data.value }}" x-model="status" {% if radio.data.selected %}checked{% endif %}>
+                        {{ radio.choice_label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% if form.note %}
+            <div x-show="status !== 'RETIRED'">
+                <label for="{{ form.note.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1">{{ form.note.label }} <span class="text-red-500">*</span></label>
+                {{ form.note }}
+                {% for e in form.note.errors %}<p class="text-xs text-red-600 mt-1 font-medium">⚠️ {{ e }}</p>{% endfor %}
+                {% if item.equipment.note %}<p class="text-[11px] text-gray-400 mt-1">หมายเหตุเดิม: {{ item.equipment.note }}</p>{% endif %}
+            </div>
+            <div x-show="status === 'RETIRED'" class="bg-slate-100 border border-slate-300 text-slate-800 rounded-xl p-3 text-xs">📦 ปลดระวางบันทึกได้ทันทีโดยไม่ต้องระบุเหตุผล</div>
+            {% endif %}
+            <div class="flex items-center gap-2 pt-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5">ยืนยันเปลี่ยนสถานะ</button>
+                <a href="{% url 'staff_inventory:item_overview' %}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl px-4 py-2.5">ยกเลิก</a>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

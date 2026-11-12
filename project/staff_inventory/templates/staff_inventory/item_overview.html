@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load catalog_tags inventory_tags humanize %}
+{# UC-21 ภาพรวมคลัง + UC-23/UC-22 แบบกลุ่ม · mockup page-item-overview.html #}
+
+{% block title %}ภาพรวมสถานะคลัง · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto"
+     x-data="{ sel: [], kinds: {}, modal: false, status: 'AVAILABLE',
+               get equipmentSel() { return this.sel.filter(id => this.kinds[id] === 'EQUIPMENT') },
+               get materialSel() { return this.sel.filter(id => this.kinds[id] === 'MATERIAL') },
+               toggleAll(on) { this.sel = on ? Object.keys(this.kinds) : [] } }">
+
+    <div class="flex items-center justify-between mb-1">
+        <h1 class="text-2xl font-bold text-gray-800">ภาพรวมสถานะคลัง</h1>
+        <a href="{% url 'staff_inventory:item_add' %}" id="p_item_overview_add"
+           class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">+ เพิ่มสิ่งของ</a>
+    </div>
+    <p class="text-sm text-gray-500 mb-4">จำนวนสิ่งของทั้งหมด <span id="p_item_overview_count" class="font-semibold">{{ total }}</span> รายการ · แสดง {{ page.paginator.count }} รายการ</p>
+
+    <form method="get" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4">
+        {% if item_type %}<input type="hidden" name="type" value="{{ item_type }}">{% endif %}
+        <div class="flex flex-wrap gap-3">
+            <input id="p_item_overview_q" name="q" value="{{ q }}" placeholder="ค้นหาชื่อ หรือรหัสครุภัณฑ์..."
+                   class="flex-1 min-w-[180px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <select id="p_item_overview_f-status" name="status" onchange="this.form.submit()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="">สถานะทั้งหมด</option>
+                {% for v, label in status_filters.items %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-lg px-4 py-2">ค้นหา</button>
+        </div>
+        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 flex-wrap">
+            <span class="text-xs text-gray-500 font-semibold">ประเภท:</span>
+            {% for t, label in type_tags %}
+            <a href="?{% query_with page_query type=t %}"
+               class="text-xs font-semibold px-3.5 py-1.5 rounded-full border {% if t == item_type %}border-blue-600 bg-blue-600 text-white{% else %}border-gray-200 bg-white text-gray-700 hover:bg-gray-100{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+    </form>
+
+    <!-- Bulk Action Bar -->
+    <div id="p_io_bulk_bar" x-cloak x-show="sel.length" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold" x-text="sel.length"></span>
+            <span class="text-sm font-semibold text-blue-900">เลือกแล้ว <span x-text="sel.length"></span> รายการ
+                <span class="font-normal text-blue-700">(ครุภัณฑ์ <span x-text="equipmentSel.length"></span> · วัสดุสิ้นเปลือง <span x-text="materialSel.length"></span>)</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" @click="modal = true" :disabled="!equipmentSel.length"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5">
+                <span>⚡</span> เปลี่ยนสถานะที่เลือกพร้อมกัน
+            </button>
+            <form method="post" action="{% url 'staff_inventory:bulk_delete' %}"
+                  @submit="if (!confirm('ลบวัสดุสิ้นเปลืองที่เลือกออกจากระบบถาวร? (วัสดุที่เคยถูกเบิกจะไม่ถูกลบ)')) $event.preventDefault()">
+                {% csrf_token %}
+                <input type="hidden" name="ids" :value="materialSel.join(',')">
+                <button type="submit" :disabled="!materialSel.length"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white rounded-xl text-xs font-semibold">🗑️ ลบวัสดุที่เลือก</button>
+            </form>
+            <button type="button" @click="sel = []" class="px-3 py-2 text-gray-500 hover:text-gray-700 text-xs font-medium">ยกเลิกการเลือก</button>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+                <tr>
+                    <th class="text-center px-3 py-2 w-10"><input type="checkbox" id="p_io_check_all" @change="toggleAll($event.target.checked)" :checked="sel.length && sel.length === Object.keys(kinds).length" class="rounded border-gray-300 text-blue-600" title="เลือกทั้งหมด"></th>
+                    <th class="text-left px-4 py-2">สิ่งของ</th>
+                    <th class="text-left px-4 py-2">ที่ตั้ง</th>
+                    <th class="text-left px-4 py-2">คงเหลือ</th>
+                    <th class="text-left px-4 py-2">ยืมได้ / ค่าปรับ</th>
+                    <th class="text-left px-4 py-2">สถานะ</th>
+                    <th class="text-left px-4 py-2">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="p_item_overview_rows" class="divide-y divide-gray-100">
+                {% for item in page %}
+                <tr class="hover:bg-gray-50/70" data-item="{{ item.pk }}">
+                    <td class="text-center px-3 py-3">
+                        {% if item.is_equipment or item.is_material %}
+                        <input type="checkbox" value="{{ item.pk }}" x-model="sel" x-init="kinds['{{ item.pk }}'] = '{{ item.item_type }}'" class="rounded border-gray-300 text-blue-600">
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 shrink-0 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl overflow-hidden">
+                                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{{ item|item_icon }}{% endif %}
+                            </div>
+                            <div class="min-w-0">
+                                <a href="{% url 'catalog:item_detail' item.pk %}" class="font-semibold text-gray-900 hover:text-blue-600">{{ item.name }}</a>
+                                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded {% if item.is_equipment %}bg-indigo-50 text-indigo-700{% elif item.is_material %}bg-teal-50 text-teal-700{% else %}bg-sky-50 text-sky-800{% endif %}">{{ item.get_item_type_display }}</span>
+                                    {% if item.is_equipment %}<span class="font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}
+                                    {% if item.purchase_price %}<span class="text-[11px] text-gray-400">฿{{ item.purchase_price|floatformat:2|intcomma }}</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-gray-600">{{ item.location|default:"-" }}</td>
+                    <td class="px-4 py-3 font-mono text-xs">
+                        {% if item.is_equipment %}<span class="text-gray-400">—</span>
+                        {% else %}<strong class="text-gray-900">{{ item.detail.qty_available }}</strong>/{{ item.detail.qty_total }} {{ item.unit }}{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-gray-600">
+                        {% if item.is_material %}—{% else %}{{ item.detail.max_borrow_days }} วัน · ฿{{ item.detail.fine_rate_per_day|floatformat:2 }}/วัน{% endif %}
+                    </td>
+                    <td class="px-4 py-3">{% inventory_status item %}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1.5 whitespace-nowrap">
+                            <a href="{% url 'staff_inventory:item_edit' item.pk %}" class="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-100">✏️ แก้ไข</a>
+                            {% if item.is_material %}
+                            <a href="{% url 'staff_inventory:consumable_delete' item.pk %}" class="text-xs font-semibold px-2.5 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">🗑️ ลบ</a>
+                            {% else %}
+                            <a href="{% url 'staff_inventory:equipment_status_update' item.pk %}" class="text-xs font-semibold px-2.5 py-1 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50">🔄 เปลี่ยนสถานะ</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" id="p_item_overview_empty" class="p-10 text-center text-gray-500">{% if q or status or item_type %}ไม่พบข้อมูล{% else %}ยังไม่มีสิ่งของในคลัง กด "+ เพิ่มสิ่งของ" เพื่อเริ่มต้น{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page.has_other_pages %}
+    <nav class="flex items-center justify-center gap-3 mt-6 text-sm">
+        {% if page.has_previous %}<a href="?{% query_with page_query page=page.previous_page_number %}" class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white">← ก่อนหน้า</a>{% endif %}
+        <span class="text-gray-500">หน้า {{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a href="?{% query_with page_query page=page.next_page_number %}" class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white">ถัดไป →</a>{% endif %}
+    </nav>
+    {% endif %}
+
+    <!-- Bulk Status Modal (UC-23 รูปแบบ 2) -->
+    <div id="p_io_bulk_modal" x-cloak x-show="modal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modal = false">
+        <form method="post" action="{% url 'staff_inventory:bulk_status_update' %}" class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 p-6">
+            {% csrf_token %}
+            <input type="hidden" name="ids" :value="equipmentSel.join(',')">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-gray-800">⚡ เปลี่ยนสถานะครุภัณฑ์แบบกลุ่ม</h3>
+                <button type="button" @click="modal = false" class="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+            </div>
+            <p class="text-xs text-gray-600 mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3">
+                เปลี่ยนสถานะครุภัณฑ์ที่เลือก <span class="font-bold text-blue-700" x-text="equipmentSel.length"></span> ชิ้น · ชิ้นที่กำลังถูกยืมจะถูกข้าม
+            </p>
+            <label class="block text-xs font-bold text-gray-700 mb-1.5" for="p_io_bulk_status">เลือกสถานะใหม่</label>
+            <select id="p_io_bulk_status" name="status" x-model="status" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm bg-white">
+                {% for v, label in bulk_choices %}<option value="{{ v }}">{{ label }}</option>{% endfor %}
+            </select>
+            <div x-show="status === 'RETIRED'" class="mt-4 bg-slate-100 border border-slate-300 text-slate-800 rounded-xl p-3.5 text-xs">
+                📦 <b>ปลดระวาง</b> บันทึกได้ทันทีโดยไม่ต้องระบุเหตุผล
+            </div>
+            <div x-show="status !== 'RETIRED'" class="mt-4">
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5" for="p_io_bulk_note">หมายเหตุเพิ่มเติม <span class="font-normal text-gray-400">(ไม่บังคับ)</span></label>
+                <textarea id="p_io_bulk_note" name="note" rows="2" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm"></textarea>
+            </div>
+            <div class="flex justify-end gap-2.5 mt-6 pt-3 border-t border-gray-100">
+                <button type="button" @click="modal = false" class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold">ยกเลิก</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold">บันทึกการเปลี่ยนสถานะ</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

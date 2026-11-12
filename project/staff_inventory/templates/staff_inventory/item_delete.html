@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{# UC-22 ลบวัสดุสิ้นเปลือง · mockup page-item-delete.html #}
+
+{% block title %}ลบวัสดุ · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <a href="{% url 'staff_inventory:item_overview' %}" class="text-sm text-gray-500 hover:text-blue-600">← กลับไปภาพรวมคลัง</a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-2 mb-6">ลบวัสดุออกจากระบบ</h1>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <dl class="grid grid-cols-3 gap-y-2 text-sm">
+            <dt class="text-gray-500">รหัสสิ่งของ</dt><dd class="col-span-2 font-mono">{{ item.pk }}</dd>
+            <dt class="text-gray-500">ชื่อ</dt><dd class="col-span-2 font-semibold">{{ item.name }}</dd>
+            <dt class="text-gray-500">ประเภท</dt><dd class="col-span-2">{{ item.get_item_type_display }}</dd>
+            <dt class="text-gray-500">คงเหลือ</dt><dd class="col-span-2">{{ item.material.qty_available }} / {{ item.material.qty_total }} {{ item.unit }}</dd>
+            <dt class="text-gray-500">สถานะ</dt><dd class="col-span-2">{{ item.get_base_status_display }}</dd>
+        </dl>
+
+        {% if has_history %}
+        <div id="p_item_delete_has_history" class="border border-amber-300 bg-amber-50 text-amber-900 text-sm rounded-xl p-3">
+            วัสดุนี้เคยถูกเบิกแล้ว <b>ลบไม่ได้</b> เพื่อรักษาประวัติการเบิก ใช้ "ปิดการใช้งาน" แทน (นักศึกษาจะมองไม่เห็น แต่ประวัติยังอยู่ครบ)
+        </div>
+        <form method="post" action="{% url 'staff_inventory:toggle_active' item.pk %}">
+            {% csrf_token %}
+            {% if item.base_status == 'INACTIVE' %}
+            <input type="hidden" name="active" value="1">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5">▶️ เปิดใช้งานอีกครั้ง</button>
+            {% else %}
+            <input type="hidden" name="active" value="0">
+            <button type="submit" class="bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl px-5 py-2.5">⏸️ ปิดการใช้งาน</button>
+            {% endif %}
+        </form>
+        {% else %}
+        <div class="border border-red-300 bg-red-50 text-red-700 text-sm rounded-xl p-3">⚠️ การลบเป็นการลบถาวร กู้คืนไม่ได้</div>
+        <form method="post" class="flex items-center gap-2">
+            {% csrf_token %}
+            <button type="submit" id="p_item_delete_confirm" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5">ยืนยันลบข้อมูล</button>
+            <a href="{% url 'staff_inventory:item_overview' %}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl px-4 py-2.5">ยกเลิก</a>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
