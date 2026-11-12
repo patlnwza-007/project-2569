@@ -1,31 +1,18 @@
 {% extends "base.html" %}
 {% load socialaccount %}
-{# UC-15 · mockup page-login.html — 2 แท็บ: UBU SSO / ผู้ดูแลระบบ (Django Admin) #}
+{# UC-15 · mockup page-login.html — หน้าปกติแสดงเฉพาะ UBU SSO · ช่องทางผู้ดูแลระบบเปิดด้วย ?tab=admin #}
 
 {% block title %}เข้าสู่ระบบ · YuemDee{% endblock %}
 {% block main_class %}min-h-full p-6 flex flex-col items-center justify-center{% endblock %}
 {% block messages %}{% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-3xl shadow-xl p-8 max-w-lg w-full border border-gray-100"
-     x-data="{ tab: '{{ active_tab }}' }">
+<div class="bg-white rounded-3xl shadow-xl p-8 max-w-lg w-full border border-gray-100">
 
-    <!-- Tab Selector -->
-    <div class="flex items-center bg-gray-100 p-1.5 rounded-2xl mb-6">
-        <button type="button" id="p_login_tab_btn_sso" @click="tab = 'sso'"
-                :class="tab === 'sso' ? 'bg-white text-blue-700 shadow-sm font-bold' : 'text-gray-500 hover:text-gray-800 font-semibold'"
-                class="flex-1 py-2 px-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5">
-            <span>🏛️</span> นักศึกษา / เจ้าหน้าที่ (UBU SSO)
-        </button>
-        <button type="button" id="p_login_tab_btn_admin" @click="tab = 'admin'"
-                :class="tab === 'admin' ? 'bg-white text-purple-700 shadow-sm font-bold' : 'text-gray-500 hover:text-gray-800 font-semibold'"
-                class="flex-1 py-2 px-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5">
-            <span>👑</span> ผู้ดูแลระบบ (Django Admin)
-        </button>
-    </div>
-
+    {# แท็บแอดมินถูกซ่อนจากหน้าที่ทุกคนเห็น — แอดมินเข้าผ่าน ?tab=admin (ดู docs/conflicts.md) #}
     <!-- TAB 1: UBU SSO -->
-    <div id="p_login_tab_sso" x-show="tab === 'sso'" {% if active_tab != 'sso' %}x-cloak{% endif %}>
+    {% if active_tab == 'sso' %}
+    <div id="p_login_tab_sso">
         <div class="text-center mb-6">
             <div class="text-4xl mb-2">🔐</div>
             <h1 class="text-lg font-bold text-gray-800">เข้าสู่ระบบด้วย UBU Single Sign-On</h1>
@@ -41,8 +28,9 @@
         <p class="text-[11px] text-gray-400 text-center mt-3">ครั้งแรกที่เข้าใช้งาน นักศึกษาต้องบันทึกรหัสนักศึกษาและเบอร์โทรศัพท์</p>
     </div>
 
-    <!-- TAB 2: DJANGO ADMIN LOCAL LOGIN -->
-    <div id="p_login_tab_admin" x-show="tab === 'admin'" {% if active_tab != 'admin' %}x-cloak{% endif %}>
+    {% else %}
+    <!-- TAB 2: DJANGO ADMIN LOCAL LOGIN (เปิดด้วย ?tab=admin เท่านั้น) -->
+    <div id="p_login_tab_admin">
         <div class="text-center mb-5">
             <div class="text-4xl mb-2">🛠️</div>
             <h1 class="text-lg font-bold text-gray-800">เข้าสู่ระบบผู้ดูแลระบบ (Admin)</h1>
@@ -71,7 +59,11 @@
                 <span>🚀</span> เข้าสู่ระบบในฐานะ Admin
             </button>
         </form>
+        <div class="mt-4 text-center">
+            <a href="{% url 'accounts:login' %}" class="text-xs text-gray-500 hover:text-blue-700 hover:underline">← เข้าสู่ระบบด้วย UBU SSO</a>
+        </div>
     </div>
+    {% endif %}
 
     <!-- Error Box -->
     {% if form.non_field_errors %}

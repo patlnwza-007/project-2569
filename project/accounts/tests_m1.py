@@ -22,13 +22,21 @@ PROFILE = reverse("accounts:profile")
 class LoginPageTests(TestCase):
     """UC-15: หน้า login 2 แท็บ"""
 
-    def test_sso_tab_is_default(self):
+    def test_sso_only_by_default_admin_hidden(self):
+        """ซ่อนแท็บแอดมิน: หน้า login ปกติไม่มีฟอร์ม/ปุ่ม/ลิงก์ไปช่องทางแอดมิน"""
         r = self.client.get(LOGIN)
         self.assertEqual(r.context["active_tab"], "sso")
         self.assertContains(r, 'id="p_login_sso_btn"')
+        self.assertNotContains(r, 'id="p_login_tab_admin"')
+        self.assertNotContains(r, 'id="p_login_admin_user"')
+        self.assertNotContains(r, "tab=admin")
+        self.assertNotContains(r, "Django Admin")
 
-    def test_admin_tab_via_query(self):
-        self.assertEqual(self.client.get(LOGIN + "?tab=admin").context["active_tab"], "admin")
+    def test_admin_section_via_query(self):
+        r = self.client.get(LOGIN + "?tab=admin")
+        self.assertEqual(r.context["active_tab"], "admin")
+        self.assertContains(r, 'id="p_login_admin_user"')
+        self.assertNotContains(r, 'id="p_login_sso_btn"')
 
     def test_anonymous_root_goes_to_login(self):
         """ตัดสินใจ M1 ข้อ 6: ไม่มีหน้าต้อนรับ"""
