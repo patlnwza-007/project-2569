@@ -1,3 +1,5 @@
+# ⚠️ โค้ดเดิมก่อนเฟส 1.2 — ใช้ model เก่า (Category / Item / AssetTag) ที่ถูกลบแล้ว
+# ไม่ได้ผูกกับ urls.py เก็บไว้ดูเป็นตัวอย่างตอนเขียนหน้า M2 / M7 ใหม่ในเฟส 3 · ห้าม import
 from django import forms
 from .models import Item, Category
 

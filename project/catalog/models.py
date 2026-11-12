@@ -1,68 +1,71 @@
+"""
+M2 · catalog — สิ่งของตาม ERD: ITEM (supertype) + MATERIAL / DURABLE_MATERIAL / EQUIPMENT
+
+ISA แบบ Disjoint + Total, subtype ใช้ shared primary key (`item_id`)
+สร้างสิ่งของผ่าน catalog.services.create_item() เท่านั้น เพื่อให้มี subtype คู่กันเสมอ
+"""
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import F, Q
 
-
-class Category(models.Model):
-    name = models.CharField(max_length=100, verbose_name="ชื่อหมวดหมู่")
-    description = models.TextField(blank=True, null=True, verbose_name="รายละเอียดหมวดหมู่")
-    icon = models.CharField(max_length=50, default="package", verbose_name="ชื่อไอคอน (Lucide Icon)")
-
-    class Meta:
-        verbose_name = "หมวดหมู่พัสดุ"
-        verbose_name_plural = "หมวดหมู่พัสดุ"
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
+MONEY = dict(max_digits=10, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(0)])
 
 
 class Item(models.Model):
-    class ItemType(models.TextChoices):
-        MATERIAL = 'MATERIAL', 'วัสดุ (เบิกใช้แล้วหมดไป)'
-        EQUIPMENT = 'EQUIPMENT', 'ครุภัณฑ์ (ยืมใช้งานแล้วนำมาคืน)'
+    """ERD: ITEM — ข้อมูลที่ทั้ง 3 ประเภทใช้ร่วมกัน"""
 
-    code = models.CharField(max_length=50, unique=True, verbose_name="รหัสพัสดุ/ครุภัณฑ์")
-    name = models.CharField(max_length=200, verbose_name="ชื่อพัสดุ/ครุภัณฑ์")
-    item_type = models.CharField(
-        max_length=20, 
-        choices=ItemType.choices, 
-        default=ItemType.EQUIPMENT, 
-        verbose_name="ประเภทสิ่งของ"
+    class ItemType(models.TextChoices):
+        MATERIAL = "MATERIAL", "วัสดุสิ้นเปลือง"
+        DURABLE_MATERIAL = "DURABLE_MATERIAL", "วัสดุคงทน"
+        EQUIPMENT = "EQUIPMENT", "ครุภัณฑ์"
+
+    class BaseStatus(models.TextChoices):
+        AVAILABLE = "AVAILABLE", "พร้อมให้บริการ"
+        DAMAGED = "DAMAGED", "ชำรุด"
+        INACTIVE = "INACTIVE", "ปิดการใช้งาน"
+        RETIRED = "RETIRED", "ปลดระวาง"
+
+    item_type = models.CharField("ประเภทสิ่งของ", max_length=20, choices=ItemType.choices)
+    name = models.CharField("ชื่อสิ่งของ", max_length=200)
+    location = models.CharField("สถานที่ตั้งวางในคลัง", max_length=150, blank=True)
+    unit = models.CharField("หน่วยนับ", max_length=30, default="ชิ้น")
+    purchase_price = models.DecimalField("ราคาจัดซื้อ", **MONEY)
+    base_status = models.CharField(
+        "สถานะพื้นฐาน", max_length=20, choices=BaseStatus.choices, default=BaseStatus.AVAILABLE,
     )
-    category = models.ForeignKey(
-        Category, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        related_name="items", 
-        verbose_name="หมวดหมู่"
-    )
-    description = models.TextField(blank=True, null=True, verbose_name="รายละเอียดและสเปกพัสดุ")
-    
-    unit = models.CharField(max_length=30, default="ชิ้น", verbose_name="หน่วยนับ (เช่น ชิ้น, เครื่อง, ชุด, กล่อง)")
-    max_borrow_days = models.PositiveIntegerField(default=7, verbose_name="จำนวนวันยืมสูงสุด (สำหรับครุภัณฑ์)")
-    
-    image = models.ImageField(upload_to='items/', blank=True, null=True, verbose_name="อัปโหลดรูปภาพพัสดุ")
-    image_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="หรือลิงก์รูปภาพ (Image URL)")
-    location = models.CharField(max_length=100, blank=True, null=True, verbose_name="ตำแหน่งชั้นวาง (Position Map)")
-    
-    total_quantity = models.PositiveIntegerField(default=1, verbose_name="จำนวนทั้งหมดในคลัง")
-    available_quantity = models.PositiveIntegerField(default=1, verbose_name="จำนวนพร้อมใช้งาน")
-    
-    is_active = models.BooleanField(default=True, verbose_name="สถานะพร้อมให้บริการ")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="วันที่เพิ่มพัสดุ")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="อัปเดตล่าสุด")
+    description = models.TextField("รายละเอียด", blank=True)
+    image = models.ImageField("รูปภาพ", upload_to="items/", blank=True)
 
     class Meta:
-        verbose_name = "รายการสิ่งของ"
-        verbose_name_plural = "รายการสิ่งของทั้งหมด"
-        ordering = ['-created_at']
+        db_table = "item"
+        verbose_name = "สิ่งของ (ITEM)"
+        verbose_name_plural = "สิ่งของ (ITEM)"
+        ordering = ["name", "id"]
 
     def __str__(self):
-        return f"[{self.get_item_type_display()}] {self.code} - {self.name}"
+        if self.item_type == self.ItemType.EQUIPMENT and hasattr(self, "equipment"):
+            return f"{self.name} [{self.equipment.asset_tag}]"
+        return self.name
+
+    # ---- ISA helpers -------------------------------------------------------
+    SUBTYPE_ATTR = {
+        ItemType.MATERIAL: "material",
+        ItemType.DURABLE_MATERIAL: "durablematerial",
+        ItemType.EQUIPMENT: "equipment",
+    }
 
     @property
-    def is_available(self):
-        return self.available_quantity > 0 and self.is_active
+    def detail(self):
+        """คืนแถว subtype ที่ตรงกับ item_type (Material / DurableMaterial / Equipment)"""
+        return getattr(self, self.SUBTYPE_ATTR[self.item_type], None)
+
+    @property
+    def is_returnable(self):
+        """ต้องส่งคืน: วัสดุคงทนและครุภัณฑ์"""
+        return self.item_type in (self.ItemType.DURABLE_MATERIAL, self.ItemType.EQUIPMENT)
 
     @property
     def is_equipment(self):
@@ -72,38 +75,98 @@ class Item(models.Model):
     def is_material(self):
         return self.item_type == self.ItemType.MATERIAL
 
-    @property
-    def image_display(self):
-        if self.image:
-            return self.image.url
-        if self.image_url:
-            return self.image_url
-        return None
+    def clean(self):
+        """Disjoint: มี subtype ได้ตัวเดียวและต้องตรงกับ item_type"""
+        if not self.pk:
+            return
+        present = [t for t, attr in self.SUBTYPE_ATTR.items() if hasattr(self, attr)]
+        if len(present) > 1:
+            raise ValidationError("สิ่งของ 1 รายการเป็นได้เพียง 1 ประเภทเท่านั้น")
+        if present and present[0] != self.item_type:
+            raise ValidationError({"item_type": "ประเภทสิ่งของไม่ตรงกับข้อมูลประเภทย่อย"})
 
 
-class AssetTag(models.Model):
-    class AssetStatus(models.TextChoices):
-        AVAILABLE = 'AVAILABLE', 'พร้อมให้ยืม'
-        BORROWED = 'BORROWED', 'กำลังถูกยืม'
-        DAMAGED = 'DAMAGED', 'ครุภัณฑ์เสียหาย/ชำรุด'
-        REPAIRING = 'REPAIRING', 'กำลังส่งซ่อม'
-        RETIRED = 'RETIRED', 'ปลดระวาง/เลิกใช้งาน'
+class _Subtype(models.Model):
+    """ฐานร่วมของ subtype: shared primary key + ตรวจว่า item_type ตรงกัน"""
 
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='asset_tags', verbose_name="ครุภัณฑ์หลัก")
-    asset_code = models.CharField(max_length=100, unique=True, verbose_name="รหัส Asset Tag รายชิ้น (เช่น UBU-EQ-001)")
-    status = models.CharField(
-        max_length=20, 
-        choices=AssetStatus.choices, 
-        default=AssetStatus.AVAILABLE, 
-        verbose_name="สถานะรายชิ้น"
+    ITEM_TYPE = None
+
+    item = models.OneToOneField(
+        Item, on_delete=models.CASCADE, primary_key=True, db_column="item_id", verbose_name="สิ่งของ",
     )
-    note = models.TextField(blank=True, null=True, verbose_name="หมายเหตุสภาพครุภัณฑ์")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="วันที่ลงทะเบียนชิ้นงาน")
 
     class Meta:
-        verbose_name = "รหัสครุภัณฑ์รายชิ้น (Asset Tag)"
-        verbose_name_plural = "รหัสครุภัณฑ์รายชิ้น (Asset Tags)"
-        ordering = ['asset_code']
+        abstract = True
 
     def __str__(self):
-        return f"{self.asset_code} ({self.get_status_display()})"
+        return str(self.item)
+
+    def clean(self):
+        if self.item_id and self.item.item_type != self.ITEM_TYPE:
+            raise ValidationError({"item": f"สิ่งของนี้ไม่ใช่ประเภท {Item.ItemType(self.ITEM_TYPE).label}"})
+
+
+def _qty_constraints(prefix):
+    return [
+        models.CheckConstraint(condition=Q(qty_available__gte=0), name=f"{prefix}_qty_available_gte_0"),
+        models.CheckConstraint(condition=Q(qty_available__lte=F("qty_total")), name=f"{prefix}_qty_available_lte_total"),
+    ]
+
+
+class Material(_Subtype):
+    """ERD: MATERIAL — วัสดุสิ้นเปลือง นับจำนวน ไม่ต้องคืน"""
+
+    ITEM_TYPE = Item.ItemType.MATERIAL
+
+    qty_total = models.PositiveIntegerField("จำนวนทั้งหมด", default=0)
+    qty_available = models.PositiveIntegerField("จำนวนคงเหลือ", default=0)
+
+    class Meta:
+        db_table = "material"
+        verbose_name = "วัสดุสิ้นเปลือง (MATERIAL)"
+        verbose_name_plural = "วัสดุสิ้นเปลือง (MATERIAL)"
+        constraints = _qty_constraints("material")
+
+
+class DurableMaterial(_Subtype):
+    """ERD: DURABLE_MATERIAL — วัสดุคงทน นับจำนวน ต้องคืน มีค่าปรับ"""
+
+    ITEM_TYPE = Item.ItemType.DURABLE_MATERIAL
+
+    qty_total = models.PositiveIntegerField("จำนวนทั้งหมด", default=0)
+    qty_available = models.PositiveIntegerField("จำนวนคงเหลือ", default=0)
+    max_borrow_days = models.PositiveIntegerField("จำนวนวันยืมสูงสุด", default=7)
+    fine_rate_per_day = models.DecimalField("อัตราค่าปรับต่อวัน", **MONEY)
+
+    class Meta:
+        db_table = "durable_material"
+        verbose_name = "วัสดุคงทน (DURABLE_MATERIAL)"
+        verbose_name_plural = "วัสดุคงทน (DURABLE_MATERIAL)"
+        constraints = _qty_constraints("durable_material")
+
+
+class Equipment(_Subtype):
+    """ERD: EQUIPMENT — ครุภัณฑ์ 1 แถว = 1 ชิ้นตาม asset_tag"""
+
+    ITEM_TYPE = Item.ItemType.EQUIPMENT
+
+    class Status(models.TextChoices):
+        AVAILABLE = "AVAILABLE", "พร้อมให้ยืม"
+        BORROWED = "BORROWED", "กำลังถูกยืม"
+        RETURN_PENDING = "RETURN_PENDING", "รอตรวจรับคืน"
+        DAMAGED = "DAMAGED", "ชำรุด"
+        MAINTENANCE = "MAINTENANCE", "ส่งซ่อม"
+        RETIRED = "RETIRED", "ปลดระวาง"
+        LOST = "LOST", "สูญหาย"
+
+    asset_tag = models.CharField("เลขครุภัณฑ์ประจำชิ้น", max_length=50, unique=True)
+    max_borrow_days = models.PositiveIntegerField("จำนวนวันยืมสูงสุด", default=7)
+    fine_rate_per_day = models.DecimalField("อัตราค่าปรับต่อวัน", **MONEY)
+    status = models.CharField("สถานะรายชิ้น", max_length=20, choices=Status.choices, default=Status.AVAILABLE)
+    note = models.TextField("หมายเหตุสภาพ/ความเสียหาย", blank=True)
+
+    class Meta:
+        db_table = "equipment"
+        verbose_name = "ครุภัณฑ์ (EQUIPMENT)"
+        verbose_name_plural = "ครุภัณฑ์ (EQUIPMENT)"
+        ordering = ["asset_tag"]

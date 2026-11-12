@@ -4,6 +4,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 
+from .roles import get_role
+
 
 class CustomLoginView(LoginView):
     template_name = 'accounts/login.html'
@@ -20,4 +22,4 @@ def logout_view(request):
 
 @login_required
 def dashboard_view(request):
-    return render(request, 'dashboard.html')
+    return render(request, 'dashboard.html', {'role': get_role(request.user)})

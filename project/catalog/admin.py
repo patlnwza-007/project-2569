@@ -1,33 +1,48 @@
 from django.contrib import admin
-from .models import Category, Item, AssetTag
+
+from .models import DurableMaterial, Equipment, Item, Material
 
 
-class AssetTagInline(admin.TabularInline):
-    model = AssetTag
-    extra = 1
+class MaterialInline(admin.StackedInline):
+    model = Material
+    max_num = 1
+    extra = 0
 
 
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'icon', 'description')
-    search_fields = ('name',)
-    list_per_page = 500
+class DurableMaterialInline(admin.StackedInline):
+    model = DurableMaterial
+    max_num = 1
+    extra = 0
+
+
+class EquipmentInline(admin.StackedInline):
+    model = Equipment
+    max_num = 1
+    extra = 0
 
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'item_type', 'category', 'total_quantity', 'available_quantity', 'location', 'is_active')
-    list_filter = ('item_type', 'category', 'is_active')
-    search_fields = ('code', 'name', 'location')
-    list_per_page = 500
-    actions_on_top = True
-    actions_on_bottom = True
-    inlines = [AssetTagInline]
+    list_display = ("id", "name", "item_type", "base_status", "location", "unit", "purchase_price")
+    list_filter = ("item_type", "base_status")
+    search_fields = ("name", "location", "equipment__asset_tag")
+    inlines = [MaterialInline, DurableMaterialInline, EquipmentInline]
 
 
-@admin.register(AssetTag)
-class AssetTagAdmin(admin.ModelAdmin):
-    list_display = ('asset_code', 'item', 'status', 'created_at')
-    list_filter = ('status',)
-    search_fields = ('asset_code', 'item__name')
-    list_per_page = 500
+@admin.register(Material)
+class MaterialAdmin(admin.ModelAdmin):
+    list_display = ("item", "qty_available", "qty_total")
+    search_fields = ("item__name",)
+
+
+@admin.register(DurableMaterial)
+class DurableMaterialAdmin(admin.ModelAdmin):
+    list_display = ("item", "qty_available", "qty_total", "max_borrow_days", "fine_rate_per_day")
+    search_fields = ("item__name",)
+
+
+@admin.register(Equipment)
+class EquipmentAdmin(admin.ModelAdmin):
+    list_display = ("asset_tag", "item", "status", "max_borrow_days", "fine_rate_per_day")
+    list_filter = ("status",)
+    search_fields = ("asset_tag", "item__name")

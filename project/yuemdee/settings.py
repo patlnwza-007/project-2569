@@ -49,8 +49,16 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
 
     # Local apps
-    'accounts',
-    'catalog',
+    'accounts',          # M1 account
+    'catalog',           # M2 catalog
+    'borrow',            # M3 borrow
+    'suggestion',        # M4 suggestion
+    'evaluation',        # M5 evaluation
+    'staff',             # M6 staff
+    'staff_inventory',   # M7 staff_inventory
+    'staff_student',     # M8 staff_student
+    'staff_report',      # M9 staff_report
+    'admin_panel',       # M10 admin_panel
 ]
 
 SITE_ID = 1
