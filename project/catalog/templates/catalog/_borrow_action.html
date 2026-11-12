@@ -1,0 +1,33 @@
+{# ปุ่มตะกร้า / จองคิวตามสถานะ (UC-03 ข้อ 4) · ใช้ทั้งการ์ดและหน้ารายละเอียด #}
+{# ปุ่มกดได้เมื่อ M3 มี URL borrow:cart_add / borrow:queue_join (ตัดสินใจ M2 ข้อ 4) #}
+{% with a=item.availability %}
+{% if a == 'unavailable' %}
+    <button disabled class="w-full bg-gray-100 text-gray-400 text-xs font-semibold rounded-xl px-3 py-2.5 cursor-not-allowed">ไม่พร้อมให้บริการ</button>
+{% elif a == 'empty' %}
+    {% if item.is_returnable %}
+        {% if queue_ready %}
+        <form method="post" action="{% url 'borrow:queue_join' item.pk %}">{% csrf_token %}
+            <button type="submit" class="w-full bg-amber-400 hover:bg-amber-500 active:scale-[0.98] text-amber-950 text-xs font-bold rounded-xl px-3 py-2.5 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                <span>⏳</span> {% if item.is_equipment %}จองคิวรหัสนี้{% else %}จองคิวล่วงหน้า{% endif %}
+            </button>
+        </form>
+        {% else %}
+        <button disabled title="เปิดใช้เร็ว ๆ นี้" class="w-full bg-amber-200 text-amber-800/60 text-xs font-bold rounded-xl px-3 py-2.5 cursor-not-allowed flex items-center justify-center gap-1.5">
+            <span>⏳</span> จองคิว · เปิดใช้เร็ว ๆ นี้
+        </button>
+        {% endif %}
+    {% else %}
+        <button disabled class="w-full bg-gray-100 text-gray-400 text-xs font-semibold rounded-xl px-3 py-2.5 cursor-not-allowed">วัสดุหมดคลัง (ไม่ต้องคืน)</button>
+    {% endif %}
+{% else %}
+    {% if item.is_equipment %}{% firstof "+ ยืมชิ้นนี้" as label %}{% elif item.is_material %}{% firstof "+ เพิ่มเบิกวัสดุ" as label %}{% else %}{% firstof "+ ยืมวัสดุนี้" as label %}{% endif %}
+    {% if item.is_equipment %}{% firstof "bg-blue-600 hover:bg-blue-700" as color %}{% elif item.is_material %}{% firstof "bg-teal-600 hover:bg-teal-700" as color %}{% else %}{% firstof "bg-sky-600 hover:bg-sky-700" as color %}{% endif %}
+    {% if cart_ready %}
+    <form method="post" action="{% url 'borrow:cart_add' item.pk %}">{% csrf_token %}
+        <button type="submit" class="w-full {{ color }} active:scale-[0.98] text-white text-xs font-bold rounded-xl px-3 py-2.5 shadow-sm transition-all">{{ label }}</button>
+    </form>
+    {% else %}
+    <button disabled title="เปิดใช้เร็ว ๆ นี้" class="w-full {{ color }} opacity-40 text-white text-xs font-bold rounded-xl px-3 py-2.5 cursor-not-allowed">{{ label }} · เปิดใช้เร็ว ๆ นี้</button>
+    {% endif %}
+{% endif %}
+{% endwith %}

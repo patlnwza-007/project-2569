@@ -1,0 +1,79 @@
+{% load catalog_tags %}
+{# การ์ด Grid ตาม mockup page-item-list.html · ครุภัณฑ์ = 1 ชิ้น, วัสดุ = 1 ชนิด #}
+<div class="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-blue-300 transition-all duration-200 p-4 flex flex-col justify-between relative overflow-hidden" data-item="{{ item.pk }}">
+    <a href="{% url 'catalog:item_detail' item.pk %}" class="block">
+        <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="w-14 h-14 rounded-2xl overflow-hidden {% if item.is_equipment %}bg-gradient-to-br from-blue-50 via-gray-50 to-indigo-50 border border-gray-100{% elif item.is_material %}bg-gradient-to-br from-teal-50 via-gray-50 to-emerald-50 border border-teal-100{% else %}bg-gradient-to-br from-sky-50 via-gray-50 to-blue-50 border border-sky-100{% endif %} flex items-center justify-center text-3xl group-hover:scale-105 transition-transform shadow-inner">
+                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{{ item|item_icon }}{% endif %}
+            </div>
+            <div class="flex flex-col items-end gap-1">
+                {% include 'catalog/_status_badge.html' %}
+                {% if item.is_equipment %}
+                <span class="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-semibold px-2 py-0.5 rounded-md">ครุภัณฑ์</span>
+                {% elif item.is_material %}
+                <span class="bg-teal-50 text-teal-700 border border-teal-100 text-[10px] font-semibold px-2 py-0.5 rounded-md">วัสดุเบิกใช้</span>
+                {% else %}
+                <span class="bg-sky-50 text-sky-800 border border-sky-200 text-[10px] font-semibold px-2 py-0.5 rounded-md">วัสดุคงทน (ยืม-คืน)</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if item.is_equipment %}
+        <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <span class="font-mono font-bold text-xs bg-blue-100 text-blue-900 border border-blue-300 px-2 py-0.5 rounded-lg shadow-2xs">🏷️ {{ item.equipment.asset_tag }}</span>
+            {% if item.review_count %}
+            <span class="text-xs font-bold text-amber-500">⭐ {{ item.rating_avg|floatformat:1 }}</span>
+            <span class="text-[10px] text-gray-400 font-medium">({{ item.review_count }} รีวิว)</span>
+            {% else %}
+            <span class="text-[10px] text-gray-400 font-medium">ยังไม่มีรีวิว</span>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="flex items-center gap-2 mb-2">
+            {% if item.is_material %}
+            <span class="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-lg shadow-2xs">📦 พัสดุสิ้นเปลือง (เบิก)</span>
+            {% else %}
+            <span class="text-xs font-semibold text-sky-800 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-lg shadow-2xs">🔌 วัสดุคงทน (ยืม-คืน)</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <h3 class="font-bold text-gray-800 text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-1 mb-3">{{ item.name }}</h3>
+
+        <div class="grid grid-cols-2 gap-2 text-xs bg-gray-50/80 rounded-xl p-2.5 mb-3 border border-gray-100">
+            <div>
+                <span class="text-[10px] text-gray-400 block font-semibold uppercase tracking-wider">ตำแหน่งจัดเก็บ</span>
+                <span class="text-gray-700 font-medium truncate block">📍 {{ item.location|default:"-" }}</span>
+            </div>
+            <div>
+                <span class="text-[10px] text-gray-400 block font-semibold uppercase tracking-wider">ระยะเวลายืม</span>
+                <span class="text-gray-700 font-medium block">{% if item.is_material %}♾️ เบิกใช้แล้วหมดไป{% else %}⏱️ สูงสุด {{ item.borrow_days }} วัน{% endif %}</span>
+            </div>
+        </div>
+
+        {% if item.is_equipment %}
+        <div class="mb-3 bg-blue-50/50 rounded-xl p-2 border border-blue-100/70 text-xs flex items-center justify-between">
+            <span class="text-gray-500 font-medium">สถานะชิ้นนี้</span>
+            <span class="font-bold {% if item.availability == 'available' %}text-emerald-700{% elif item.availability == 'empty' %}text-red-600{% else %}text-gray-600{% endif %}">
+                {% if item.availability == 'available' %}พร้อมให้ยืม (1 ชิ้น){% elif item.availability == 'empty' %}ถูกยืมอยู่{% else %}งดให้บริการ{% endif %}
+            </span>
+        </div>
+        {% else %}
+        <div class="mb-3">
+            <div class="flex justify-between items-center text-xs mb-1">
+                <span class="text-gray-500 font-medium">จำนวนในคลัง</span>
+                <span class="font-mono text-xs"><strong class="text-gray-800 text-sm font-bold">{{ item.detail.qty_available }}</strong> / {{ item.detail.qty_total }} {{ item.unit }}</span>
+            </div>
+            {% with pct=item|stock_pct %}
+            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden p-0.5">
+                <div class="{% if item.availability == 'empty' %}bg-red-500{% elif pct < 30 %}bg-amber-500{% else %}bg-emerald-500{% endif %} h-1.5 rounded-full" style="width: {{ pct }}%"></div>
+            </div>
+            {% endwith %}
+        </div>
+        {% endif %}
+    </a>
+
+    <div class="pt-2 border-t border-gray-100 mt-1">
+        {% include 'catalog/_borrow_action.html' %}
+    </div>
+</div>

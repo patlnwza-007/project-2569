@@ -1,6 +1,10 @@
-from django.urls import path  # noqa: F401
+from django.urls import path
+
+from . import views
 
 app_name = 'catalog'
 
-# หน้า M2 / M7 จะเขียนใหม่ในเฟส 3 (ของเดิมดูได้ที่ git: main:project/catalog/views.py)
-urlpatterns = []
+urlpatterns = [
+    path('', views.item_list_view, name='item_list'),                    # UC-01, UC-02
+    path('<int:pk>/', views.item_detail_view, name='item_detail'),       # UC-03, UC-37 (?tab=reviews)
+]

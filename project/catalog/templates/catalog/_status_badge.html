@@ -1,0 +1,7 @@
+{% if item.availability == 'available' %}
+<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">✅ พร้อมยืม</span>
+{% elif item.availability == 'empty' %}
+<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-slate-800 text-white shadow-2xs">🔴 {% if item.is_equipment %}ครุภัณฑ์นี้ถูกยืมไปแล้ว{% elif item.is_material %}วัสดุเบิกหมดแล้ว{% else %}ยืมหมดแล้ว{% endif %}</span>
+{% else %}
+<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">⚪ ไม่พร้อมใช้งาน</span>
+{% endif %}

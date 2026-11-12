@@ -1,147 +1,104 @@
-# ⚠️ โค้ดเดิมก่อนเฟส 1.2 — ใช้ model เก่า (Category / Item / AssetTag) ที่ถูกลบแล้ว
-# ไม่ได้ผูกกับ urls.py เก็บไว้ดูเป็นตัวอย่างตอนเขียนหน้า M2 / M7 ใหม่ในเฟส 3 · ห้าม import
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.db.models import Q
-from .models import Item, Category
-from .forms import ItemForm
+"""M2 · catalog — UC-01, UC-02, UC-03, UC-37"""
+from django.core.paginator import Paginator
+from django.db.models import Count
+from django.shortcuts import get_object_or_404, render
+from django.urls import NoReverseMatch, reverse
+
+from accounts.navigation import NAV_BY_KEY, _cart_qty, item_url
+from accounts.permissions import role_required
+from accounts.roles import STAFF, STUDENT, get_role, get_ubu_user
+from borrow.models import BorrowItem, BorrowRequest
+from evaluation.models import Review
+
+from .models import Item
+from .selectors import DEFAULT_SORT, SORTS, STATUS_CHOICES, annotated_items, search_items, student_items
+
+PAGE_SIZE = 24  # ตัดสินใจ M2 ข้อ 6
+TYPE_TAGS = [  # ปุ่มทางลัด (ตัดสินใจ M2 ข้อ 2)
+    ("", "", "ทั้งหมด"),
+    ("", "available", "พร้อมให้ยืม"),
+    (Item.ItemType.EQUIPMENT, "", "ครุภัณฑ์"),
+    (Item.ItemType.DURABLE_MATERIAL, "", "วัสดุคงทน"),
+    (Item.ItemType.MATERIAL, "", "วัสดุสิ้นเปลือง"),
+]
+SORT_LABELS = {
+    "qty-desc": "จำนวนคงเหลือมากสุด", "qty-asc": "จำนวนคงเหลือน้อยสุด",
+    "name-asc": "ชื่อสิ่งของ (ก-ฮ)", "days-desc": "ยืมได้นานที่สุด",
+}
 
 
-def is_staff_user(user):
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
+def _url_or_none(name):
+    """ปุ่มตะกร้า/คิวกดได้เมื่อ M3 สร้าง URL แล้ว (ตัดสินใจ M2 ข้อ 4)"""
     try:
-        return user.profile.get_effective_role() == 'STAFF'
-    except (AttributeError, Exception):
+        reverse(name, args=[0])
+        return True
+    except NoReverseMatch:
         return False
 
 
-@login_required
+def _borrow_actions_ready():
+    return {"cart_ready": _url_or_none("borrow:cart_add"), "queue_ready": _url_or_none("borrow:queue_join")}
+
+
+@role_required(STUDENT)
 def item_list_view(request):
-    search_query = request.GET.get('q', '').strip()
-    category_id = request.GET.get('category', '').strip()
-    item_type = request.GET.get('item_type', '').strip()
-    status_filter = request.GET.get('status', '').strip()
-    sort_by = request.GET.get('sort', '').strip()
+    """UC-01 ดูรายการ + UC-02 ค้นหา/กรอง (ItemListView) · ?q=&type=&status=&sort=&page="""
+    q = request.GET.get("q", "")
+    item_type = request.GET.get("type", "")
+    status = request.GET.get("status", "")
+    sort = request.GET.get("sort", DEFAULT_SORT)
+    if sort not in SORTS:
+        sort = DEFAULT_SORT
 
-    items = Item.objects.select_related('category').prefetch_related('asset_tags').all()
+    base = student_items()
+    total = base.count()
+    results = search_items(base, q=q, item_type=item_type, status=status, sort=sort)
+    page = Paginator(results, PAGE_SIZE).get_page(request.GET.get("page"))
 
-    # Search Query
-    if search_query:
-        items = items.filter(
-            Q(name__icontains=search_query) |
-            Q(code__icontains=search_query) |
-            Q(location__icontains=search_query)
-        )
-
-    # Category Filter
-    if category_id:
-        items = items.filter(category_id=category_id)
-
-    # Item Type Filter (Material vs Equipment)
-    if item_type:
-        items = items.filter(item_type=item_type.upper())
-
-    # Status Filter
-    if status_filter == 'available':
-        items = items.filter(available_quantity__gt=0, is_active=True)
-    elif status_filter == 'empty':
-        items = items.filter(available_quantity=0, is_active=True)
-    elif status_filter == 'unavailable':
-        items = items.filter(is_active=False)
-
-    # Sorting
-    if sort_by == 'qty-desc':
-        items = items.order_by('-available_quantity')
-    elif sort_by == 'qty-asc':
-        items = items.order_by('available_quantity')
-    elif sort_by == 'name-asc':
-        items = items.order_by('name')
-    elif sort_by == 'days-desc':
-        items = items.order_by('-max_borrow_days')
-    else:
-        items = items.order_by('-created_at')
-
-    categories = Category.objects.all()
-
-    context = {
-        'items': items,
-        'categories': categories,
-        'search_query': search_query,
-        'selected_category': category_id,
-        'selected_type': item_type,
-        'selected_status': status_filter,
-        'selected_sort': sort_by,
-        'total_count': items.count(),
-        'is_staff': is_staff_user(request.user),
-    }
-    return render(request, 'catalog/item_list.html', context)
+    keep = request.GET.copy()
+    keep.pop("page", None)
+    filtering = bool(q.strip() or item_type or status)
+    return render(request, "catalog/item_list.html", {
+        "page": page, "total": total, "filtering": filtering,
+        "q": q, "item_type": item_type, "status": status, "sort": sort,
+        "status_choices": STATUS_CHOICES, "sort_labels": SORT_LABELS, "type_tags": TYPE_TAGS,
+        "page_query": keep.urlencode(),
+        "cart_qty": _cart_qty(get_ubu_user(request.user)),
+        "cart_url": item_url(NAV_BY_KEY["cart"][1])[0],
+        **_borrow_actions_ready(),
+    })
 
 
-@login_required
+@role_required(STUDENT, STAFF)
 def item_detail_view(request, pk):
-    item = get_object_or_404(Item.objects.select_related('category').prefetch_related('asset_tags'), pk=pk)
-    context = {
-        'item': item,
-        'asset_tags': item.asset_tags.all() if item.is_equipment else [],
-        'is_staff': is_staff_user(request.user),
-    }
-    return render(request, 'catalog/item_detail.html', context)
+    """UC-03 รายละเอียด + UC-37 แท็บรีวิว (ItemDetailView / UnitReviewListView) · ?tab=reviews&stars=N"""
+    role = get_role(request.user)
+    qs = student_items() if role == STUDENT else annotated_items()  # นักศึกษาไม่เห็นของที่ซ่อน (ข้อ 3)
+    item = get_object_or_404(qs, pk=pk)
 
-
-@login_required
-def item_create_view(request):
-    if not is_staff_user(request.user):
-        messages.error(request, "คุณไม่มีสิทธิ์ในการเพิ่มพัสดุ (สำหรับเจ้าหน้าที่เท่านั้น)")
-        return redirect('catalog:item_list')
-
-    if request.method == 'POST':
-        form = ItemForm(request.POST, request.FILES)
-        if form.is_valid():
-            item = form.save(commit=False)
-            if item.item_type == 'MATERIAL':
-                item.max_borrow_days = 0
-            item.save()
-            messages.success(request, f"เพิ่มรายการ '{item.name}' เข้าสู่คลังเรียบร้อยแล้ว!")
-            return redirect('catalog:item_list')
-    else:
-        form = ItemForm()
-
-    context = {
-        'form': form,
-        'title': 'เพิ่มวัสดุ/ครุภัณฑ์ใหม่',
-        'is_edit': False,
-    }
-    return render(request, 'catalog/item_form.html', context)
-
-
-@login_required
-def item_edit_view(request, pk):
-    if not is_staff_user(request.user):
-        messages.error(request, "คุณไม่มีสิทธิ์ในการแก้ไขพัสดุ (สำหรับเจ้าหน้าที่เท่านั้น)")
-        return redirect('catalog:item_list')
-
-    item = get_object_or_404(Item, pk=pk)
-
-    if request.method == 'POST':
-        form = ItemForm(request.POST, request.FILES, instance=item)
-        if form.is_valid():
-            item = form.save(commit=False)
-            if item.item_type == 'MATERIAL':
-                item.max_borrow_days = 0
-            item.save()
-            messages.success(request, f"แก้ไขข้อมูล '{item.name}' เรียบร้อยแล้ว!")
-            return redirect('catalog:item_detail', pk=item.pk)
-    else:
-        form = ItemForm(instance=item)
-
-    context = {
-        'form': form,
-        'item': item,
-        'title': f'แก้ไขสิ่งของ: {item.name}',
-        'is_edit': True,
-    }
-    return render(request, 'catalog/item_form.html', context)
+    ctx = {"item": item, "role": role, "tab": "details"}
+    if item.is_equipment:
+        reviews = Review.objects.filter(borrow_item__item=item).select_related(
+            "borrow_item__borrow_request__student__user")
+        counts = dict(reviews.values_list("rating").annotate(n=Count("id")))
+        total = sum(counts.values())
+        stars = request.GET.get("stars", "")
+        shown = reviews.filter(rating=int(stars)) if stars in {"1", "2", "3", "4", "5"} else reviews
+        ctx.update({
+            "tab": "reviews" if request.GET.get("tab") == "reviews" else "details",
+            "reviews": shown, "stars": stars, "review_total": total,
+            "star_rows": [(n, counts.get(n, 0), round(counts.get(n, 0) * 100 / total) if total else 0)
+                          for n in range(5, 0, -1)],
+        })
+    if role == STAFF and item.is_returnable:  # ที่ตั้งปัจจุบัน: เจ้าหน้าที่เท่านั้น (ข้อ 7)
+        ctx["active_loan"] = (
+            BorrowItem.objects.filter(
+                item=item,
+                borrow_request__status__in=[BorrowRequest.Status.BORROWING, BorrowRequest.Status.RETURN_PENDING],
+            ).exclude(current_location="").select_related("borrow_request__student__user")
+            .order_by("-moved_at").first()
+        )
+    back_key = "item-list" if role == STUDENT else "item-overview"
+    ctx["back_url"] = item_url(NAV_BY_KEY[back_key][1])[0]
+    ctx.update(_borrow_actions_ready())
+    return render(request, "catalog/item_detail.html", ctx)
