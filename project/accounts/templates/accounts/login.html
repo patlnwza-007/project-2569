@@ -1,45 +1,88 @@
 {% extends "base.html" %}
-{% load static %}
 {% load socialaccount %}
+{# UC-15 · mockup page-login.html — 2 แท็บ: UBU SSO / ผู้ดูแลระบบ (Django Admin) #}
 
-{% block title %}เข้าสู่ระบบ - YuemDee (ยืมดี) มหาวิทยาลัยอุบลราชธานี{% endblock %}
-{% block topbar %}{% endblock %}
+{% block title %}เข้าสู่ระบบ · YuemDee{% endblock %}
+{% block main_class %}min-h-full p-6 flex items-center justify-center{% endblock %}
+{% block messages %}{% endblock %}
 
 {% block content %}
-<div class="min-h-[80vh] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-    
-    <!-- Header Section -->
-    <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white font-bold text-3xl shadow-lg shadow-blue-500/30 mb-4">
-            ย
-        </div>
-        <h2 class="text-3xl font-bold tracking-tight text-gray-900">
-            เข้าสู่ระบบ YuemDee
-        </h2>
-        <p class="mt-2 text-sm text-gray-600">
-            ระบบยืม-คืนพัสดุออนไลน์ 
-        </p>
+<div class="bg-white rounded-3xl shadow-xl p-8 max-w-lg w-full border border-gray-100"
+     x-data="{ tab: '{{ active_tab }}' }">
+
+    <!-- Tab Selector -->
+    <div class="flex items-center bg-gray-100 p-1.5 rounded-2xl mb-6">
+        <button type="button" id="p_login_tab_btn_sso" @click="tab = 'sso'"
+                :class="tab === 'sso' ? 'bg-white text-blue-700 shadow-sm font-bold' : 'text-gray-500 hover:text-gray-800 font-semibold'"
+                class="flex-1 py-2 px-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5">
+            <span>🏛️</span> นักศึกษา / เจ้าหน้าที่ (UBU SSO)
+        </button>
+        <button type="button" id="p_login_tab_btn_admin" @click="tab = 'admin'"
+                :class="tab === 'admin' ? 'bg-white text-purple-700 shadow-sm font-bold' : 'text-gray-500 hover:text-gray-800 font-semibold'"
+                class="flex-1 py-2 px-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5">
+            <span>👑</span> ผู้ดูแลระบบ (Django Admin)
+        </button>
     </div>
 
-    <!-- Login Card (Only UBU SSO Email Button) -->
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-6 shadow-xl border border-gray-100 rounded-3xl sm:px-10 text-center">
-            
-            <p class="text-sm font-medium text-gray-700 mb-6">
-                กรุณาเข้าสู่ระบบด้วยบัญชีอีเมลมหาวิทยาลัยอุบลราชธานี
-            </p>
+    <!-- TAB 1: UBU SSO -->
+    <div id="p_login_tab_sso" x-show="tab === 'sso'" {% if active_tab != 'sso' %}x-cloak{% endif %}>
+        <div class="text-center mb-6">
+            <div class="text-4xl mb-2">🔐</div>
+            <h1 class="text-lg font-bold text-gray-800">เข้าสู่ระบบด้วย UBU Single Sign-On</h1>
+            <p class="text-xs text-gray-500 mt-1">ยืนยันตัวตนผ่านบริการกลางของมหาวิทยาลัยอุบลราชธานี (@ubu.ac.th)</p>
+        </div>
+        <form method="post" action="{% provider_login_url 'google' %}">
+            {% csrf_token %}
+            <button type="submit" id="p_login_sso_btn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-4 py-3 text-sm shadow-sm transition flex items-center justify-center gap-2">
+                <span>🏛️</span> เข้าสู่ระบบด้วยอีเมล UBU (@ubu.ac.th)
+            </button>
+        </form>
+        <p class="text-[11px] text-gray-400 text-center mt-3">ครั้งแรกที่เข้าใช้งาน นักศึกษาต้องบันทึกรหัสนักศึกษาและเบอร์โทรศัพท์</p>
+    </div>
 
-            <!-- UBU SSO Button -->
-            <div>
-                <a href="{% provider_login_url 'google' %}" 
-                   class="w-full flex items-center justify-center px-4 py-3.5 border border-transparent rounded-xl shadow-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 group">
-                    <span class="mr-2">🔐</span>
-                    เข้าสู่ระบบด้วยอีเมล UBU (@ubu.ac.th)
-                </a>
-            </div>
-
+    <!-- TAB 2: DJANGO ADMIN LOCAL LOGIN -->
+    <div id="p_login_tab_admin" x-show="tab === 'admin'" {% if active_tab != 'admin' %}x-cloak{% endif %}>
+        <div class="text-center mb-5">
+            <div class="text-4xl mb-2">🛠️</div>
+            <h1 class="text-lg font-bold text-gray-800">เข้าสู่ระบบผู้ดูแลระบบ (Admin)</h1>
+            <p class="text-xs text-gray-500 mt-1">ใช้บัญชี Local Database บัญชีเดียวกับ <b>Django Admin Backend (/admin/)</b><br>ไม่ต้องใช้บัญชีอีเมล UBU SSO</p>
         </div>
 
+        <div class="bg-purple-50/90 border border-purple-200 text-purple-900 rounded-2xl p-3.5 mb-5 text-xs flex items-start gap-2.5 shadow-sm">
+            <span class="text-base shrink-0">💡</span>
+            <div>
+                <strong class="font-bold block text-purple-950 mb-0.5">Django Superuser Authentication</strong>
+                <span>แอดมินสร้างบัญชีผ่านคำสั่ง <code class="font-mono bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">createsuperuser</code> เมื่อเข้าสู่ระบบแล้วเปิด <code class="font-mono bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">/admin/</code> ได้โดยไม่ต้องล็อกอินซ้ำ</span>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'accounts:admin_login' %}" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label for="p_login_admin_user" class="block text-xs font-semibold text-gray-700 mb-1">ชื่อผู้ใช้งาน (Username):</label>
+                {{ form.username }}
+            </div>
+            <div>
+                <label for="p_login_admin_pass" class="block text-xs font-semibold text-gray-700 mb-1">รหัสผ่าน (Password):</label>
+                {{ form.password }}
+            </div>
+            <button type="submit" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-xl px-4 py-2.5 text-sm shadow-sm transition-all flex items-center justify-center gap-2">
+                <span>🚀</span> เข้าสู่ระบบในฐานะ Admin
+            </button>
+        </form>
+    </div>
+
+    <!-- Error Box -->
+    {% if form.non_field_errors or messages %}
+    <div id="p_login_login-error" class="mt-4 border border-red-300 bg-red-50 text-red-700 text-xs rounded-xl p-3 space-y-1">
+        {% for e in form.non_field_errors %}<p>{{ e }}</p>{% endfor %}
+        {% for m in messages %}<p>{{ m }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="flex items-center justify-end mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400">
+        <span class="font-mono text-[11px]">YuemDee</span>
     </div>
 </div>
 {% endblock %}

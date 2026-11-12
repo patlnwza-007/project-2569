@@ -1,11 +1,40 @@
 {% extends "base.html" %}
+{# UC-15 ข้อ 3ก · First-time Setup — หน้าตาแบบการ์ดของ page-login.html (ตัดสินใจ M1 ข้อ 2) #}
+
 {% block title %}กรอกข้อมูลครั้งแรก · YuemDee{% endblock %}
 {% block sidebar %}{% endblock %}
+{% block main_class %}min-h-full p-6 flex items-center justify-center{% endblock %}
+
 {% block content %}
-<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center max-w-xl mx-auto mt-8">
-    <div class="text-5xl mb-3">📝</div>
-    <h1 class="text-xl font-bold text-gray-900">กรอกข้อมูลก่อนเริ่มใช้งาน</h1>
-    <p class="mt-2 text-sm text-gray-500">ต้องบันทึกรหัสนักศึกษา (11 หลัก) และเบอร์โทรศัพท์ (10 หลัก) ก่อนเข้าใช้งาน</p>
-    <p class="mt-4 text-xs text-gray-400">แบบฟอร์มจะเปิดใช้งานเมื่อทำ M1 · account</p>
+<div class="bg-white rounded-3xl shadow-xl p-8 max-w-lg w-full border border-gray-100">
+    <div class="text-center mb-6">
+        <div class="text-4xl mb-2">📝</div>
+        <h1 class="text-lg font-bold text-gray-800">ยินดีต้อนรับสู่ YuemDee</h1>
+        <p class="text-xs text-gray-500 mt-1">เข้าใช้งานครั้งแรก กรุณาบันทึกข้อมูลก่อนเริ่มใช้งาน</p>
+        <p class="font-mono text-xs text-gray-400 mt-2">{{ ubu_user.email }}</p>
+    </div>
+
+    <form method="post" class="space-y-4" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+            <label for="{{ field.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1">
+                {{ field.label }} <span class="text-red-500">*</span>
+            </label>
+            {{ field }}
+            {% for e in field.errors %}
+            <p class="text-xs text-red-600 mt-1 font-medium">⚠️ {{ e }}</p>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-4 py-2.5 text-sm shadow-sm transition">
+            ✓ บันทึกและเริ่มใช้งาน
+        </button>
+    </form>
+
+    <form method="post" action="{% url 'accounts:logout' %}" class="mt-6 pt-4 border-t border-gray-100 text-center">
+        {% csrf_token %}
+        <button type="submit" class="text-xs text-gray-400 hover:text-gray-700 hover:underline">ออกจากระบบ</button>
+    </form>
 </div>
 {% endblock %}

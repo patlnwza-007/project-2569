@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{# UC-13 · mockup page-profile.html — โหมดดูเป็นค่าเริ่มต้น, ?edit=1 = โหมดแก้ไขเบอร์โทร #}
+
+{% block title %}โปรไฟล์ส่วนตัว · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">โปรไฟล์ส่วนตัว</h1>
+    <p class="text-sm text-gray-500 mb-6">แก้ไขข้อมูลติดต่อของคุณให้เป็นปัจจุบัน — ต้องกรอกเบอร์โทรศัพท์ก่อนส่งคำขอยืม</p>
+
+    {% if next %}
+    <div id="p_profile_notice-return" class="mb-4 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl p-3 text-sm">
+        กรุณากรอกเบอร์โทรศัพท์ให้ครบก่อน เพื่อกลับไปส่งคำขอยืมต่อ
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'accounts:profile' %}" novalidate
+          class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+            <div>
+                <h2 class="text-base font-bold text-gray-800">ข้อมูลบัญชีผู้ใช้</h2>
+                <p class="text-xs text-gray-500">ข้อมูลที่ลงทะเบียนผ่านบัญชีมหาวิทยาลัย (@ubu.ac.th)</p>
+            </div>
+            {% if not edit_mode %}
+            <a id="p_profile_btn_edit" href="?edit=1"
+               class="inline-flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold px-3.5 py-2 rounded-xl transition-colors">
+                <span>✏️</span> แก้ไขข้อมูลส่วนตัว
+            </a>
+            {% else %}
+            <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">โหมดแก้ไข</span>
+            {% endif %}
+        </div>
+
+        <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">รหัสนักศึกษา (11 หลัก)</label>
+            <div id="p_profile_view_id" class="mt-1 font-mono text-sm font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex justify-between">
+                <span>{{ student.student_id|default:"-" }}</span>
+                {% if edit_mode %}<span class="text-xs font-normal text-gray-400">🔒 แก้ไขไม่ได้</span>{% endif %}
+            </div>
+        </div>
+
+        <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ชื่อ - นามสกุล</label>
+            <div id="p_profile_view_name" class="mt-1 text-sm font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">{{ ubu_user.name|default:"-" }}</div>
+        </div>
+
+        <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">อีเมลมหาวิทยาลัย</label>
+            <div id="p_profile_view_email" class="mt-1 font-mono text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex justify-between">
+                <span>{{ ubu_user.email }}</span>
+                {% if edit_mode %}<span class="text-xs font-normal text-gray-400">🔒 แก้ไขไม่ได้</span>{% endif %}
+            </div>
+        </div>
+
+        <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center justify-between">
+                <span>เบอร์โทรศัพท์ติดต่อ <span class="text-red-500">*</span></span>
+                {% if edit_mode %}<span id="p_profile_phone_hint" class="text-[11px] text-blue-600 font-normal normal-case">ตัวเลข 10 หลัก</span>{% endif %}
+            </label>
+            {% if not edit_mode %}
+            <div id="p_profile_phone_view_box" class="mt-1 flex items-center justify-between text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                <span id="p_profile_view_phone" class="font-mono font-medium text-gray-800">{{ student.phone|default:"-" }}</span>
+                <span class="text-xs text-gray-400">กดปุ่ม "แก้ไข" เพื่อเปลี่ยนเบอร์</span>
+            </div>
+            {% else %}
+            <div id="p_profile_phone_edit_box" class="mt-1">
+                {{ form.phone }}
+                {% for e in form.phone.errors %}
+                <p id="p_profile_phone-error" class="text-xs text-red-600 mt-1 font-medium">⚠️ {{ e }}</p>
+                {% endfor %}
+                <p class="text-[11px] text-gray-400 mt-1">* ใช้สำหรับให้เจ้าหน้าที่ติดต่อเมื่อเกิดกรณีเร่งด่วนเกี่ยวกับการยืม-คืน</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+            <div>
+                <p class="text-xs text-gray-400">เข้าสู่ระบบครั้งแรก</p>
+                <p id="p_profile_f-first" class="text-xs font-mono font-medium text-gray-700 mt-0.5">{{ ubu_user.first_login|date:"j M Y H:i"|default:"-" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">เข้าสู่ระบบล่าสุด</p>
+                <p id="p_profile_f-last" class="text-xs font-mono font-medium text-gray-700 mt-0.5">{{ ubu_user.last_login|date:"j M Y H:i"|default:"-" }}</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+            <span class="text-xs text-gray-400">สถานะบัญชี:</span>
+            <span id="p_profile_status" class="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">ปกติ</span>
+        </div>
+
+        {% if edit_mode %}
+        <div id="p_profile_edit_actions" class="pt-2 flex items-center gap-2">
+            <button type="submit" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5 shadow-sm transition-colors">
+                <span>✓</span> บันทึกข้อมูล
+            </button>
+            <a id="p_profile_btn_cancel" href="{% url 'accounts:profile' %}"
+               class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl px-4 py-2.5 transition-colors">ยกเลิก</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

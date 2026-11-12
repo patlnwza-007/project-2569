@@ -6,7 +6,7 @@ from .roles import ADMIN, STUDENT, get_role, get_ubu_user
 # ไม่ต้องตรวจ: Django admin, ไฟล์ static/media, dev reload
 EXEMPT_PREFIXES = ("/admin/", "/static/", "/media/", "/__reload__/")
 # หน้าของ accounts ที่ผู้ใช้ทุกสถานะต้องเข้าได้ (หน้าอื่นของ accounts เช่น profile ยังถูกตรวจตามปกติ)
-OPEN_ACCOUNT_PAGES = {"login", "logout", "blocked", "onboarding"}
+OPEN_ACCOUNT_PAGES = {"login", "admin_login", "logout", "blocked", "onboarding"}
 
 
 def is_exempt(path):
