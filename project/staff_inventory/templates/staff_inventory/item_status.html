@@ -12,7 +12,7 @@
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
         <div class="flex items-center gap-4 pb-4 border-b border-gray-100">
             <div class="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-3xl overflow-hidden">
-                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{{ item|item_icon }}{% endif %}
+                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{% include 'catalog/_no_image.html' %}{% endif %}
             </div>
             <div>
                 <p class="font-bold text-gray-900">{{ item.name }}</p>

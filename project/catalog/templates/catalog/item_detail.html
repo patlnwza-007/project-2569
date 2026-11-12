@@ -27,7 +27,7 @@
                     {% if item.image %}
                     <img src="{{ item.image.url }}" alt="{{ item.name }}" class="max-h-56 rounded-2xl object-contain {% if item.availability == 'empty' %}grayscale opacity-60{% endif %}">
                     {% else %}
-                    <div class="text-8xl select-none py-4 {% if item.availability == 'empty' %}grayscale opacity-60{% endif %}">{{ item|item_icon }}</div>
+                    <div class="text-8xl select-none py-4 ">{% include 'catalog/_no_image.html' with icon='text-6xl' label='text-sm' %}</div>
                     {% endif %}
                 </div>
 

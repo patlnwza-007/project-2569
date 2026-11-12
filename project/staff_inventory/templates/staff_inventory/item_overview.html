@@ -85,7 +85,7 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 shrink-0 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl overflow-hidden">
-                                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{{ item|item_icon }}{% endif %}
+                                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{% include 'catalog/_no_image.html' with icon='text-sm' label='text-[8px]' %}{% endif %}
                             </div>
                             <div class="min-w-0">
                                 <a href="{% url 'catalog:item_detail' item.pk %}" class="font-semibold text-gray-900 hover:text-blue-600">{{ item.name }}</a>

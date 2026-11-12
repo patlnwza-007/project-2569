@@ -1,16 +1,6 @@
 from django import template
 
-from catalog.models import Item
-
 register = template.Library()
-
-ICONS = {Item.ItemType.EQUIPMENT: "📽️", Item.ItemType.DURABLE_MATERIAL: "🔌", Item.ItemType.MATERIAL: "📦"}
-
-
-@register.filter
-def item_icon(item):
-    """emoji แทนรูปเมื่อสิ่งของยังไม่มีรูป (แบบ mockup)"""
-    return ICONS.get(item.item_type, "📦")
 
 
 @register.filter

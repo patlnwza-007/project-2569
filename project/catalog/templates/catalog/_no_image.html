@@ -1,0 +1,5 @@
+{# แสดงแทนรูปเมื่อสิ่งของยังไม่มีรูป (ผู้ใช้เลือก: ขึ้นว่า "ไม่มีรูป") · ขนาดปรับด้วย icon= / label= #}
+<span class="flex flex-col items-center justify-center text-gray-400 leading-none select-none" data-no-image>
+    <span class="{{ icon|default:'text-xl' }} grayscale opacity-60">🖼️</span>
+    <span class="{{ label|default:'text-[9px]' }} font-medium mt-1 whitespace-nowrap">ไม่มีรูป</span>
+</span>

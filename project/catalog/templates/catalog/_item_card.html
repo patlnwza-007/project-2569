@@ -4,7 +4,7 @@
     <a href="{% url 'catalog:item_detail' item.pk %}" class="block">
         <div class="flex items-start justify-between gap-2 mb-3">
             <div class="w-14 h-14 rounded-2xl overflow-hidden {% if item.is_equipment %}bg-gradient-to-br from-blue-50 via-gray-50 to-indigo-50 border border-gray-100{% elif item.is_material %}bg-gradient-to-br from-teal-50 via-gray-50 to-emerald-50 border border-teal-100{% else %}bg-gradient-to-br from-sky-50 via-gray-50 to-blue-50 border border-sky-100{% endif %} flex items-center justify-center text-3xl group-hover:scale-105 transition-transform shadow-inner">
-                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{{ item|item_icon }}{% endif %}
+                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{% include 'catalog/_no_image.html' %}{% endif %}
             </div>
             <div class="flex flex-col items-end gap-1">
                 {% include 'catalog/_status_badge.html' %}

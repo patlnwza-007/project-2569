@@ -109,6 +109,13 @@ class ItemListTests(CatalogFixture):
         self.assertContains(r, "วัสดุหมดคลัง (ไม่ต้องคืน)")   # วัสดุสิ้นเปลืองหมด → จองคิวไม่ได้
         self.assertContains(r, "ไม่พร้อมให้บริการ")
 
+    def test_no_image_placeholder(self):
+        """สิ่งของที่ไม่มีรูป → ขึ้นว่า "ไม่มีรูป" (ผู้ใช้เลือก ข.) ไม่ใช้อิโมจิตามประเภท"""
+        r = self.client.get(LIST)
+        self.assertContains(r, "data-no-image", count=6)
+        self.assertContains(r, "ไม่มีรูป")
+        self.assertNotContains(r, "📽️")
+
     def test_menu_is_live(self):
         menu = {m["key"]: m for m in self.client.get(LIST).context["nav_menu"]}
         self.assertTrue(menu["item-list"]["ready"] and menu["item-list"]["active"])
