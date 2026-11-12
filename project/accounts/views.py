@@ -11,7 +11,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from .forms import AdminLoginForm, FirstTimeSetupForm, ProfileForm
 from .navigation import NAV_BY_KEY, home_url
 from .permissions import role_required
-from .roles import STUDENT, get_role, get_ubu_user
+from django.views.decorators.http import require_POST
+
+from .roles import SESSION_KEY, STUDENT, available_roles, get_role, get_ubu_user
 
 
 class CustomLoginView(LoginView):
@@ -34,6 +36,19 @@ class CustomLoginView(LoginView):
 
     def get_success_url(self):
         return reverse_lazy('home')
+
+
+@require_POST
+@login_required
+def switch_role_view(request):
+    """UC-33 Role Switching: ผู้ใช้ Dual-Role (นักศึกษา + เจ้าหน้าที่) สลับโหมดแล้วไปหน้าแรกของโหมดนั้น"""
+    role = request.POST.get("role")
+    roles = available_roles(request.user)
+    if len(roles) < 2 or role not in roles:
+        raise PermissionDenied("บัญชีนี้ไม่สามารถสลับเป็นบทบาทดังกล่าวได้")
+    request.session[SESSION_KEY] = role
+    request.user._active_role = role
+    return redirect(home_url(role))
 
 
 def logout_view(request):

@@ -1,12 +1,12 @@
 from django.shortcuts import redirect
 from django.urls import Resolver404, resolve, reverse
 
-from .roles import ADMIN, STUDENT, get_role, get_ubu_user
+from .roles import ADMIN, SESSION_KEY, STUDENT, get_role, get_ubu_user
 
 # ไม่ต้องตรวจ: Django admin, ไฟล์ static/media, dev reload
 EXEMPT_PREFIXES = ("/admin/", "/static/", "/media/", "/__reload__/")
 # หน้าของ accounts ที่ผู้ใช้ทุกสถานะต้องเข้าได้ (หน้าอื่นของ accounts เช่น profile ยังถูกตรวจตามปกติ)
-OPEN_ACCOUNT_PAGES = {"login", "admin_login", "logout", "blocked", "onboarding"}
+OPEN_ACCOUNT_PAGES = {"login", "admin_login", "logout", "blocked", "onboarding", "switch_role"}
 
 
 def is_exempt(path):
@@ -27,12 +27,16 @@ class AccessGateMiddleware:
     ทุก request ของผู้ใช้ที่ login แล้ว:
     1. ถูกระงับสิทธิ์ (USER.blocked) → หน้าแจ้งระงับสิทธิ์ แม้จะ login ค้างไว้ก่อนถูกระงับ (UC-15, UC-27, UC-32)
     2. นักศึกษาที่ยังไม่กรอกรหัสนักศึกษา/เบอร์โทร → หน้ากรอกข้อมูลครั้งแรก (UC-15 ข้อ 3ก)
+
+    ก่อนตรวจ: ใส่โหมดที่ผู้ใช้ Dual-Role เลือกไว้ใน session ลงที่ request.user._active_role (UC-33)
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.user.is_authenticated:
+            request.user._active_role = request.session.get(SESSION_KEY)
         redirect_to = self._gate(request)
         if redirect_to:
             return redirect(redirect_to)

@@ -1,5 +1,5 @@
 from .navigation import ROLE_LABEL, build_menu
-from .roles import ADMIN, get_role, get_ubu_user
+from .roles import ADMIN, available_roles, get_role, get_ubu_user
 
 
 def shell(request):
@@ -13,8 +13,10 @@ def shell(request):
         name = user.admin_account.name or user.username
     else:
         name = (ubu.name if ubu else "") or user.get_full_name() or user.username
+    roles = available_roles(user)
     return {
         "role": role,
+        "switch_roles": [(r, ROLE_LABEL[r]) for r in roles] if len(roles) > 1 else [],
         "role_label": ROLE_LABEL.get(role, "ไม่มีบทบาท"),
         "display_name": name,
         "nav_menu": build_menu(role, ubu, request.path) if role else [],
