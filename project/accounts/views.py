@@ -8,7 +8,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from .forms import AdminLoginForm, FirstTimeSetupForm, ProfilePhoneForm
+from .forms import AdminLoginForm, FirstTimeSetupForm, ProfileForm
 from .navigation import NAV_BY_KEY, home_url
 from .permissions import role_required
 from .roles import STUDENT, get_role, get_ubu_user
@@ -106,7 +106,7 @@ def profile_view(request):
     nxt = _safe_next(request)
     edit_mode = request.method == 'POST' or request.GET.get('edit') == '1' or bool(nxt)
 
-    form = ProfilePhoneForm(request.POST or None, instance=student)
+    form = ProfileForm(request.POST or None, instance=student)
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'บันทึกข้อมูลส่วนตัวสำเร็จ')

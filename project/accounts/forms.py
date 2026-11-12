@@ -65,9 +65,13 @@ class FirstTimeSetupForm(forms.Form):
         return self.student
 
 
-class ProfilePhoneForm(forms.ModelForm):
-    """UC-13: โหมดแก้ไขของโปรไฟล์ แก้ได้เฉพาะเบอร์โทร (รหัสนักศึกษาและอีเมลล็อก)"""
+class ProfileForm(forms.ModelForm):
+    """UC-13: โหมดแก้ไขของโปรไฟล์ แก้ได้ชื่อ-นามสกุลและเบอร์โทร (รหัสนักศึกษาและอีเมลล็อก)
 
+    ชื่อแก้ได้เพิ่มจาก UC-13 (ผู้ใช้ขอ 2026-11-13 · ดู docs/conflicts.md)
+    """
+
+    name = forms.CharField(label="ชื่อ - นามสกุล", max_length=150)
     phone = forms.CharField(label="เบอร์โทรศัพท์ติดต่อ", max_length=10, validators=[phone_validator])
 
     class Meta:
@@ -76,8 +80,27 @@ class ProfilePhoneForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["name"].initial = self.instance.user.name
+        self.fields["name"].widget.attrs.update({
+            "id": "p_profile_f-name",
+            "class": "w-full border border-blue-400 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+        })
         self.fields["phone"].widget.attrs.update({
             "id": "p_profile_f-phone", "maxlength": "10", "inputmode": "numeric",
             "placeholder": "ระบุเบอร์โทรศัพท์ 10 หลัก เช่น 0812345678",
             "class": "w-full border border-blue-400 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20",
         })
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        if not name:
+            raise forms.ValidationError("กรุณากรอกชื่อ - นามสกุล")
+        return name
+
+    def save(self, commit=True):
+        student = super().save(commit=commit)
+        ubu = student.user
+        ubu.name = self.cleaned_data["name"]
+        if commit:
+            ubu.save(update_fields=["name"])
+        return student

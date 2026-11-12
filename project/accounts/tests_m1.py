@@ -177,23 +177,36 @@ class ProfileTests(TestCase):
         r = self.client.get(PROFILE + "?edit=1")
         self.assertTrue(r.context["edit_mode"])
         self.assertContains(r, 'id="p_profile_f-phone"')
+        self.assertContains(r, 'id="p_profile_f-name"')
         self.assertContains(r, 'id="p_profile_btn_cancel"')
 
+    def test_name_can_be_changed(self):
+        """แก้ชื่อได้ในหน้าโปรไฟล์ (เพิ่มจาก UC-13 · docs/conflicts.md) → แถบด้านบนแสดงชื่อใหม่"""
+        r = self.client.post(PROFILE, {"name": "  นราธร เหมือนเหลา ", "phone": "0812345678"}, follow=True)
+        self.assertEqual(UbuUser.objects.get(pk=self.auth.ubu_user.pk).name, "นราธร เหมือนเหลา")
+        self.assertContains(r, '<span id="topbar-name" class="hidden sm:inline">นราธร เหมือนเหลา</span>', html=True)
+
+    def test_blank_name_not_saved(self):
+        r = self.client.post(PROFILE, {"name": "   ", "phone": "0812345678"})
+        self.assertTrue(r.context["edit_mode"])
+        self.assertIn("name", r.context["form"].errors)
+        self.assertEqual(UbuUser.objects.get(pk=self.auth.ubu_user.pk).name, "นักศึกษา ทดสอบ")
+
     def test_save_success(self):
-        r = self.client.post(PROFILE, {"phone": "0911111111"}, follow=True)
+        r = self.client.post(PROFILE, {"name": "นักศึกษา ทดสอบ", "phone": "0911111111"}, follow=True)
         self.assertEqual(r.redirect_chain[-1][0], PROFILE)
         self.assertFalse(r.context["edit_mode"])
         self.assertContains(r, "บันทึกข้อมูลส่วนตัวสำเร็จ")
         self.assertEqual(Student.objects.get(pk=self.auth.ubu_user.pk).phone, "0911111111")
 
     def test_invalid_phone_not_saved(self):
-        r = self.client.post(PROFILE, {"phone": "12345"})
+        r = self.client.post(PROFILE, {"name": "นักศึกษา ทดสอบ", "phone": "12345"})
         self.assertTrue(r.context["edit_mode"])
         self.assertContains(r, PHONE_MESSAGE)
         self.assertEqual(Student.objects.get(pk=self.auth.ubu_user.pk).phone, "0812345678")
 
     def test_student_id_and_email_cannot_be_changed(self):
-        self.client.post(PROFILE, {"phone": "0911111111", "student_id": "99999999999", "email": "h@ubu.ac.th"})
+        self.client.post(PROFILE, {"name": "นักศึกษา ทดสอบ", "phone": "0911111111", "student_id": "99999999999", "email": "h@ubu.ac.th"})
         s = Student.objects.get(pk=self.auth.ubu_user.pk)
         self.assertEqual((s.student_id, s.user.email), ("66114540001", "s1@ubu.ac.th"))
 
@@ -202,11 +215,11 @@ class ProfileTests(TestCase):
         r = self.client.get(PROFILE + "?next=/borrow/cart/")
         self.assertTrue(r.context["edit_mode"])
         self.assertContains(r, 'id="p_profile_notice-return"')
-        r = self.client.post(PROFILE, {"phone": "0922222222", "next": "/borrow/cart/"})
+        r = self.client.post(PROFILE, {"name": "นักศึกษา ทดสอบ", "phone": "0922222222", "next": "/borrow/cart/"})
         self.assertRedirects(r, "/borrow/cart/", fetch_redirect_response=False)
 
     def test_external_next_is_ignored(self):
-        r = self.client.post(PROFILE, {"phone": "0922222222", "next": "https://evil.example.com/"})
+        r = self.client.post(PROFILE, {"name": "นักศึกษา ทดสอบ", "phone": "0922222222", "next": "https://evil.example.com/"})
         self.assertRedirects(r, PROFILE, fetch_redirect_response=False)
 
     def test_menu_link_is_live_and_active(self):
