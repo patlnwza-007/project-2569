@@ -4,19 +4,21 @@
 erDiagram
     ADMIN {
         string id PK "รหัสผู้ดูแลระบบ"
-        string username UK "ชื่อบัญชี Django Admin"
+        int auth_user_id FK, UK "บัญชี login ของ Django (superuser) → auth_user.id"
+        string username UK "ชื่อบัญชี Django Admin (อ่านจาก auth_user · ไม่เก็บซ้ำ)"
         string name "ชื่อผู้ดูแลระบบ"
         string email "อีเมล (ไม่บังคับ @ubu)"
-        datetime last_login "เข้าสู่ระบบล่าสุด"
+        datetime last_login "เข้าสู่ระบบล่าสุด (อ่านจาก auth_user · ไม่เก็บซ้ำ)"
         datetime created_at "วันที่สร้างบัญชี"
     }
 
     USER {
         string id PK "รหัสบัญชีผู้ใช้ UBU SSO (Supertype)"
+        int auth_user_id FK, UK "บัญชี login ของ Django (nullable: ตั้ง Role Override ล่วงหน้าก่อน login ได้) → auth_user.id"
         string name "ชื่อ-นามสกุล"
         string email UK "อีเมล @ubu.ac.th"
         datetime first_login "เข้าสู่ระบบครั้งแรก"
-        datetime last_login "เข้าสู่ระบบล่าสุด"
+        datetime last_login "เข้าสู่ระบบล่าสุด (อ่านจาก auth_user · ไม่เก็บซ้ำ)"
         datetime created_at "วันที่สร้างบัญชี"
         boolean blocked "สถานะระงับสิทธิ์"
         string block_reason "เหตุผลการระงับสิทธิ์"
@@ -44,7 +46,7 @@ erDiagram
         string name "ชื่อสิ่งของ"
         string location "สถานที่ตั้งวางในคลัง"
         string unit "หน่วยนับ"
-        float purchase_price "ราคาจัดซื้อ"
+        decimal purchase_price "ราคาจัดซื้อ"
         string base_status "สถานะพื้นฐาน: AVAILABLE / DAMAGED / INACTIVE / RETIRED"
         string description "รายละเอียด"
         string image "รูปภาพ"
@@ -61,14 +63,14 @@ erDiagram
         int qty_total "จำนวนทั้งหมด"
         int qty_available "จำนวนคงเหลือ"
         int max_borrow_days "จำนวนวันยืมสูงสุด"
-        float fine_rate_per_day "อัตราค่าปรับต่อวัน"
+        decimal fine_rate_per_day "อัตราค่าปรับต่อวัน"
     }
 
     EQUIPMENT {
         int item_id PK, FK "รหัสครุภัณฑ์รายชิ้น → ITEM.id"
         string asset_tag UK "เลขครุภัณฑ์ประจำชิ้น เช่น UBU-EQ-001-01"
         int max_borrow_days "จำนวนวันยืมสูงสุด"
-        float fine_rate_per_day "อัตราค่าปรับต่อวัน"
+        decimal fine_rate_per_day "อัตราค่าปรับต่อวัน"
         string status "AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE / RETIRED / LOST"
         string note "หมายเหตุสภาพ/ความเสียหาย"
     }
@@ -118,7 +120,7 @@ erDiagram
         string inspected_by FK "ผู้ตรวจรับคืน → STAFF.user_id"
         string status "RETURN_PENDING / RETURNED / REJECTED"
         string return_photo "รูปถ่ายหลักฐานการส่งคืน"
-        float custom_fine "ยอดค่าปรับที่เรียกเก็บจริง (null = ใช้ SUM ของ RETURN_ITEM.fine)"
+        decimal custom_fine "ยอดค่าปรับที่เรียกเก็บจริง (null = ใช้ SUM ของ RETURN_ITEM.fine)"
         boolean fine_paid "สถานะชำระค่าปรับ"
         string fine_reason "เหตุผลการปรับ/ลดหย่อน"
         string note "หมายเหตุการส่งคืน"
@@ -132,8 +134,8 @@ erDiagram
         int borrow_item_id FK "รายการยืมเดิม → BORROW_ITEM.id"
         int qty_returned "จำนวนที่คืนในรอบนี้"
         string condition_status "NORMAL / DAMAGED / LOST"
-        float fine "ค่าปรับเกินกำหนดของรายการนี้ (คำนวณอัตโนมัติ)"
-        float lost_compensation "ค่าชดใช้กรณีสูญหาย"
+        decimal fine "ค่าปรับเกินกำหนดของรายการนี้ (คำนวณอัตโนมัติ)"
+        decimal lost_compensation "ค่าชดใช้กรณีสูญหาย"
         boolean lost_paid "สถานะชำระค่าชดใช้"
     }
 
@@ -215,6 +217,23 @@ erDiagram
     STUDENT ||--o{ DAMAGE_REPORT : "reports"
     ITEM |o--o{ DAMAGE_REPORT : "damaged_item"
 ```
+
+## การเชื่อมกับตาราง login ของ Django (`auth_user`)
+
+Django ต้องมีตาราง login กลาง `auth_user` (มากับ Django, ไม่นับรวมใน 19 ตาราง) ไว้เก็บรหัสผ่านและ session · `ADMIN` และ `USER` จึงมี `auth_user_id` ชี้ไปที่ตารางนี้
+
+| คอลัมน์ใน ERD | เก็บจริงที่ | เหตุผล |
+| :--- | :--- | :--- |
+| `ADMIN.username` | `auth_user.username` | Django ใช้ username ตอนตรวจรหัสผ่าน ถ้าเก็บซ้ำสองที่ข้อมูลจะไม่ตรงกัน |
+| `ADMIN.last_login`, `USER.last_login` | `auth_user.last_login` | Django อัปเดตให้อัตโนมัติทุกครั้งที่ login สำเร็จ |
+
+- `ADMIN.auth_user_id` ต้องชี้ไปที่บัญชีที่เป็น superuser เท่านั้น · สร้างแถว `ADMIN` อัตโนมัติเมื่อสั่ง `createsuperuser`
+- `USER.auth_user_id` เป็น `NULL` ได้ เมื่อแอดมินตั้ง Role Override ให้อีเมลที่ยังไม่เคย login (UC-33) แล้วผูกบัญชีเมื่อ login ครั้งแรก
+- ผู้ใช้ UBU SSO ไม่มีรหัสผ่านใน `auth_user` (UC-15 กฎข้อ 1)
+
+## ชนิดข้อมูลตัวเงิน
+
+คอลัมน์ตัวเงินทั้งหมดใช้ `decimal(10,2)` (ไม่ใช้ `float` เพราะทศนิยมแบบ float ปัดเศษผิดเวลาคำนวณเงิน): `ITEM.purchase_price`, `DURABLE_MATERIAL.fine_rate_per_day`, `EQUIPMENT.fine_rate_per_day`, `RETURN_REQUEST.custom_fine`, `RETURN_ITEM.fine`, `RETURN_ITEM.lost_compensation`
 
 ## โครงสร้าง ISA ของผู้ใช้งาน (Generalization / Specialization)
 

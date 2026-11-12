@@ -154,6 +154,6 @@ Overlapping ISA: 1 `UbuUser` มีได้ทั้ง `Student` และ `St
 | 4. ตัวเงิน | ก. | `DecimalField` · ควรแก้ชนิดใน ERD จาก `float` เป็น `decimal` ด้วย (5 คอลัมน์ในหัวข้อ 4) |
 
 ## 9. เอกสารที่ต้องแก้ตามภายหลัง (ไม่ขวางเฟส 1.2)
-- ERD: `float` → `decimal` ใน `purchase_price`, `fine_rate_per_day`, `custom_fine`, `fine`, `lost_compensation`
-- ERD: หมายเหตุว่า `USER.last_login` / `ADMIN.username`, `last_login` อ่านจากตาราง login ของ Django
+- ~~ERD: `float` → `decimal`~~ ✅ แก้แล้ว 2026-11-13
+- ~~ERD: หมายเหตุ `auth_user`~~ ✅ แก้แล้ว 2026-11-13 (เพิ่ม `auth_user_id` และหัวข้อ "การเชื่อมกับตาราง login ของ Django")
 - Mockup: ลบหมวดหมู่ออกจาก 3 หน้าในข้อ 2
