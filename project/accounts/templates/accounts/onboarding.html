@@ -3,7 +3,8 @@
 
 {% block title %}กรอกข้อมูลครั้งแรก · YuemDee{% endblock %}
 {% block sidebar %}{% endblock %}
-{% block main_class %}min-h-full p-6 flex items-center justify-center{% endblock %}
+{% block main_class %}min-h-full p-6 flex flex-col items-center justify-center{% endblock %}
+{% block messages %}{% endblock %}
 
 {% block content %}
 <div class="bg-white rounded-3xl shadow-xl p-8 max-w-lg w-full border border-gray-100">
@@ -13,6 +14,8 @@
         <p class="text-xs text-gray-500 mt-1">เข้าใช้งานครั้งแรก กรุณาบันทึกข้อมูลก่อนเริ่มใช้งาน</p>
         <p class="font-mono text-xs text-gray-400 mt-2">{{ ubu_user.email }}</p>
     </div>
+
+    {% include 'components/messages.html' %}
 
     <form method="post" class="space-y-4" novalidate>
         {% csrf_token %}
