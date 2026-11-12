@@ -29,16 +29,18 @@ title <b>YuemDee</b>\n(Use Case Diagram — โมดูล 8 · การจั
 left to right direction
 
 actor "เจ้าหน้าที่\n(Staff)" as Staff
+actor "ผู้ดูแลระบบ\n(Admin)" as Admin
 
-rectangle "โมดูล 8 · การจัดการผู้ใช้และการระงับสิทธิ์" {
-  package "E1 · การจัดการผู้ใช้และการระงับสิทธิ์" {
+rectangle "โมดูล 8 · การจัดการรายชื่อนักศึกษาและสิทธิ์การยืม" {
+  package "E1 · การจัดการรายชื่อนักศึกษาและสิทธิ์การยืม" {
     usecase "UC-26\nดูและค้นหารายชื่อนักศึกษา" as UC26
     usecase "UC-27\nจัดการสิทธิ์การยืมของนักศึกษา" as UC27
   }
 }
 
 Staff -- UC26
-Staff -- UC27
+Admin -- UC26
+Admin -- UC27
 
 UC27 ..> UC26 : <<include>>
 

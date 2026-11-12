@@ -231,8 +231,9 @@ function p_request_list_renderCard(r, isHistory) {
   const hasDurable = r.items.some(it => itemById(it.item_id)?.type === "durable_material");
   const hasMaterial = r.items.some(it => itemById(it.item_id)?.type === "material");
   const isPartialReturned = r.items.some(it => it.returned) && r.items.some(it => !it.returned);
-  const categoryBadge = hasEquip && (hasDurable || hasMaterial)
-    ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">ยืมแบบผสม</span>`
+  const isMixed = (hasEquip ? 1 : 0) + (hasDurable ? 1 : 0) + (hasMaterial ? 1 : 0) > 1;
+  const categoryBadge = isMixed
+    ? ""
     : hasEquip
     ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">ครุภัณฑ์</span>`
     : hasDurable
@@ -411,7 +412,7 @@ function p_request_list_renderCard(r, isHistory) {
           ${categoryBadge}
           <span class="text-xs text-gray-400 font-mono font-bold">คำขอ #${r.id}</span>
         </div>
-        <p class="text-xs text-gray-500">เหตุผล: <strong class="text-gray-700">${r.reason || "-"}</strong> · ส่งคำขอ: ${r.created_at || "-"}</p>
+        <p class="text-xs text-gray-500">ส่งคำขอ: <strong class="text-gray-700">${r.created_at || "-"}</strong> ${r.is_special ? '<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-semibold ml-1">⚡ ยืมระยะยาวพิเศษ</span>' : ''}</p>
       </div>
       <!-- Action button -->
       <div class="shrink-0">${actions}</div>

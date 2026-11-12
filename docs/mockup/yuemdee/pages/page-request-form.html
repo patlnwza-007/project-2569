@@ -60,13 +60,8 @@
           <div>
             <label class="text-xs font-bold text-gray-700 block">📅 วันที่ประสงค์จะส่งคืน <span class="text-red-500">*</span></label>
             <input type="date" id="p_request_form_custom_due" value="2026-11-30" min="2026-07-25" class="mt-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-            <p class="text-[11px] text-gray-400 mt-0.5">* เจ้าหน้าที่มีสิทธิ์ปรับลดวันที่อนุญาตให้ยืมตามความเหมาะสมของคลัง</p>
-          </div>
-
-          <div>
-            <label class="text-xs font-bold text-gray-700 block">📝 เหตุผลความจำเป็นในการขอยืมระยะยาว <span class="text-red-500">*</span></label>
-            <textarea id="p_request_form_special_reason" rows="2" placeholder="กรุณาระบุรายละเอียด เช่น โครงงานวิศวกรรม เรื่อง... อาจารย์ที่ปรึกษา อ.ดร. ... เพื่อใช้ประกอบการพิจารณาอนุมัติ" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white resize-none"></textarea>
-            <p id="p_request_form_err-special" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ กรุณาระบุวันที่คืนและเหตุผลความจำเป็นในการขอยืมระยะยาว</p>
+            <p class="text-[11px] text-gray-400 mt-0.5">* ไม่ต้องระบุเหตุผลการยืม (เจ้าหน้าที่มีสิทธิ์ปรับลดวันที่อนุญาตให้ยืมตามความเหมาะสมของคลัง)</p>
+            <p id="p_request_form_err-special" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ กรุณาระบุวันที่ต้องการส่งคืน</p>
           </div>
         </div>
       </div>
@@ -125,7 +120,6 @@ function p_request_form_init() {
 
     function p_request_form_submitRequest() {
       const isSpecial = document.getElementById("p_request_form_is_special").checked;
-      let reason = "ยืมใช้งานปกติ";
       let dueDate = null;
 
       const cart = db("cart");
@@ -135,16 +129,14 @@ function p_request_form_init() {
       });
 
       if (isSpecial) {
-        const specialReason = document.getElementById("p_request_form_special_reason").value.trim();
         const customDueDate = document.getElementById("p_request_form_custom_due").value;
         const errEl = document.getElementById("p_request_form_err-special");
 
-        if (!specialReason || !customDueDate) {
+        if (!customDueDate) {
           errEl.classList.remove("hidden");
           return;
         }
         errEl.classList.add("hidden");
-        reason = "[ขอยืมระยะยาวพิเศษ] " + specialReason;
         dueDate = customDueDate;
       } else {
         // Calculate standard due date if cart contains equipment or durable material
@@ -186,7 +178,6 @@ function p_request_form_init() {
         student_id: currentUserId(),
         user_id: currentUserId(),
         items: requestItems,
-        reason: reason,
         use_date: "2026-07-23",
         due_date: dueDate,
         is_special: isSpecial,

@@ -39,8 +39,7 @@ rectangle "ระบบยืม-คืนพัสดุออนไลน์ (
   usecase "โมดูล 10\nจัดการบัญชีผู้ใช้งานและบทบาท" as M10
 }
 
-' ===== ความสัมพันธ์ actor–use case (เส้นธรรมดา) =====
-' หมายเหตุ: Staff และ Admin เชื่อมกับ M1 ด้วย เพราะ UC-15 (เข้าสู่ระบบ) ใช้ร่วมกันทุกบทบาท
+' หมายเหตุ: Student, Staff และ Admin เชื่อมกับ M1 ผ่าน UC-15 (Dual Authentication)
 Student -- M1
 Staff -- M1
 Admin -- M1
@@ -59,6 +58,7 @@ Staff -- M7
 Staff -- M8
 Staff -- M9
 
+Admin -- M8
 Admin -- M10
 
 @enduml

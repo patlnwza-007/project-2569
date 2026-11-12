@@ -209,7 +209,7 @@ function p_cart_render() {
                 : `<div class="mt-1"><a href="javascript:void(0)" onclick="navigate('item-detail', {id: ${item.id}})" class="inline-flex items-center gap-1.5 bg-red-100 text-red-800 font-mono text-xs px-2.5 py-1 rounded-lg font-bold border border-red-300 hover:bg-red-200">⚠️ ยังไม่ได้เลือกรหัสชิ้น (กดเลือกรหัสที่นี่ →)</a></div>`
               ) : ''}
               <div class="flex items-center gap-3 text-xs text-gray-400 mt-1">
-                <span>คงเหลือในคลัง: <strong class="text-gray-600">${item.qty_available}</strong> ${item.unit || 'ชิ้น'}</span>
+                ${!isEquip ? `<span>คงเหลือในคลัง: <strong class="text-gray-600">${item.qty_available}</strong> ${item.unit || 'ชิ้น'}</span>` : ''}
                 ${daysHint}
               </div>
               <p id="err-${item.id}" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ จำนวนเกินที่มีในคลัง (สูงสุด ${item.qty_available} ${item.unit || 'ชิ้น'})</p>
@@ -280,17 +280,12 @@ function p_cart_render() {
     const equipCount   = cart.filter(c => itemById(c.item_id)?.type === "equipment").length;
     const durableCount = cart.filter(c => itemById(c.item_id)?.type === "durable_material").length;
     const matCount     = cart.filter(c => itemById(c.item_id)?.type === "material").length;
-    const returnables  = cart.filter(c => { const t = itemById(c.item_id)?.type; return t === "equipment" || t === "durable_material"; });
-    const maxDays      = returnables.length
-      ? Math.max(...returnables.map(c => itemById(c.item_id)?.max_borrow_days || 7))
-      : 0;
 
     summaryEl.innerHTML = [
       `<span class="flex items-center gap-1.5"><span class="text-base">🛒</span> รวม <strong>${cart.length}</strong> รายการ (<strong>${totalItems}</strong> ชิ้น)</span>`,
       equipCount   > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-400 inline-block"></span> ครุภัณฑ์ ${equipCount} รายการ</span>` : "",
       durableCount > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-400 inline-block"></span> วัสดุคงทน ${durableCount} รายการ</span>` : "",
       matCount     > 0 ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-teal-400 inline-block"></span> วัสดุ ${matCount} รายการ</span>` : "",
-      maxDays      > 0 ? `<span class="flex items-center gap-1">⏰ กำหนดคืนภายใน <strong>${maxDays}</strong> วัน</span>` : "",
     ].filter(Boolean).join("");
   }
 }
@@ -328,7 +323,17 @@ function p_cart_convertToQueue(id, assetTag) {
   }
 
   p_cart_removeItem(id, assetTag);
-  toastBanner(`⏳ ย้าย "${name}" ไปยังรายการจองคิวของคุณเรียบร้อยแล้ว`, "info");
+  const myPos = assetTag
+    ? queue.filter(q => q.asset_tag === assetTag).findIndex(q => q.student_id === stu) + 1
+    : queue.filter(q => q.item_id === id).findIndex(q => q.student_id === stu) + 1;
+  const est = getQueueEstimate(id, assetTag, myPos);
+  showQueueSuccessModal({
+    item: item,
+    assetTag: assetTag,
+    position: myPos,
+    estimate: est,
+    onDone: () => p_cart_render()
+  });
 }
 
 function p_cart_removeAllSnipped() {

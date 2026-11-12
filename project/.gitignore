@@ -21,3 +21,6 @@ __pycache__/
 # Tailwind CSS Build cache
 theme/static/css/dist/*.css
 !theme/static/css/dist/.gitkeep
+
+# Node (tailwind)
+node_modules/

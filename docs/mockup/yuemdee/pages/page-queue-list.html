@@ -85,15 +85,51 @@ function p_queue_list_render() {
         </div>
       </div>`;
     }
-    return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="text-3xl">${item?.image || '📦'}</div>
-        <div>
-          <p class="font-semibold text-sm text-gray-800">${item?.name || 'สิ่งของ'} ${tagBadge}</p>
-          <p class="text-xs text-gray-500">ลำดับคิวของคุณ: <span class="font-mono font-semibold text-blue-700">${position}</span> จากทั้งหมด ${itemQueue.length} คน <span class="text-gray-400 font-normal">(รอผู้ยืมเดิมคืนของ)</span></p>
+    const est = getQueueEstimate(targetItemId, q.asset_tag, position);
+    return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3.5">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex items-start gap-3.5">
+          <div class="text-3xl shrink-0 p-2 bg-gray-50 border border-gray-100 rounded-xl">${item?.image || '📦'}</div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-sm text-gray-900">${item?.name || 'สิ่งของ'}</span>
+              ${tagBadge}
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                ลำดับคิวของคุณ: <span class="font-bold text-amber-900">${position}</span> จากทั้งหมด ${itemQueue.length} คน
+              </span>
+              <span class="text-xs text-gray-400 font-normal hidden sm:inline">(รอผู้ยืมเดิมคืนของ)</span>
+            </div>
+          </div>
+        </div>
+        <button onclick="p_queue_list_leaveQueue(${q.id})" class="shrink-0 bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-600 text-xs font-semibold rounded-xl px-3 py-1.5 cursor-pointer transition-all">
+          ออกจากคิว
+        </button>
+      </div>
+
+      <!-- Estimated Available Date Box -->
+      <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/60 border border-blue-200/90 rounded-2xl p-3.5 flex items-start gap-3">
+        <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-base shrink-0 shadow-2xs mt-0.5">
+          📅
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline gap-2 flex-wrap">
+            <span class="text-xs font-bold text-blue-950">ประมาณการวันที่คาดว่าจะได้ยืม:</span>
+            <span class="text-sm font-extrabold text-blue-700 font-mono tracking-tight bg-white px-2 py-0.5 rounded-lg border border-blue-200 shadow-2xs">
+              ${est.dateFormatted}
+            </span>
+          </div>
+          <div class="text-[11px] text-gray-600 mt-1.5 leading-relaxed">
+            ${est.isSpecialLongBorrow ? '<span class="inline-flex items-center gap-1 font-semibold text-amber-800 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] mr-1">⚠️ ผู้ยืมปัจจุบันขอยืมนานพิเศษ</span>' : ''}
+            <span>${est.reasonNote}</span>
+          </div>
+          <p class="text-[10px] text-gray-400 mt-1 italic">
+            * วันที่ประมาณการคำนวณจากกำหนดคืนจริงของผู้ยืมก่อนหน้า หากมีการคืนเร็วขึ้น ระบบจะแจ้งเตือนให้ท่านยืนยันสิทธิ์ทันที
+          </p>
         </div>
       </div>
-      <button onclick="p_queue_list_leaveQueue(${q.id})" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg px-3 py-1.5 cursor-pointer">ออกจากคิว</button>
     </div>`;
   }).join("");
 }

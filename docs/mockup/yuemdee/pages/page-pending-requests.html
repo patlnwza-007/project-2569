@@ -134,9 +134,11 @@ function p_pending_requests_render() {
                   <span class="text-xs font-mono bg-gray-100 text-gray-800 font-bold px-2 py-0.5 rounded-md">×${it.qty} ${i?.unit || 'ชิ้น'}</span>
                   ${isEquip && tag ? `<span class="bg-blue-50 text-blue-800 border border-blue-200 font-mono text-xs px-2 py-0.5 rounded-md font-bold">🏷️ ${tag}</span>` : ''}
                   ${isDurable ? `<span class="bg-sky-50 text-sky-800 border border-sky-200 text-xs px-2 py-0.5 rounded-md font-bold">🔌 วัสดุคงทน (ยืม)</span>` : ''}
-                  <span class="text-[11px] ${isShort ? 'bg-red-50 text-red-700 font-bold border border-red-200' : 'bg-gray-100 text-gray-500'} px-2 py-0.5 rounded-md">
-                    ${isShort ? `⚠️ สต็อกไม่พอ (เหลือ ${i?.qty_available || 0})` : `คงเหลือ ${i?.qty_available || 0} ${i?.unit || 'ชิ้น'}`}
-                  </span>
+                  ${!isEquip ? `
+                    <span class="text-[11px] ${isShort ? 'bg-red-50 text-red-700 font-bold border border-red-200' : 'bg-gray-100 text-gray-500'} px-2 py-0.5 rounded-md">
+                      ${isShort ? `⚠️ สต็อกไม่พอ (เหลือ ${i?.qty_available || 0})` : `คงเหลือ ${i?.qty_available || 0} ${i?.unit || 'ชิ้น'}`}
+                    </span>
+                  ` : ''}
                 </div>
                 <div id="p_pr_hint_${r.id}_${idx}" class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                   <span>✓</span> ตรวจพบของจริงบนโต๊ะ — เจ้าหน้าที่ยืนยันให้ยืมชิ้นนี้
@@ -232,12 +234,9 @@ function p_pending_requests_render() {
           </div>
         </div>
 
-        <!-- Reason Note -->
-        <div class="text-xs text-gray-600 bg-gray-50 rounded-xl px-3.5 py-2.5 border border-gray-100 flex items-center gap-2">
-          <span class="font-bold text-gray-700">💬 วัตถุประสงค์:</span>
-          <span>${r.reason || "ยืมใช้งานปกติ"}</span>
-          ${r.use_date ? `<span class="text-gray-400 ml-auto">วันที่ใช้งาน: <strong>${r.use_date}</strong></span>` : ''}
-        </div>
+        ${r.use_date ? `<div class="text-xs text-gray-600 bg-gray-50 rounded-xl px-3.5 py-2.5 border border-gray-100 flex items-center gap-2">
+          <span class="text-gray-400">วันที่ใช้งาน: <strong>${r.use_date}</strong></span>
+        </div>` : ''}
 
         ${specialBox}
         ${warnBox}

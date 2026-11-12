@@ -62,12 +62,14 @@ function p_user_detail_getUser(email) {
         <tr><td class="border px-2 py-1 font-semibold bg-gray-50">บทบาทเริ่มต้น</td><td class="border px-2 py-1">${u.defaultRole === 'student' ? 'นักศึกษา' : u.defaultRole === 'staff' ? 'เจ้าหน้าที่' : '-'}</td></tr>
         <tr><td class="border px-2 py-1 font-semibold bg-gray-50">บทบาทปัจจุบัน</td><td class="border px-2 py-1">${u.effectiveRole === 'student' ? 'นักศึกษา' : 'เจ้าหน้าที่'} ${u.ov ? '<span class="text-xs text-purple-600">(Role Override)</span>' : ''}</td></tr>
         <tr><td class="border px-2 py-1 font-semibold bg-gray-50">สถานะบัญชี</td><td class="border px-2 py-1">${u.blocked ? '🔴 ระงับสิทธิ์การเข้าสู่ระบบ' : '🟢 ปกติ'}</td></tr>
+        ${u.stu ? `<tr><td class="border px-2 py-1 font-semibold bg-gray-50">สิทธิ์การยืม (Student)</td><td class="border px-2 py-1">${u.stu.blocked ? '<span class="text-red-600 font-semibold">🔴 ถูกระงับสิทธิ์การยืม</span> (' + (u.stu.block_reason || '-') + ')' : '<span class="text-green-600 font-semibold">🟢 ปกติ</span>'}</td></tr>` : ''}
       </table>
       <div class="flex flex-wrap gap-2">
-        <a href="javascript:void(0)" onclick="navigate('role-override', {email: '${email}'})" class="bg-purple-600 text-white text-xs font-semibold px-3 py-1.5 rounded">กำหนดบทบาทรายบุคคล (Role Override)</a>
-        ${u.blocked ? `<button onclick="p_user_detail_unblockUser('${email}')" class="bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded">ปลดบล็อก</button>`
-          : `<button onclick="p_user_detail_blockUser('${email}')" class="bg-orange-600 text-white text-xs font-semibold px-3 py-1.5 rounded">ระงับสิทธิ์เข้าสู่ระบบ</button>`}
-        <button onclick="p_user_detail_deleteUser('${email}', ${pendingCount})" class="bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded">ลบบัญชีถาวร</button>
+        <a href="javascript:void(0)" onclick="navigate('role-override', {email: '${email}'})" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition-all">กำหนดบทบาทรายบุคคล (Role Override)</a>
+        ${u.stu ? `<a href="javascript:void(0)" onclick="navigate('student-permission', {id: '${u.stu.id}'})" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition-all">จัดการสิทธิ์การยืม (Student Permission)</a>` : ''}
+        ${u.blocked ? `<button onclick="p_user_detail_unblockUser('${email}')" class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition-all">ปลดบล็อกเข้าสู่ระบบ</button>`
+          : `<button onclick="p_user_detail_blockUser('${email}')" class="bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition-all">ระงับสิทธิ์เข้าสู่ระบบ</button>`}
+        <button onclick="p_user_detail_deleteUser('${email}', ${pendingCount})" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition-all">ลบบัญชีถาวร</button>
       </div>`;
     }
     function p_user_detail_blockUser(email) {

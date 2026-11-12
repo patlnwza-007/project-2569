@@ -44,76 +44,114 @@
 function p_item_status_change_init() {
   notifyParentPage("item-status-change");
   const id = Number(qparam("id"));
+  const tag = qparam("tag");
   const item = itemById(id);
   const host = document.getElementById("p_item_status_change_content");
-  if (!item) { host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500">ไม่พบสิ่งของนี้</div>`; return; }
+  if (!item) { 
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-500">ไม่พบสิ่งของนี้</div>`; 
+    return; 
+  }
 
   const units = db("units").filter(u => u.item_id === id);
+  const u = tag ? units.find(x => x.asset_tag === tag) : units[0];
+
+  if (!u) {
+    host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-500">ไม่พบข้อมูลรหัสครุภัณฑ์ ${tag || ''}</div>`;
+    return;
+  }
 
   const unitBadges = {
     AVAILABLE: `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">✅ พร้อมใช้งาน</span>`,
     BORROWED: `<span class="bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">📦 กำลังถูกยืม</span>`,
     DAMAGED: `<span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">⚠️ ครุภัณฑ์เสียหาย</span>`,
-    MAINTENANCE: `<span class="bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">🛠️ ส่งซ่อม</span>`,
+    MAINTENANCE: `<span class="bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">🛠️ ส่งซ่อมคลัง</span>`,
+    RETIRED: `<span class="bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">📦 ปลดระวาง</span>`,
   };
 
-  const unitsListHtml = units.length === 0 ? `<p class="text-xs text-gray-400">ไม่มีข้อมูลรหัสประจำชิ้นในระบบ</p>` : units.map(u => {
-    return `<div class="bg-gray-50 rounded-xl border border-gray-200 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="font-mono font-bold text-sm text-gray-900">${u.asset_tag}</span>
-          ${unitBadges[u.status] || unitBadges.AVAILABLE}
-        </div>
-        ${u.note ? `<p class="text-xs text-red-600 font-medium mt-1">📝 หมายเหตุ: ${u.note}</p>` : ''}
-      </div>
-      <div class="flex items-center gap-2 shrink-0">
-        <select id="u_status_${u.asset_tag.replace(/-/g,'_')}" class="border border-gray-300 rounded-lg text-xs px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
-          <option value="AVAILABLE" ${u.status==='AVAILABLE'?'selected':''}>พร้อมใช้งาน</option>
-          <option value="BORROWED" ${u.status==='BORROWED'?'selected':''}>กำลังถูกยืม</option>
-          <option value="DAMAGED" ${u.status==='DAMAGED'?'selected':''}>ครุภัณฑ์เสียหาย</option>
-          <option value="MAINTENANCE" ${u.status==='MAINTENANCE'?'selected':''}>ส่งซ่อมคลัง</option>
-        </select>
-        <button onclick="p_item_status_change_saveUnit('${u.asset_tag}', ${id})" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-semibold rounded-lg px-3.5 py-1.5 transition-all shadow-sm">
-          บันทึก
-        </button>
-      </div>
-    </div>`;
-  }).join("");
+  const isEquip = item.type === "equipment";
 
   host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-    <div class="flex items-center justify-between border-b border-gray-100 pb-4">
-      <div>
-        <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <span>${item.image}</span>
-          <span>${item.name}</span>
-        </h1>
-        <p class="text-xs text-gray-500 mt-0.5">จัดการรหัสประจำชิ้น (Asset Tag / Serial Number) และสถานะความพร้อมใช้งานรายชิ้น</p>
+    <div class="border-b border-gray-100 pb-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <span>${item.image}</span>
+            <span>${item.name}</span>
+          </h1>
+          <p class="text-xs text-gray-500 mt-0.5">เปลี่ยนสถานะการใช้งานของครุภัณฑ์รายชิ้น</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-mono font-bold text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg shadow-2xs">
+            🏷️ ${u.asset_tag}
+          </span>
+          ${unitBadges[u.status] || unitBadges.AVAILABLE}
+        </div>
       </div>
-      <span class="text-xs font-mono bg-blue-50 text-blue-700 font-bold px-3 py-1.5 rounded-full border border-blue-200">
-        คงเหลือ: ${item.qty_available} / ${item.qty_total} ชิ้น
-      </span>
     </div>
 
-    <div>
-      <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
-        <span>🏷️</span> รายการครุภัณฑ์รายชิ้นในคลัง (${units.length} ชิ้น)
-      </h3>
-      <div class="space-y-2.5 max-h-96 overflow-y-auto pr-1">${unitsListHtml}</div>
+    <div class="space-y-4 pt-1">
+      <div>
+        <label class="block text-xs font-bold text-gray-700 mb-1.5">สถานะความพร้อมใช้งาน</label>
+        <select id="p_isc_status" onchange="p_item_status_change_onStatusChange(this.value)" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="AVAILABLE" ${u.status === 'AVAILABLE' ? 'selected' : ''}>✅ พร้อมใช้งาน (พร้อมให้ยืม)</option>
+          <option value="BORROWED" ${u.status === 'BORROWED' ? 'selected' : ''}>📦 กำลังถูกยืม</option>
+          <option value="DAMAGED" ${u.status === 'DAMAGED' ? 'selected' : ''}>⚠️ ครุภัณฑ์เสียหาย</option>
+          <option value="MAINTENANCE" ${u.status === 'MAINTENANCE' ? 'selected' : ''}>🛠️ ส่งซ่อมคลัง</option>
+          ${isEquip ? `<option value="RETIRED" ${u.status === 'RETIRED' ? 'selected' : ''}>📦 ปลดระวาง (ไม่ต้องระบุเหตุผล)</option>` : ''}
+        </select>
+      </div>
+
+      <!-- Retired Notice (No Reason Needed) -->
+      <div id="p_isc_retired_notice" class="${u.status === 'RETIRED' ? '' : 'hidden'} bg-slate-100 border border-slate-300 text-slate-800 rounded-xl p-3.5 text-xs flex items-center gap-2.5">
+        <span class="text-lg">📦</span>
+        <div>
+          <span class="font-bold">สถานะปลดระวางสำหรับครุภัณฑ์</span>
+          <p class="text-slate-600 mt-0.5">สามารถกดบันทึกสถานะได้ทันทีโดย<b>ไม่ต้องระบุเหตุผล</b></p>
+        </div>
+      </div>
+
+      <!-- Optional Note Container (Hidden when RETIRED) -->
+      <div id="p_isc_note_container" class="${u.status === 'RETIRED' ? 'hidden' : ''}">
+        <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+          หมายเหตุเพิ่มเติม <span class="font-normal text-gray-400">(ไม่บังคับ — เว้นว่างได้)</span>
+        </label>
+        <textarea id="p_isc_note" rows="2" placeholder="ระบุเพิ่มเติมได้หากต้องการ หรือเว้นว่างไว้..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">${u.note || ''}</textarea>
+      </div>
+
+      <div class="flex items-center gap-2.5 pt-3 border-t border-gray-100">
+        <button onclick="p_item_status_change_saveSingle('${u.asset_tag}', ${id})" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl px-5 py-2.5 shadow-sm transition-all">
+          ✓ บันทึกสถานะ
+        </button>
+        <button onclick="navigate('item-overview')" class="bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2.5 transition-colors">
+          ยกเลิก
+        </button>
+      </div>
     </div>
   </div>`;
 }
 
-function p_item_status_change_saveUnit(assetTag, itemId) {
-  const selectId = `u_status_${assetTag.replace(/-/g,'_')}`;
-  const newStatus = document.getElementById(selectId)?.value;
+function p_item_status_change_onStatusChange(val) {
+  const noteContainer = document.getElementById("p_isc_note_container");
+  const retiredNotice = document.getElementById("p_isc_retired_notice");
+  if (val === "RETIRED") {
+    if (noteContainer) noteContainer.classList.add("hidden");
+    if (retiredNotice) retiredNotice.classList.remove("hidden");
+  } else {
+    if (noteContainer) noteContainer.classList.remove("hidden");
+    if (retiredNotice) retiredNotice.classList.add("hidden");
+  }
+}
+
+function p_item_status_change_saveSingle(assetTag, itemId) {
+  const newStatus = document.getElementById("p_isc_status")?.value;
+  const newNote = document.getElementById("p_isc_note")?.value.trim() || "";
   if (!newStatus) return;
 
   const units = db("units");
   const u = units.find(x => x.asset_tag === assetTag);
   if (u) {
     u.status = newStatus;
-    if (newStatus === "AVAILABLE") u.note = "";
-    else if (newStatus === "DAMAGED" && !u.note) u.note = "เจ้าหน้าที่ตรวจพบการชำรุดในคลัง";
+    u.note = (newStatus === "AVAILABLE") ? "" : newNote;
     dbSave("units", units);
 
     // Recalculate item available qty
@@ -127,8 +165,8 @@ function p_item_status_change_saveUnit(assetTag, itemId) {
       dbSave("items", items);
     }
 
-    toastBanner(`อัปเดตสถานะรหัส ${assetTag} เป็น "${newStatus}" สำเร็จ`);
-    p_item_status_change_init();
+    toastBanner(`อัปเดตสถานะรหัส ${assetTag} เรียบร้อยแล้ว`);
+    setTimeout(() => navigate("item-overview"), 500);
   }
 }
 </script>

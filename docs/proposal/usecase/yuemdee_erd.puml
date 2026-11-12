@@ -13,13 +13,23 @@ skinparam linetype ortho
 ' 5. ใช้ตาราง Review เดียวสำหรับให้ดาวและเขียนอธิบายรีวิวสิ่งของตามชิ้นที่ยืม (ตัด EvaluationQuestion และ EvaluationAnswer ออก)
 ' ==========================================
 
-entity "User (ผู้ใช้งานระบบ)" as user {
+entity "Admin (ผู้ดูแลระบบ — Django Backend)" as admin {
+  * id : VARCHAR(20) <<PK>>
+  --
+  * username : VARCHAR(50) <<UK>>
+  * name : VARCHAR(100)
+  email : VARCHAR(100)
+  last_login : DATETIME
+  * created_at : DATETIME
+}
+
+entity "User (ผู้ใช้งานระบบ — นักศึกษา/เจ้าหน้าที่ UBU SSO)" as user {
   * id : VARCHAR(20) <<PK>>
   --
   * name : VARCHAR(100)
   * email : VARCHAR(100) <<UK>> (@ubu.ac.th)
-  * role : ENUM (student / staff / admin)
-  role_override : ENUM (student / staff / admin)
+  * role : ENUM (student / staff)
+  role_override : ENUM (student / staff)
   assigned_by : VARCHAR(20) <<FK>>
   phone : VARCHAR(20)
   first_login : DATETIME
@@ -33,7 +43,6 @@ entity "Material (วัสดุสิ้นเปลือง — เบิก
   * id : INT <<PK>>
   --
   * name : VARCHAR(150)
-  * category : VARCHAR(100)
   * location : VARCHAR(150)
   * qty_total : INT
   * qty_available : INT
@@ -48,7 +57,6 @@ entity "DurableMaterial (วัสดุคงทน — ยืม-คืนแ�
   * id : INT <<PK>>
   --
   * name : VARCHAR(150)
-  * category : VARCHAR(100)
   * location : VARCHAR(150)
   * qty_total : INT
   * qty_available : INT
@@ -66,13 +74,12 @@ entity "Equipment (ครุภัณฑ์รายชิ้น — มีเ�
   --
   * asset_tag : VARCHAR(50) <<UK>>
   * name : VARCHAR(150)
-  * category : VARCHAR(100)
   * location : VARCHAR(150)
   * unit : VARCHAR(30)
   * max_borrow_days : INT
   * fine_rate_per_day : DECIMAL(8,2)
   purchase_price : DECIMAL(10,2)
-  * base_status : ENUM (AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE)
+  * base_status : ENUM (AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE / RETIRED)
   description : TEXT
   image : VARCHAR(255)
 }
@@ -82,7 +89,6 @@ entity "BorrowRequest (คำขอยืม/เบิก)" as borrow_request {
   --
   * user_id : VARCHAR(20) <<FK>>
   approved_by : VARCHAR(20) <<FK>>
-  * reason : TEXT
   use_date : DATE
   due_date : DATE
   is_special : BOOLEAN
@@ -200,7 +206,7 @@ entity "DamageReport (แจ้งอุปกรณ์ชำรุด)" as dama
 ' RELATIONSHIPS & CARDINALITIES
 ' ==========================================
 
-user |o--o{ user : "กำหนดสิทธิ์พิเศษ / สั่งระงับสิทธิ์ (assigned_by / blocked_by)"
+admin ||--o{ user : "กำหนดสิทธิ์พิเศษ / สั่งระงับสิทธิ์ (assigned_by / blocked_by)"
 
 user ||--o{ borrow_request : "ยื่นคำขอยืม (submits)"
 user ||--o{ borrow_request : "อนุมัติคำขอยืม (approves)"

@@ -42,64 +42,187 @@
     </div>
 
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+        <div>
+          <h2 class="text-base font-bold text-gray-800">ข้อมูลบัญชีผู้ใช้</h2>
+          <p class="text-xs text-gray-500">ข้อมูลที่ลงทะเบียนผ่านบัญชีมหาวิทยาลัย (@ubu.ac.th)</p>
+        </div>
+        <div id="p_profile_btn_edit_container">
+          <button id="p_profile_btn_edit" onclick="p_profile_toggleEdit(true)" class="inline-flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold px-3.5 py-2 rounded-xl transition-colors border border-blue-200">
+            <span>✏️</span> แก้ไขข้อมูลส่วนตัว
+          </button>
+        </div>
+      </div>
+
+      <!-- รหัสนักศึกษา -->
       <div>
-        <label class="text-sm font-semibold text-gray-700">รหัสนักศึกษา</label>
-        <input disabled id="p_profile_f-id" class="w-full mt-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm font-mono">
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">รหัสนักศึกษา (11 หลัก)</label>
+        <div id="p_profile_view_id" class="mt-1 font-mono text-sm font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2"></div>
       </div>
+
+      <!-- ชื่อ-นามสกุล -->
       <div>
-        <label class="text-sm font-semibold text-gray-700">ชื่อ-นามสกุล</label>
-        <input disabled id="p_profile_f-name" class="w-full mt-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm">
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ชื่อ - นามสกุล</label>
+        <div id="p_profile_view_name" class="mt-1 text-sm font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2"></div>
       </div>
+
+      <!-- อีเมล -->
       <div>
-        <label class="text-sm font-semibold text-gray-700">อีเมล</label>
-        <input disabled id="p_profile_f-email" class="w-full mt-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm">
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">อีเมลมหาวิทยาลัย</label>
+        <div id="p_profile_view_email" class="mt-1 font-mono text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2"></div>
       </div>
+
+      <!-- เบอร์โทรศัพท์ -->
       <div>
-        <label class="text-sm font-semibold text-gray-700">เบอร์โทรศัพท์ <span class="text-red-500">*</span></label>
-        <input id="p_profile_f-phone" placeholder="เช่น 0812345678" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-        <p id="p_profile_phone-error" class="hidden text-xs text-red-600 mt-1">กรุณากรอกเบอร์โทรศัพท์ก่อนบันทึก</p>
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center justify-between">
+          <span>เบอร์โทรศัพท์ติดต่อ <span class="text-red-500">*</span></span>
+          <span id="p_profile_phone_hint" class="hidden text-[11px] text-blue-600 font-normal">ตัวเลข 10 หลัก</span>
+        </label>
+
+        <!-- View Mode: แสดงค่าเบอร์โทร -->
+        <div id="p_profile_phone_view_box" class="mt-1 flex items-center justify-between text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+          <span id="p_profile_view_phone" class="font-mono font-medium text-gray-800"></span>
+          <span class="text-xs text-gray-400">กดปุ่ม "แก้ไข" เพื่อเปลี่ยนเบอร์</span>
+        </div>
+
+        <!-- Edit Mode: ฟอร์มแก้ไขเบอร์โทร -->
+        <div id="p_profile_phone_edit_box" class="hidden mt-1">
+          <input id="p_profile_f-phone" maxlength="10" placeholder="ระบุเบอร์โทรศัพท์ 10 หลัก เช่น 0812345678" class="w-full border border-blue-400 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white">
+          <p id="p_profile_phone-error" class="hidden text-xs text-red-600 mt-1 font-medium">⚠️ กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (เป็นตัวเลข 10 หลัก)</p>
+          <p class="text-[11px] text-gray-400 mt-1">* ใช้สำหรับให้เจ้าหน้าที่ติดต่อเมื่อเกิดกรณีเร่งด่วน หรือของเกินกำหนดส่งคืน</p>
+        </div>
       </div>
-      <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-        <div><p class="text-xs text-gray-400">เข้าสู่ระบบครั้งแรก</p><p id="p_profile_f-first" class="text-sm font-mono"></p></div>
-        <div><p class="text-xs text-gray-400">เข้าสู่ระบบล่าสุด</p><p id="p_profile_f-last" class="text-sm font-mono"></p></div>
+
+      <div class="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+        <div>
+          <p class="text-xs text-gray-400">เข้าสู่ระบบครั้งแรก</p>
+          <p id="p_profile_f-first" class="text-xs font-mono font-medium text-gray-700 mt-0.5"></p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400">เข้าสู่ระบบล่าสุด</p>
+          <p id="p_profile_f-last" class="text-xs font-mono font-medium text-gray-700 mt-0.5"></p>
+        </div>
       </div>
-      <button onclick="p_profile_save()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">บันทึกข้อมูล</button>
+
+      <!-- Action Buttons in Edit Mode -->
+      <div id="p_profile_edit_actions" class="hidden pt-2 flex items-center gap-2">
+        <button onclick="p_profile_save()" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5 shadow-sm transition-colors">
+          <span>✓</span> บันทึกข้อมูล
+        </button>
+        <button onclick="p_profile_toggleEdit(false)" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl px-4 py-2.5 transition-colors">
+          ยกเลิก
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
 <script src="../shared.js"></script>
 <script>
+let p_is_editing = false;
+let p_original_phone = "";
+
 function p_profile_init() {
-      notifyParentPage("profile");
-      const stu = currentStudent();
-      if (!stu) return;
-      document.getElementById("p_profile_f-id").value = stu.id;
-      document.getElementById("p_profile_f-name").value = stu.name;
-      document.getElementById("p_profile_f-email").value = stu.email;
-      document.getElementById("p_profile_f-phone").value = stu.phone || "";
-      document.getElementById("p_profile_f-first").textContent = stu.first_login;
-      document.getElementById("p_profile_f-last").textContent = stu.last_login;
-      if (qparam("return") === "cart") {
-        document.getElementById("p_profile_notice-return").classList.remove("hidden");
-      }
-    }
-    function p_profile_save() {
-      const phone = document.getElementById("p_profile_f-phone").value.trim();
-      if (!phone) {
-        document.getElementById("p_profile_phone-error").classList.remove("hidden");
-        return;
-      }
-      document.getElementById("p_profile_phone-error").classList.add("hidden");
-      const students = db("students");
-      const stu = students.find(s => s.id === currentUserId());
-      stu.phone = phone;
-      dbSave("students", students);
-      toastBanner("บันทึกข้อมูลส่วนตัวสำเร็จ");
-      if (qparam("return") === "cart") {
-        setTimeout(() => navigate("cart"), 600);
-      }
-    }
+  notifyParentPage("profile");
+  const stu = currentStudent();
+  if (!stu) return;
+
+  p_original_phone = stu.phone || "";
+
+  document.getElementById("p_profile_view_id").textContent = stu.id || "-";
+  document.getElementById("p_profile_view_name").textContent = stu.name || "-";
+  document.getElementById("p_profile_view_email").textContent = stu.email || "-";
+  
+  p_render_phone_view(p_original_phone);
+  document.getElementById("p_profile_f-phone").value = p_original_phone;
+
+  document.getElementById("p_profile_f-first").textContent = stu.first_login || "-";
+  document.getElementById("p_profile_f-last").textContent = stu.last_login || "-";
+
+  // หากเปิดมาจากหน้าตะกร้า (บังคับกรอกเบอร์) ให้เข้าสู่โหมดแก้ไขทันที
+  if (qparam("return") === "cart") {
+    document.getElementById("p_profile_notice-return").classList.remove("hidden");
+    p_profile_toggleEdit(true);
+  } else {
+    p_profile_toggleEdit(false);
+  }
+}
+
+function p_render_phone_view(phone) {
+  const phoneViewEl = document.getElementById("p_profile_view_phone");
+  if (phone && phone.trim()) {
+    phoneViewEl.textContent = phone;
+    phoneViewEl.className = "font-mono font-bold text-gray-800 text-sm";
+  } else {
+    phoneViewEl.innerHTML = `<span class="text-amber-600 text-xs font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">⚠️ ยังไม่ได้ระบุเบอร์โทรศัพท์</span>`;
+  }
+}
+
+function p_profile_toggleEdit(enable) {
+  p_is_editing = enable;
+
+  const btnEditContainer = document.getElementById("p_profile_btn_edit_container");
+  const phoneViewBox = document.getElementById("p_profile_phone_view_box");
+  const phoneEditBox = document.getElementById("p_profile_phone_edit_box");
+  const editActions = document.getElementById("p_profile_edit_actions");
+  const phoneHint = document.getElementById("p_profile_phone_hint");
+  const errorEl = document.getElementById("p_profile_phone-error");
+
+  if (errorEl) errorEl.classList.add("hidden");
+
+  if (enable) {
+    btnEditContainer.classList.add("hidden");
+    phoneViewBox.classList.add("hidden");
+    phoneEditBox.classList.remove("hidden");
+    editActions.classList.remove("hidden");
+    phoneHint.classList.remove("hidden");
+    const input = document.getElementById("p_profile_f-phone");
+    input.focus();
+    input.select();
+  } else {
+    btnEditContainer.classList.remove("hidden");
+    phoneViewBox.classList.remove("hidden");
+    phoneEditBox.classList.add("hidden");
+    editActions.classList.add("hidden");
+    phoneHint.classList.add("hidden");
+    // คืนค่าเดิม
+    document.getElementById("p_profile_f-phone").value = p_original_phone;
+    p_render_phone_view(p_original_phone);
+  }
+}
+
+function p_profile_save() {
+  const phoneInput = document.getElementById("p_profile_f-phone");
+  const phone = phoneInput.value.trim();
+  const errorEl = document.getElementById("p_profile_phone-error");
+
+  // ตรวจสอบความถูกต้อง: บังคับตัวเลข 10 หลัก
+  const phoneRegex = /^\d{10}$/;
+  if (!phone || !phoneRegex.test(phone)) {
+    errorEl.textContent = "⚠️ กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (เป็นตัวเลข 10 หลัก)";
+    errorEl.classList.remove("hidden");
+    phoneInput.focus();
+    return;
+  }
+
+  errorEl.classList.add("hidden");
+  const students = db("students");
+  const stu = students.find(s => s.id === currentUserId());
+  if (stu) {
+    stu.phone = phone;
+    dbSave("students", students);
+  }
+
+  p_original_phone = phone;
+  p_render_phone_view(phone);
+  p_profile_toggleEdit(false);
+
+  toastBanner("บันทึกข้อมูลส่วนตัวสำเร็จ");
+
+  if (qparam("return") === "cart") {
+    setTimeout(() => navigate("cart"), 600);
+  }
+}
 </script>
 </body>
 </html>

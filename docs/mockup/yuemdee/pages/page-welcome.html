@@ -36,9 +36,11 @@
 <div class="bg-white rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
     <div class="text-6xl mb-3">📦</div>
     <h1 class="text-2xl font-bold text-blue-800">YuemDee</h1>
-    <p class="text-sm text-gray-500 mt-1 mb-8">ระบบยืม-คืนพัสดุออนไลน์</p>
     <a href="javascript:void(0)" onclick="navigate('login')" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-4 py-3 text-sm shadow-sm transition">
       เข้าสู่ระบบด้วย UBU SSO
+    </a>
+    <a href="javascript:void(0)" onclick="navigate('login', {tab: 'admin'})" class="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-700 mt-4 transition hover:underline">
+      <span>👑</span> เข้าสู่ระบบผู้ดูแลระบบ (Django Admin)
     </a>
     <p class="text-xs text-gray-400 mt-6">เข้าใช้งานด้วยบัญชีผู้ใช้ของมหาวิทยาลัยอุบลราชธานี (@ubu.ac.th)</p>
   </div>

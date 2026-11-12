@@ -115,7 +115,7 @@ const SEED_STAFFS = [
 ];
 
 const SEED_ADMINS = [
-  { id: "A001", name: "ผู้ดูแลระบบ", email: "admin1@ubu.ac.th" },
+  { id: "A001", name: "ผู้ดูแลระบบ (Django Superuser)", username: "admin", email: "admin@localhost" },
 ];
 
 const SEED_WHITELIST_STUDENT = ["s001@ubu.ac.th", "s002@ubu.ac.th", "s003@ubu.ac.th"];
@@ -138,7 +138,6 @@ const SEED_REQUESTS = [
       { item_id: 16, qty: 1, asset_tag: "UBU-EQ-016-02", current_location: "หอพักนักศึกษาใน ม.อุบลฯ (ย้ายชั่วคราวหนีน้ำท่วม)", moved_at: "2026-07-23 08:20" },
       { item_id: 14, qty: 2, current_location: "ตึก EN6 ชั้น 2 ห้องพักสาขา EN6-204", moved_at: "2026-07-22 10:15" }
     ],
-    reason: "ยืมจอคอมพิวเตอร์ 2 จอและปลั๊กพ่วงสำหรับตั้งโต๊ะทำโครงงานจบในห้องสาขา",
     use_date: "2026-07-22",
     status: "BORROWING",
     created_at: "2026-07-22 09:00",
@@ -146,8 +145,8 @@ const SEED_REQUESTS = [
     due_date: "2026-08-05",
     reject_reason: ""
   },
-  { id: 101, student_id: "S001", items: [{ item_id: 1, qty: 1, initial_photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300" }, { item_id: 4, qty: 2 }, { item_id: 3, qty: 1 }], reason: "นำเสนองานกลุ่มวิชาโครงงานและบันทึกสัมมนา", use_date: "2026-07-30", status: "PENDING", created_at: "2026-07-23 08:30", approved_at: null, reject_reason: "", pickup_photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300" },
-  { id: 103, student_id: "S002", items: [{ item_id: 2, qty: 1, asset_tag: "UBU-EQ-002-01", current_location: "ห้องสโมสรนักศึกษา ชั้น 1 ตึก EN6", moved_at: "2026-07-10 10:00" }], reason: "ถ่ายภาพกิจกรรมชมรม", use_date: "2026-07-10", status: "EXPIRED", created_at: "2026-07-01 09:00", approved_at: "2026-07-02 09:00", reject_reason: "" },
+  { id: 101, student_id: "S001", items: [{ item_id: 1, qty: 1, initial_photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300" }, { item_id: 4, qty: 2 }, { item_id: 3, qty: 1 }], use_date: "2026-07-30", status: "PENDING", created_at: "2026-07-23 08:30", approved_at: null, reject_reason: "", pickup_photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300" },
+  { id: 103, student_id: "S002", items: [{ item_id: 2, qty: 1, asset_tag: "UBU-EQ-002-01", current_location: "ห้องสโมสรนักศึกษา ชั้น 1 ตึก EN6", moved_at: "2026-07-15 10:00" }], use_date: "2026-07-15", status: "BORROWING", created_at: "2026-07-12 09:00", approved_at: "2026-07-13 09:00", due_date: "2026-08-02", reject_reason: "" },
   {
     id: 104,
     student_id: "S001",
@@ -156,7 +155,6 @@ const SEED_REQUESTS = [
       { item_id: 6, qty: 1, asset_tag: "UBU-EQ-006-01", initial_photo: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=300", current_location: "ตึก EN6 ชั้น 2 ห้องพักสาขา EN6-204", moved_at: "2026-07-16 09:30", returned: true, returned_qty: 1 },
       { item_id: 10, qty: 1, asset_tag: "UBU-EQ-010-01", initial_photo: "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=300", current_location: "หอพักสุขใจ ซ.2 ต.เมืองศรีไค (ย้ายหนีน้ำท่วม)", moved_at: "2026-07-22 18:45", returned: false }
     ],
-    reason: "ตรวจวัดและประกอบชุดวงจรทดสอบเสียงโครงงานจบ",
     use_date: "2026-07-16",
     status: "BORROWING",
     created_at: "2026-07-15 09:00",
@@ -164,16 +162,16 @@ const SEED_REQUESTS = [
     due_date: "2026-07-20",
     reject_reason: ""
   },
-  { id: 107, student_id: "S001", items: [{ item_id: 3, qty: 1 }], reason: "ถ่ายรูปรับปริญญา", use_date: "2026-06-10", status: "RETURNED", created_at: "2026-06-05 09:00", approved_at: "2026-06-05 13:00", due_date: "2026-06-13", returned_at: "2026-06-12 15:00", reject_reason: "" },
-  { id: 108, student_id: "S001", items: [{ item_id: 7, qty: 5 }], reason: "พิมพ์รายงาน", use_date: null, status: "ISSUED", created_at: "2026-06-01 09:00", approved_at: "2026-06-01 13:00", reject_reason: "" },
-  { id: 109, student_id: "S002", items: [{ item_id: 9, qty: 1 }], reason: "อัดเสียงพากย์", use_date: "2026-07-01", status: "REJECTED", created_at: "2026-06-28 09:00", approved_at: null, reject_reason: "อุปกรณ์ไม่เพียงพอในช่วงเวลาที่ขอ" },
-  { id: 110, student_id: "S001", items: [{ item_id: 8, qty: 3 }], reason: "งานประดิษฐ์ป้ายชมรม", use_date: null, status: "CANCELLED", created_at: "2026-07-05 09:00", approved_at: null, reject_reason: "" },
+  { id: 107, student_id: "S001", items: [{ item_id: 3, qty: 1 }], use_date: "2026-06-10", status: "RETURNED", created_at: "2026-06-05 09:00", approved_at: "2026-06-05 13:00", due_date: "2026-06-13", returned_at: "2026-06-12 15:00", reject_reason: "" },
+  { id: 108, student_id: "S001", items: [{ item_id: 7, qty: 5 }], use_date: null, status: "ISSUED", created_at: "2026-06-01 09:00", approved_at: "2026-06-01 13:00", reject_reason: "" },
+  { id: 109, student_id: "S002", items: [{ item_id: 9, qty: 1 }], use_date: "2026-07-01", status: "REJECTED", created_at: "2026-06-28 09:00", approved_at: null, reject_reason: "อุปกรณ์ไม่เพียงพอในช่วงเวลาที่ขอ" },
+  { id: 110, student_id: "S001", items: [{ item_id: 8, qty: 3 }], use_date: null, status: "CANCELLED", created_at: "2026-07-05 09:00", approved_at: null, reject_reason: "" },
 ];
 
 const SEED_QUEUE = [
   { id: 1, item_id: 9, student_id: "S002", joined_at: "2026-07-18 10:00" },
   { id: 2, item_id: 9, student_id: "S003", joined_at: "2026-07-19 11:00" },
-  { id: 3, item_id: 2, student_id: "S001", joined_at: "2026-07-20 09:00" },
+  { id: 3, item_id: 2, asset_tag: "UBU-EQ-002-01", equipment_id: 2, student_id: "S001", joined_at: "2026-07-20 09:00" },
 ];
 
 const SEED_SUGGESTIONS = [
@@ -317,7 +315,7 @@ const SEED_UNITS = [
 
 /* ------------------------------ localStorage ----------------------------- */
 
-const DB_VERSION = "2026-11-04-overdue-v11";
+const DB_VERSION = "2026-11-12-queue-est-v2";
 
 function checkDbVersion() {
   try {
@@ -529,12 +527,14 @@ const STATUS_LABEL = {
   RETURNED: "คืนสำเร็จ", ISSUED: "เบิกสำเร็จ", CANCELLED: "ยกเลิกแล้ว",
   APPROVED: "อนุมัติแล้ว",
   SUBMITTED: "ส่งข้อเสนอแนะแล้ว", ACKNOWLEDGED: "เจ้าหน้ารับทราบแล้ว", PURCHASE_PLAN: "เพิ่มในแผนจัดซื้อแล้ว",
+  RETIRED: "ปลดระวาง",
 };
 const STATUS_COLOR = {
   PENDING: "amber", REJECTED: "red", EXPIRED: "gray",
   BORROWING: "yellow", RETURN_PENDING: "amber", RETURNED: "green", ISSUED: "green",
   CANCELLED: "gray", APPROVED: "green",
   SUBMITTED: "blue", ACKNOWLEDGED: "indigo", PURCHASE_PLAN: "green",
+  RETIRED: "gray",
 };
 function badgeHtml(statusKey) {
   const label = STATUS_LABEL[statusKey] || statusKey;
@@ -603,6 +603,162 @@ function getActiveBorrowItemLocation(assetTag, itemId) {
   return null;
 }
 
+/* -------------------- ระบบคำนวณวันประมาณการพร้อมยืมสำหรับคิว -------------------- */
+function getQueueEstimate(itemId, assetTag, position = 1) {
+  const requests = db("requests") || [];
+  const items = db("items") || [];
+  const units = db("units") || [];
+  const item = items.find(i => i.id === Number(itemId));
+  const maxDays = (item && item.max_borrow_days) ? item.max_borrow_days : 7;
+
+  let activeReq = null;
+  let unit = null;
+
+  if (assetTag) {
+    unit = units.find(u => u.asset_tag === assetTag);
+    if (unit && unit.current_request_id) {
+      activeReq = requests.find(r => r.id === unit.current_request_id);
+    }
+    if (!activeReq) {
+      activeReq = requests.find(r => (r.status === "BORROWING" || r.status === "PENDING") && r.items && r.items.some(it => it.asset_tag === assetTag && !it.returned));
+    }
+  }
+
+  if (!activeReq && itemId) {
+    activeReq = requests.find(r => (r.status === "BORROWING" || r.status === "PENDING") && r.items && r.items.some(it => it.item_id === Number(itemId) && !it.returned));
+  }
+
+  let baseDueDateStr = "";
+  let isSpecialLongBorrow = false;
+  let borrowerDueDays = 0;
+
+  if (activeReq && activeReq.due_date) {
+    baseDueDateStr = activeReq.due_date;
+    if (activeReq.use_date) {
+      const d1 = new Date(activeReq.use_date);
+      const d2 = new Date(activeReq.due_date);
+      borrowerDueDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+      if (borrowerDueDays > maxDays) {
+        isSpecialLongBorrow = true;
+      }
+    }
+  } else {
+    // Current simulated date is in late July 2026 (2026-07-23)
+    const base = new Date("2026-07-23");
+    base.setDate(base.getDate() + maxDays);
+    baseDueDateStr = base.toISOString().slice(0, 10);
+  }
+
+  const baseDate = new Date(baseDueDateStr);
+  const additionalDays = 1 + (Math.max(1, Number(position)) - 1) * maxDays;
+  const estDate = new Date(baseDate);
+  estDate.setDate(estDate.getDate() + additionalDays);
+
+  const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const dateFormatted = `${estDate.getDate()} ${thaiMonths[estDate.getMonth()]} ${estDate.getFullYear()}`;
+  const baseDueDateFormatted = `${baseDate.getDate()} ${thaiMonths[baseDate.getMonth()]} ${baseDate.getFullYear()}`;
+
+  let reasonNote = "";
+  if (isSpecialLongBorrow) {
+    reasonNote = `ผู้ยืมปัจจุบันได้รับอนุมัติยืมนานพิเศษ (${borrowerDueDays} วัน · กำหนดคืน: ${baseDueDateFormatted})`;
+  } else if (activeReq && activeReq.due_date) {
+    reasonNote = `คำนวณจากกำหนดคืนของผู้ยืมปัจจุบัน (${baseDueDateFormatted})`;
+  } else {
+    reasonNote = `ประมาณการจากระยะเวลายืมปกติ (${maxDays} วัน)`;
+  }
+
+  if (position > 1) {
+    reasonNote += ` + รอคิวก่อนหน้า ${position - 1} คน (คนละไม่เกิน ${maxDays} วัน)`;
+  }
+
+  return {
+    estimatedDate: estDate.toISOString().slice(0, 10),
+    dateFormatted,
+    baseDueDate: baseDueDateStr,
+    baseDueDateFormatted,
+    isSpecialLongBorrow,
+    borrowerDueDays,
+    maxDays,
+    position,
+    activeReq,
+    reasonNote
+  };
+}
+
+function showQueueSuccessModal({ item, assetTag, position, estimate, onDone }) {
+  let existingModal = document.getElementById("queue-success-modal");
+  if (existingModal) existingModal.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "queue-success-modal";
+  modal.className = "fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4";
+  modal.innerHTML = `
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden transform transition-all p-6 space-y-4">
+      <div class="text-center">
+        <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
+          ⏳
+        </div>
+        <h3 class="text-lg font-bold text-gray-900">จองคิวสำเร็จ!</h3>
+        <p class="text-xs text-gray-500 mt-1">คุณได้เข้าสู่คิวการยืมเรียบร้อยแล้ว</p>
+      </div>
+
+      <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200/80 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="text-3xl">${item?.image || '📦'}</div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-bold text-sm text-gray-900 truncate">${item?.name || 'สิ่งของ'}</h4>
+            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+              ${assetTag ? `<span class="bg-indigo-50 text-indigo-700 font-mono text-[11px] font-bold px-2 py-0.5 rounded border border-indigo-200">🏷️ ${assetTag}</span>` : ''}
+              <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                ลำดับคิวของคุณ: <span class="font-bold">ที่ ${position}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estimated Date Highlight -->
+        <div class="bg-white rounded-xl p-3 border border-blue-200 shadow-2xs">
+          <div class="flex items-center gap-2 text-xs text-blue-900 font-semibold mb-1">
+            <span class="text-base">📅</span>
+            <span>ประมาณการวันที่คาดว่าจะได้ยืม:</span>
+          </div>
+          <div class="text-xl font-extrabold text-blue-700 ml-6 tracking-wide">
+            ${estimate.dateFormatted}
+          </div>
+          <div class="text-[11px] text-gray-600 mt-1.5 ml-6 leading-relaxed">
+            ${estimate.isSpecialLongBorrow ? '<div class="inline-flex items-center gap-1 font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md mb-1 text-[11px]">⚠️ ผู้ยืมปัจจุบันขอยืมนานพิเศษ</div><br>' : ''}
+            <span>${estimate.reasonNote}</span>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-gray-400 text-center leading-tight">
+          * วันที่ดังกล่าวเป็นเพียงการประมาณการเบื้องต้น หากผู้ยืมส่งคืนก่อนหรือหลังกำหนด ระบบจะอัปเดตสถานะและแจ้งเตือนคุณทันทีที่ของพร้อมยืม
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2 pt-1">
+        <button id="qsm-btn-view" class="flex-1 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold text-xs py-3 px-4 rounded-xl shadow-sm transition-all cursor-pointer text-center">
+          📋 ไปที่หน้ารายการคิวของฉัน
+        </button>
+        <button id="qsm-btn-close" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs py-3 px-4 rounded-xl transition-all cursor-pointer text-center">
+          ตกลง / ปิด
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("qsm-btn-view").onclick = () => {
+    modal.remove();
+    navigate("queue-list");
+  };
+  document.getElementById("qsm-btn-close").onclick = () => {
+    modal.remove();
+    if (typeof onDone === "function") onDone();
+  };
+}
+
 const MENU = {
   student: [
     { key: "request-list", label: "หน้าหลัก", icon: "🏠" },
@@ -621,7 +777,7 @@ const MENU = {
     { key: "damaged-equipment", label: "ครุภัณฑ์เสียหาย", icon: "⚠️" },
     { key: "all-history", label: "ประวัติทั้งระบบ", icon: "📜" },
     { key: "item-overview", label: "จัดการคลังสิ่งของ", icon: "📦" },
-    { key: "student-list", label: "จัดการนักศึกษา", icon: "🎓" },
+    { key: "student-list", label: "รายชื่อนักศึกษา", icon: "🎓" },
     { key: "suggestion-review", label: "คำเสนอแนะสิ่งของ", icon: "💡" },
     { key: "purchase-add", label: "รายการจัดซื้อ", icon: "🧾" },
     { key: "report-export", label: "ส่งออกรายงาน", icon: "📤" },
@@ -654,7 +810,8 @@ window.currentParams = window.currentParams || {};
 function navigate(pageKey, params = {}) {
   window.currentParams = params || {};
   const qs = params && Object.keys(params).length ? "?" + new URLSearchParams(params).toString() : "";
-  window.location.href = "page-" + pageKey + ".html" + qs;
+  const cacheBuster = (qs ? "&" : "?") + "v=" + Date.now();
+  window.location.href = "page-" + pageKey + ".html" + qs + cacheBuster;
 }
 
 /* ----------------------------------------------------------------------------

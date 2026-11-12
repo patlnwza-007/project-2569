@@ -43,37 +43,57 @@
 <script>
 function p_student_permission_init() {
       notifyParentPage("student-permission");
+      const isAdmin = getRole() === "admin";
       const id = qparam("id");
       const stu = studentById(id);
       const host = document.getElementById("p_student_permission_content");
       if (!stu) { host.innerHTML = `<div class="bg-white rounded-2xl border p-8 text-center text-gray-500">ไม่พบนักศึกษานี้</div>`; return; }
+
+      const permissionControls = isAdmin
+        ? `<div class="mt-5 pt-4 border-t border-gray-100 flex items-center gap-3">
+             ${stu.blocked
+               ? `<button onclick="p_student_permission_unblock()" class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-sm">ปลดบล็อกสิทธิ์การยืม</button>`
+               : `<button onclick="p_student_permission_blockPrompt()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-sm">ระงับสิทธิ์การยืม (Block)</button>`}
+             <a href="javascript:void(0)" onclick="navigate('user-list')" class="text-xs text-gray-500 hover:text-gray-700 ml-auto">ไปหน้าจัดการบัญชีผู้ใช้ทั้งหมด →</a>
+           </div>`
+        : `<div class="mt-5 pt-4 border-t border-gray-100">
+             <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-xs flex items-center gap-2">
+               <span>⚠️</span>
+               <span><b>จำกัดสิทธิ์เฉพาะผู้ดูแลระบบ (Admin):</b> เจ้าหน้าที่ไม่สามารถระงับสิทธิ์หรือปลดบล็อกนักศึกษาได้ หากพบการกระทำผิดระเบียบกรุณาแจ้งผู้ดูแลระบบ</span>
+             </div>
+           </div>`;
+
       host.innerHTML = `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h1 class="text-lg font-bold text-gray-800">${stu.name} <span class="text-xs text-gray-400 font-mono font-normal">(${stu.id})</span></h1>
-        <p class="text-sm mt-1">สถานะ: ${stu.blocked ? '<span class="text-red-600 font-semibold">ถูกระงับสิทธิ์</span>' : '<span class="text-green-600 font-semibold">ปกติ</span>'}</p>
-        ${stu.blocked ? `<p class="text-xs text-gray-500 mt-1">เหตุผล: ${stu.block_reason}</p>` : ""}
-        <div class="mt-5 pt-4 border-t border-gray-100">
-          ${stu.blocked
-            ? `<button onclick="p_student_permission_unblock()" class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-4 py-2">ปลดบล็อก</button>`
-            : `<button onclick="p_student_permission_blockPrompt()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-4 py-2">ระงับสิทธิ์ (Block)</button>`}
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${isAdmin ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-100 text-gray-600'}">
+            ${isAdmin ? '👑 โหมดผู้ดูแลระบบ (Admin)' : '👁️ มุมมองตรวจสอบ (Read-Only)'}
+          </span>
         </div>
+        <h1 class="text-xl font-bold text-gray-800">${stu.name} <span class="text-xs text-gray-400 font-mono font-normal">(${stu.id})</span></h1>
+        <p class="text-xs font-mono text-gray-500 mt-1">${stu.email || ''}</p>
+        <p class="text-sm mt-3">สถานะสิทธิ์การยืม: ${stu.blocked ? '<span class="text-red-600 font-semibold">🔴 ถูกระงับสิทธิ์การยืม</span>' : '<span class="text-green-600 font-semibold">🟢 ปกติ</span>'}</p>
+        ${stu.blocked ? `<p class="text-xs text-gray-500 mt-1 bg-red-50 p-2.5 rounded-lg border border-red-100">สาเหตุที่ระงับ: ${stu.block_reason || 'ไม่ระบุ'}</p>` : ""}
+        ${permissionControls}
       </div>`;
     }
     function p_student_permission_blockPrompt() {
-      const reason = prompt("เหตุผลการระงับสิทธิ์");
+      if (getRole() !== "admin") { toastBanner("เฉพาะ Admin เท่านั้นที่ระงับสิทธิ์ได้", "error"); return; }
+      const reason = prompt("เหตุผลการระงับสิทธิ์การยืม:");
       if (reason === null || !reason.trim()) { if(reason!==null) toastBanner("ต้องระบุเหตุผล","error"); return; }
       const id = qparam("id"); const students = db("students");
       const stu = students.find(s => s.id === id);
       stu.blocked = true; stu.block_reason = reason.trim();
       dbSave("students", students);
-      toastBanner("ระงับสิทธิ์สำเร็จ");
+      toastBanner("ระงับสิทธิ์การยืมสำเร็จ");
       p_student_permission_init();
     }
     function p_student_permission_unblock() {
+      if (getRole() !== "admin") { toastBanner("เฉพาะ Admin เท่านั้นที่ปลดบล็อกได้", "error"); return; }
       const id = qparam("id"); const students = db("students");
       const stu = students.find(s => s.id === id);
       stu.blocked = false; stu.block_reason = "";
       dbSave("students", students);
-      toastBanner("ปลดบล็อกสำเร็จ");
+      toastBanner("ปลดบล็อกสิทธิ์การยืมสำเร็จ");
       p_student_permission_init();
     }
 </script>

@@ -39,7 +39,7 @@ skinparam partition {
 
 title UC-27 · จัดการสิทธิ์การยืมของนักศึกษา — Activity Diagram\npartition หน้าจอ = frontend:StudentList → frontend:StudentPermission
 
-' หมายเหตุ: สมมติว่าเจ้าหน้าที่ login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
+' หมายเหตุ: สมมติว่าผู้ดูแลระบบ (Admin) login แล้ว (session) — ไม่ต้องวาด OAuth/SSO ซ้ำใน flow นี้
 ' หมายเหตุ: UC นี้ <<include>> UC-26 (ดูและค้นหารายชื่อนักศึกษา) — ขั้นตอนแรก "เลือกนักศึกษาจากรายชื่อ" คือผลของ UC-26
 ' จึงแสดงเป็นกิจกรรมปกติขั้นตอนแรกในไดอะแกรมนี้ ไม่ต้องวาดไดอะแกรมของ UC-26 ซ้ำ
 
@@ -51,7 +51,7 @@ start
 :เปิดหน้าจัดการสิทธิ์การยืมของนักศึกษาที่เลือก;
 
 |backend|
-:ตรวจ session + สิทธิ์ (staff เท่านั้น);
+:ตรวจ session + สิทธิ์ (admin เท่านั้น);
 :ดึงข้อมูลรายละเอียด + สถานะสิทธิ์การยืมปัจจุบันของนักศึกษา (ORM);
 
 |frontend:StudentPermission|
@@ -63,7 +63,7 @@ start
 
 fork
   |frontend:StudentPermission|
-  :แสดงผลการอัปเดตสถานะสิทธิ์ให้เจ้าหน้าที่ (main flow);
+  :แสดงผลการอัปเดตสถานะสิทธิ์ให้ผู้ดูแลระบบ (main flow);
 fork again
   |backend|
   :เขียน audit log (เปลี่ยนแปลงสิทธิ์การยืมของนักศึกษา) ผ่าน signal;

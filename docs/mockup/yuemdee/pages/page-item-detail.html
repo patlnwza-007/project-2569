@@ -35,9 +35,9 @@
   <div class="max-w-5xl mx-auto space-y-6">
     <!-- Top Navigation & Breadcrumbs -->
     <div class="flex items-center justify-between">
-      <a href="javascript:void(0)" onclick="navigate('item-list')" 
+      <a href="javascript:void(0)" id="p_item_detail_back_btn" onclick="p_item_detail_goBack()" 
         class="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors bg-white px-3.5 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
-        <span>←</span> กลับไปหน้ารายการสิ่งของ
+        <span id="p_item_detail_back_text">← กลับไปหน้ารายการสิ่งของ</span>
       </a>
       <div class="text-xs text-gray-400 font-mono">YuemDee · Equipment Showcase</div>
     </div>
@@ -150,6 +150,17 @@
 let p_item_detail_tab = "details"; // "details" | "reviews"
 let p_item_detail_star_filter = 0; // 0 = all
 
+function p_item_detail_goBack() {
+  const fromParam = qparam("from");
+  if (fromParam) {
+    navigate(fromParam);
+  } else if (getRole() === "staff") {
+    navigate("item-overview");
+  } else {
+    navigate("item-list");
+  }
+}
+
 function p_item_detail_setTab(tab) {
   p_item_detail_tab = tab;
   p_item_detail_init();
@@ -162,6 +173,14 @@ function p_item_detail_setStarFilter(stars) {
 
 function p_item_detail_init() {
   notifyParentPage("item-detail");
+
+  const fromParam = qparam("from");
+  const isFromOverview = fromParam === "item-overview" || (!fromParam && getRole() === "staff");
+  const backTextEl = document.getElementById("p_item_detail_back_text");
+  if (backTextEl) {
+    backTextEl.textContent = isFromOverview ? "← กลับไปหน้าจัดการคลังสิ่งของ" : "← กลับไปหน้ารายการสิ่งของ";
+  }
+
   const id = Number(qparam("id"));
   const targetUnitTag = qparam("unit");
   const item = itemById(id);
@@ -172,7 +191,6 @@ function p_item_detail_init() {
       <p class="text-xs text-gray-400 mt-1">สิ่งของนี้อาจถูกลบหรือปลดระวางไปแล้ว</p></div>`;
     return;
   }
-  const cat = categoryById(item.category_id);
   const pos = positionById(item.position_id);
   const room = pos ? roomById(pos.room_id) : null;
   const units = getUnitsByItemId(id);
@@ -568,7 +586,7 @@ function p_item_detail_init() {
         <div class="lg:col-span-7 space-y-5">
           <!-- Breadcrumb info -->
           <div class="flex items-center gap-2 flex-wrap text-xs text-gray-500">
-            <span class="font-semibold text-gray-700">${catName}</span>
+            <span class="font-semibold text-gray-700">📍 ${locName}</span>
             <span>·</span>
             ${typeTag}
           </div>
@@ -587,19 +605,16 @@ function p_item_detail_init() {
             ` : ''}
           </div>
 
-          <!-- Price & Accounting Value -->
+          <!-- Status in System -->
           <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
             <div>
-              <span class="text-[11px] font-semibold text-gray-400 block">ราคาจัดซื้อเดิม (purchase_price)</span>
-              <span class="text-2xl font-black text-emerald-700 font-mono">
-                ${purchasePriceVal ? '฿' + Number(purchasePriceVal).toLocaleString() : 'ไม่ระบุ'}
-              </span>
-            </div>
-            <div class="text-right">
-              <span class="text-[11px] font-semibold text-gray-400 block">สถานะในระบบ</span>
-              <span class="text-xs font-bold ${isAvailable ? 'text-emerald-700' : isBorrowed ? 'text-slate-800' : 'text-red-700'}">
+              <span class="text-[11px] font-semibold text-gray-400 block">สถานะความพร้อมในระบบ</span>
+              <span class="text-sm md:text-base font-bold ${isAvailable ? 'text-emerald-700' : isBorrowed ? 'text-slate-800' : 'text-red-700'}">
                 ${isAvailable ? (isEquipment ? 'พร้อมให้ยืม (1/1 ชิ้น)' : `พร้อมให้เบิก/ยืม (${item.qty_available}/${item.qty_total} ${item.unit || 'ชิ้น'})`) : isBorrowed ? (isEquipment ? '🔴 ถูกยืมไปแล้ว' : '🔴 หมดสต็อก') : 'งดให้บริการ'}
               </span>
+            </div>
+            <div>
+              ${statusBadge}
             </div>
           </div>
 
@@ -619,13 +634,15 @@ function p_item_detail_init() {
             </div>
           </div>
 
-          <!-- Primary Action Button (Shopee Modal Trigger) -->
-          <div class="pt-2">
-            ${borrowButtonHtml}
-            <p class="text-[11px] text-gray-400 text-center mt-2">
-              ${isEquipment ? '🔒 ครุภัณฑ์จำกัดการยืม 1 ชิ้นต่อรหัสพัสดุ · นำไปแสดงที่เคาน์เตอร์เพื่อรับของจริง' : isDurable ? '🔌 วัสดุคงทน · ยืมตามจำนวนและต้องนำมาส่งคืนตามกำหนด' : '📦 วัสดุสิ้นเปลือง · เบิกใช้แล้วหมดไป ไม่ต้องนำมาคืน'}
-            </p>
-          </div>
+          <!-- Primary Action Button (Only for Student) -->
+          ${getRole() !== 'staff' ? `
+            <div class="pt-2">
+              ${borrowButtonHtml}
+              <p class="text-[11px] text-gray-400 text-center mt-2">
+                ${isEquipment ? '🔒 ครุภัณฑ์จำกัดการยืม 1 ชิ้นต่อรหัสพัสดุ · นำไปแสดงที่เคาน์เตอร์เพื่อรับของจริง' : isDurable ? '🔌 วัสดุคงทน · ยืมตามจำนวนและต้องนำมาส่งคืนตามกำหนด' : '📦 วัสดุสิ้นเปลือง · เบิกใช้แล้วหมดไป ไม่ต้องนำมาคืน'}
+              </p>
+            </div>
+          ` : ''}
         </div>
       </div>
 
@@ -1023,11 +1040,20 @@ function p_item_detail_joinQueue(id) {
   // Also remove from cart if it was in cart
   const cart = db("cart").filter(c => c.item_id !== id);
   dbSave("cart", cart);
-  toastBanner("จองคิวสำเร็จ (นำออกจากตะกร้าเรียบร้อย)");
-  p_item_detail_init();
+
+  const myPos = queue.filter(q => q.item_id === id).findIndex(q => q.student_id === stu) + 1;
+  const est = getQueueEstimate(id, null, myPos);
+  showQueueSuccessModal({
+    item: targetItem,
+    assetTag: null,
+    position: myPos,
+    estimate: est,
+    onDone: () => p_item_detail_init()
+  });
 }
 
 function p_item_detail_joinQueueForUnit(id, assetTag) {
+  const targetItem = itemById(id);
   const queue = db("queue");
   const stu = currentUserId();
   if (queue.some(q => q.item_id === id && q.asset_tag === assetTag && q.student_id === stu)) {
@@ -1039,9 +1065,16 @@ function p_item_detail_joinQueueForUnit(id, assetTag) {
   // Also remove from cart if it was in cart
   const cart = db("cart").filter(c => !(c.item_id === id && c.asset_tag === assetTag));
   dbSave("cart", cart);
+
   const myPos = queue.filter(q => q.asset_tag === assetTag).findIndex(q => q.student_id === stu) + 1;
-  toastBanner(`จองคิวครุภัณฑ์รหัส ${assetTag} สำเร็จ (ลำดับที่ ${myPos})`);
-  p_item_detail_init();
+  const est = getQueueEstimate(id, assetTag, myPos);
+  showQueueSuccessModal({
+    item: targetItem,
+    assetTag: assetTag,
+    position: myPos,
+    estimate: est,
+    onDone: () => p_item_detail_init()
+  });
 }
 
 function p_item_detail_toggleReviews(assetTag) {

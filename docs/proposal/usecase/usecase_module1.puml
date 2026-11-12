@@ -37,8 +37,8 @@ actor "เจ้าหน้าที่\n(Staff)" as Staff
 actor "ผู้ดูแลระบบ\n(Admin)" as Admin
 
 rectangle "โมดูล 1 · บัญชีและการเข้าสู่ระบบ" {
-  package "E1 · การเข้าสู่ระบบ (ใช้ร่วมกันทุกบทบาท)" {
-    usecase "UC-15\nเข้าสู่ระบบด้วย UBU Single Sign-On" as UC15
+  package "E1 · การเข้าสู่ระบบ (Dual Authentication)" {
+    usecase "UC-15\nเข้าสู่ระบบ\n(UBU SSO & Django Admin)" as UC15
   }
 
   package "E2 · ข้อมูลส่วนตัว (Student)" {

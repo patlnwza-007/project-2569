@@ -42,11 +42,11 @@
         </h1>
         <p class="text-sm text-gray-500 mt-1">สำรวจสิ่งของทั้งหมดในคลัง ค้นหา กรอง และส่งคำขอยืมออนไลน์ได้ง่ายๆ</p>
       </div>
-      <div class="flex items-center gap-2 md:hidden">
-        <a href="javascript:void(0)" onclick="navigate('cart')" class="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 font-medium text-sm rounded-xl px-4 py-2.5 transition-colors shadow-sm">
-          <span>🛒</span>
+      <div class="flex items-center gap-2">
+        <a href="javascript:void(0)" onclick="navigate('cart')" class="inline-flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm rounded-xl px-5 py-2.5 transition-all shadow-md shadow-blue-200 cursor-pointer">
+          <span class="text-base">🛒</span>
           <span>ตะกร้ายืมของ</span>
-          <span id="p_item_list_cart_badge" class="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+          <span id="p_item_list_cart_badge" class="bg-white text-blue-700 text-xs font-black px-2 py-0.5 rounded-full shadow-xs">0</span>
         </a>
       </div>
     </div>
@@ -58,24 +58,6 @@
         <div class="flex-1 min-w-[220px]">
           <label class="text-xs font-semibold text-gray-500 mb-1 block">🔍 ค้นหาชื่อสิ่งของ</label>
           <input id="p_item_list_q" oninput="p_item_list_render()" placeholder="พิมพ์ชื่อ เช่น โปรเจกเตอร์, สาย HDMI..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
-        </div>
-
-        <!-- Filter Dropdowns -->
-        <div class="min-w-[140px]">
-          <label class="text-xs font-semibold text-gray-500 mb-1 block">🏷️ หมวดหมู่</label>
-          <select id="p_item_list_f-cat" onchange="p_item_list_render()" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-            <option value="">ทั้งหมด</option>
-          </select>
-        </div>
-
-        <div class="min-w-[140px]">
-          <label class="text-xs font-semibold text-gray-500 mb-1 block">📦 ประเภท</label>
-          <select id="p_item_list_f-type" onchange="p_item_list_render()" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-            <option value="">ทั้งหมด</option>
-            <option value="equipment">ครุภัณฑ์ (ยืม)</option>
-            <option value="durable_material">วัสดุคงทน (ยืม)</option>
-            <option value="material">วัสดุสิ้นเปลือง (เบิก)</option>
-          </select>
         </div>
 
         <div class="min-w-[130px]">
@@ -105,9 +87,6 @@
         <span class="text-xs text-gray-500 font-semibold shrink-0">ทางลัด:</span>
         <button type="button" id="p_item_list_tag_all" onclick="p_item_list_setQuickTag('all')" class="tag-btn text-xs font-semibold px-3.5 py-1.5 rounded-full border border-blue-600 bg-blue-600 text-white transition-all shadow-sm">ทั้งหมด</button>
         <button type="button" id="p_item_list_tag_available" onclick="p_item_list_setQuickTag('available')" class="tag-btn text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition-all">ว่างพร้อมยืม</button>
-        <button type="button" id="p_item_list_tag_equipment" onclick="p_item_list_setQuickTag('equipment')" class="tag-btn text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition-all">ครุภัณฑ์ (ยืม)</button>
-        <button type="button" id="p_item_list_tag_durable_material" onclick="p_item_list_setQuickTag('durable_material')" class="tag-btn text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition-all">วัสดุคงทน (ยืม)</button>
-        <button type="button" id="p_item_list_tag_material" onclick="p_item_list_setQuickTag('material')" class="tag-btn text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition-all">วัสดุสิ้นเปลือง (เบิก)</button>
       </div>
     </div>
 
@@ -240,11 +219,10 @@ function p_item_list_init() {
 }
 
 function p_item_list_updateCartBadge() {
-  const badge = document.getElementById("p_item_list_cart_badge");
-  if (!badge) return;
   const cart = db("cart");
   const totalCount = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
-  badge.innerText = totalCount;
+  const badge = document.getElementById("p_item_list_cart_badge");
+  if (badge) badge.innerText = totalCount;
 }
 
 function p_item_list_setQuickTag(tag) {
@@ -281,8 +259,6 @@ function p_item_list_setViewMode(mode) {
 
 function p_item_list_render() {
   const q = document.getElementById("p_item_list_q") ? document.getElementById("p_item_list_q").value.trim().toLowerCase() : "";
-  const fCat = document.getElementById("p_item_list_f-cat") ? document.getElementById("p_item_list_f-cat").value : "";
-  const fType = document.getElementById("p_item_list_f-type") ? document.getElementById("p_item_list_f-type").value : "";
   const fStatus = document.getElementById("p_item_list_f-status") ? document.getElementById("p_item_list_f-status").value : "";
   const sortVal = document.getElementById("p_item_list_sort") ? document.getElementById("p_item_list_sort").value : "qty-desc";
 
@@ -408,12 +384,6 @@ function p_item_list_render() {
       const matchTag = e.asset_tag ? e.asset_tag.toLowerCase().includes(q) : false;
       return matchName || matchTag;
     });
-  }
-  if (fCat) {
-    entries = entries.filter(e => e.category_id === Number(fCat));
-  }
-  if (fType) {
-    entries = entries.filter(e => e.type === fType);
   }
   if (fStatus === "available") {
     entries = entries.filter(e => {
@@ -1204,12 +1174,20 @@ function p_item_list_joinQueue(id) {
   const cart = db("cart").filter(c => c.item_id !== id);
   dbSave("cart", cart);
   p_item_list_updateCartBadge();
+
   const myPos = queue.filter(q => q.item_id === id).findIndex(q => q.student_id === stu) + 1;
-  toastBanner(`จองคิวสำเร็จ คุณอยู่ลำดับที่ ${myPos}`);
-  p_item_list_render();
+  const est = getQueueEstimate(id, null, myPos);
+  showQueueSuccessModal({
+    item: targetItem,
+    assetTag: null,
+    position: myPos,
+    estimate: est,
+    onDone: () => p_item_list_render()
+  });
 }
 
 function p_item_list_joinQueueForUnit(id, assetTag) {
+  const targetItem = itemById(id);
   const queue = db("queue");
   const stu = currentUserId();
   if (queue.some(q => q.item_id === id && q.asset_tag === assetTag && q.student_id === stu)) {
@@ -1222,9 +1200,16 @@ function p_item_list_joinQueueForUnit(id, assetTag) {
   const cart = db("cart").filter(c => !(c.item_id === id && c.asset_tag === assetTag));
   dbSave("cart", cart);
   p_item_list_updateCartBadge();
+
   const myPos = queue.filter(q => q.asset_tag === assetTag).findIndex(q => q.student_id === stu) + 1;
-  toastBanner(`จองคิวครุภัณฑ์รหัส ${assetTag} สำเร็จ (ลำดับที่ ${myPos})`);
-  p_item_list_render();
+  const est = getQueueEstimate(id, assetTag, myPos);
+  showQueueSuccessModal({
+    item: targetItem,
+    assetTag: assetTag,
+    position: myPos,
+    estimate: est,
+    onDone: () => p_item_list_render()
+  });
 }
 
 function p_item_list_emptyState(title) {

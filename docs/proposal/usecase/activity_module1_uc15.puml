@@ -39,7 +39,7 @@ skinparam partition {
 
 title UC-15 · เข้าสู่ระบบด้วย UBU Single Sign-On — Activity Diagram\nflow เดียวที่วาดขั้นตอน UBU SSO (external) + Role Override · partition หน้าจอ = frontend:PageCode
 
-' ===== หน้าแรกก่อนเข้าสู่ระบบ — ผู้ใช้ทั้ง 3 บทบาทเริ่มที่หน้าเดียวกันนี้ =====
+' ===== หน้าแรกก่อนเข้าสู่ระบบ — นักศึกษาและเจ้าหน้าที่เริ่มที่หน้าเดียวกันนี้ =====
 |frontend:Welcome|
 start
 :กดปุ่มเข้าสู่ระบบด้วย UBU Single Sign-On;
@@ -81,12 +81,9 @@ fork
   if (บทบาทที่ได้คือ?) then (นักศึกษา)
     |frontend:RequestList|
     :เข้าสู่หน้าหลักนักศึกษา (main flow);
-  elseif (เจ้าหน้าที่) then (เจ้าหน้าที่)
+  else (เจ้าหน้าที่)
     |frontend:StaffDashboard|
     :เข้าสู่หน้าแดชบอร์ดเจ้าหน้าที่ (main flow);
-  else (ผู้ดูแลระบบ)
-    |frontend:UserList|
-    :เข้าสู่หน้ารายชื่อผู้ใช้งาน (main flow);
   endif
 fork again
   |backend|

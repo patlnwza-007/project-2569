@@ -84,17 +84,28 @@ function renderShell() {
 
   sidebar.style.display = "";
   const userName = role === "student" ? currentStudent()?.name : (role === "staff" ? currentStaff().name : SEED_ADMINS[0].name);
+  const roleSwitcherHtml = `
+    <div class="relative">
+      <button onclick="document.getElementById('role-switch-menu').classList.toggle('hidden')" class="bg-blue-600 hover:bg-blue-800 rounded-lg px-2.5 py-1 text-xs font-semibold cursor-pointer flex items-center gap-1">
+        <span>สลับบทบาท</span> ▾
+      </button>
+      <div id="role-switch-menu" class="hidden absolute right-0 mt-1 w-44 bg-white text-gray-700 rounded-xl shadow-xl border border-gray-200 text-xs overflow-hidden z-50 py-1">
+        <button onclick="switchRole('student')" class="w-full text-left px-3.5 py-2 hover:bg-blue-50 flex items-center gap-2 cursor-pointer ${role === 'student' ? 'font-bold text-blue-600 bg-blue-50/50' : ''}">
+          <span>🎓</span> นักศึกษา
+        </button>
+        <button onclick="switchRole('staff')" class="w-full text-left px-3.5 py-2 hover:bg-blue-50 flex items-center gap-2 cursor-pointer ${role === 'staff' ? 'font-bold text-blue-600 bg-blue-50/50' : ''}">
+          <span>👷</span> เจ้าหน้าที่
+        </button>
+        <button onclick="switchRole('admin')" class="w-full text-left px-3.5 py-2 hover:bg-blue-50 flex items-center gap-2 cursor-pointer border-t border-gray-100 ${role === 'admin' ? 'font-bold text-blue-600 bg-blue-50/50' : ''}">
+          <span>👑</span> ผู้ดูแลระบบ (Admin)
+        </button>
+      </div>
+    </div>
+  `;
   topbarRight.innerHTML = `
     <span class="hidden sm:inline bg-yellow-400 text-blue-900 text-xs font-bold px-2 py-1 rounded-full">${ROLE_LABEL[role]}</span>
     <span class="hidden sm:inline">${userName}</span>
-    <div class="relative">
-      <button onclick="document.getElementById('role-switch-menu').classList.toggle('hidden')" class="bg-blue-600 hover:bg-blue-800 rounded-lg px-2 py-1 text-xs">สลับบทบาท ▾</button>
-      <div id="role-switch-menu" class="hidden absolute right-0 mt-1 w-40 bg-white text-gray-700 rounded-lg shadow-lg border border-gray-200 text-sm overflow-hidden z-50">
-        <button onclick="switchRole('student')" class="w-full text-left px-3 py-2 hover:bg-blue-50">🎓 นักศึกษา</button>
-        <button onclick="switchRole('staff')" class="w-full text-left px-3 py-2 hover:bg-blue-50">👷 เจ้าหน้าที่</button>
-        <button onclick="switchRole('admin')" class="w-full text-left px-3 py-2 hover:bg-blue-50">👑 ผู้ดูแลระบบ</button>
-      </div>
-    </div>
+    ${roleSwitcherHtml}
     <button onclick="logout()" class="bg-white/10 hover:bg-white/20 rounded-lg px-2 py-1 text-xs">ออกจากระบบ</button>
   `;
 
@@ -106,8 +117,14 @@ function renderShell() {
 }
 
 function setActiveMenu(key) {
+  let activeKey = key;
+  if (key === "item-detail") {
+    activeKey = getRole() === "staff" ? "item-overview" : "item-list";
+  } else if (key === "item-form" || key === "item-status-change" || key === "bulk-import" || key === "item-delete") {
+    activeKey = "item-overview";
+  }
   document.querySelectorAll(".nav-link").forEach(a => {
-    a.classList.toggle("active", a.dataset.key === key);
+    a.classList.toggle("active", a.dataset.key === activeKey);
   });
 }
 
@@ -142,7 +159,8 @@ function navigate(pageKey, params = {}) {
   window.currentPageKey = pageKey;
 
   const qs = params && Object.keys(params).length ? "?" + new URLSearchParams(params).toString() : "";
-  document.getElementById("main-frame").src = "pages/page-" + pageKey + ".html" + qs;
+  const cacheBuster = (qs ? "&" : "?") + "v=" + Date.now();
+  document.getElementById("main-frame").src = "pages/page-" + pageKey + ".html" + qs + cacheBuster;
 
   renderShell();
   setActiveMenu(pageKey);
