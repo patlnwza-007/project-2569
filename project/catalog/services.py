@@ -10,7 +10,7 @@ SUBTYPE_MODEL = {
 SUBTYPE_FIELDS = {
     Item.ItemType.MATERIAL: {"qty_total", "qty_available"},
     Item.ItemType.DURABLE_MATERIAL: {"qty_total", "qty_available", "max_borrow_days", "fine_rate_per_day"},
-    Item.ItemType.EQUIPMENT: {"asset_tag", "max_borrow_days", "fine_rate_per_day", "status", "note"},
+    Item.ItemType.EQUIPMENT: {"asset_tag", "max_borrow_days", "fine_rate_per_day", "status", "note", "custodian"},
 }
 
 

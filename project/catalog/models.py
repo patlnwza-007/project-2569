@@ -164,6 +164,7 @@ class Equipment(_Subtype):
     fine_rate_per_day = models.DecimalField("อัตราค่าปรับต่อวัน", **MONEY)
     status = models.CharField("สถานะรายชิ้น", max_length=20, choices=Status.choices, default=Status.AVAILABLE)
     note = models.TextField("หมายเหตุสภาพ/ความเสียหาย", blank=True)
+    custodian = models.CharField("ผู้รับผิดชอบครุภัณฑ์", max_length=150, blank=True)
 
     class Meta:
         db_table = "equipment"

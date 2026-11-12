@@ -34,6 +34,7 @@
 | กล่องระบุรหัสครุภัณฑ์รายชิ้น | Inputs (Text) | `EQUIPMENT.asset_tag` | กรอกรหัส Asset Tag แต่ละชิ้น เช่น `UBU-EQ-001-01` |
 | จำนวนวันยืมสูงสุด | Input (Number) | `EQUIPMENT.max_borrow_days` | ระยะเวลาที่อนุญาตให้ยืม |
 | อัตราค่าปรับต่อวัน | Input (Number) | `EQUIPMENT.fine_rate_per_day` | อัตราค่าปรับกรณีส่งคืนล่าช้า |
+| ผู้รับผิดชอบครุภัณฑ์ | Input (Text) | `EQUIPMENT.custodian` | พิมพ์ชื่อผู้รับผิดชอบ (ไม่บังคับ) · แก้ไขได้ทั้งตอนเพิ่มและแก้ไข |
 | สถานะเริ่มต้นของครุภัณฑ์ | Status (Auto) | `EQUIPMENT.status` | ตั้งเป็น `'AVAILABLE'` (พร้อมให้ยืม) ทุกชิ้น |
 
 ---

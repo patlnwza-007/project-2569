@@ -73,6 +73,7 @@ erDiagram
         decimal fine_rate_per_day "อัตราค่าปรับต่อวัน"
         string status "AVAILABLE / BORROWED / RETURN_PENDING / DAMAGED / MAINTENANCE / RETIRED / LOST"
         string note "หมายเหตุสภาพ/ความเสียหาย"
+        string custodian "ผู้รับผิดชอบครุภัณฑ์ (พิมพ์ชื่อ ไม่บังคับ)"
     }
 
     CART {
@@ -281,7 +282,7 @@ Mermaid วาดสัญลักษณ์สามเหลี่ยม ISA �
 | หัวข้อ | รายละเอียด |
 | :--- | :--- |
 | **Supertype** | `ITEM` เก็บ attribute ที่ทั้ง 3 ประเภทใช้ร่วมกัน (name, location, unit, purchase_price, base_status, description, image) |
-| **Subtype** | `MATERIAL` (นับจำนวน, ไม่ต้องคืน), `DURABLE_MATERIAL` (นับจำนวน, ต้องคืน, มีค่าปรับ), `EQUIPMENT` (ครุภัณฑ์รายชิ้นตาม `asset_tag`, ต้องคืน, มีค่าปรับ, มีสถานะของตัวเอง) |
+| **Subtype** | `MATERIAL` (นับจำนวน, ไม่ต้องคืน), `DURABLE_MATERIAL` (นับจำนวน, ต้องคืน, มีค่าปรับ), `EQUIPMENT` (ครุภัณฑ์รายชิ้นตาม `asset_tag`, ต้องคืน, มีค่าปรับ, มีสถานะของตัวเอง, มีผู้รับผิดชอบ `custodian`) |
 | **Disjoint (d)** | สิ่งของ 1 รายการเป็นได้เพียง 1 ประเภทเท่านั้น |
 | **Total participation** | ทุกแถวใน `ITEM` ต้องมีแถวคู่ใน subtype ที่ตรงกับ `item_type` เสมอ |
 | **Primary key ของ subtype** | `item_id` เป็นทั้ง PK และ FK อ้างถึง `ITEM.id` (shared primary key) |

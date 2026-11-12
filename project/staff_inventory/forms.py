@@ -36,6 +36,8 @@ class ItemForm(forms.Form):
     max_borrow_days = forms.IntegerField(label="จำนวนวันยืมสูงสุด", min_value=1, initial=7, required=False)
     fine_rate_per_day = forms.DecimalField(label="อัตราค่าปรับต่อวัน (บาท)", max_digits=10, decimal_places=2,
                                            min_value=Decimal("0"), initial=Decimal("0"), required=False)
+    custodian = forms.CharField(label="ผู้รับผิดชอบครุภัณฑ์", max_length=150, required=False,
+                                widget=forms.TextInput(attrs={"placeholder": "เช่น อ.สมชาย ใจดี (สาขาวิศวกรรมคอมพิวเตอร์)"}))
 
     def __init__(self, *args, item=None, **kwargs):
         self.item = item
@@ -85,6 +87,8 @@ class ItemForm(forms.Form):
         if t in (Item.ItemType.DURABLE_MATERIAL, Item.ItemType.EQUIPMENT):
             sub["max_borrow_days"] = d["max_borrow_days"]
             sub["fine_rate_per_day"] = d["fine_rate_per_day"]
+        if t == Item.ItemType.EQUIPMENT:
+            sub["custodian"] = (d.get("custodian") or "").strip()
         return t, common, sub
 
 

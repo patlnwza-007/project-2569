@@ -25,6 +25,7 @@
 | จำนวนวันยืมสูงสุด | Text | `DURABLE_MATERIAL.max_borrow_days`, `EQUIPMENT.max_borrow_days` | ระยะเวลายืมสูงสุด |
 | อัตราค่าปรับต่อวัน | Text | `DURABLE_MATERIAL.fine_rate_per_day`, `EQUIPMENT.fine_rate_per_day` | ค่าปรับกรณีเกินกำหนด |
 | หมายเหตุสภาพ/ตำหนิของชิ้น | Text | `EQUIPMENT.note` | หมายเหตุสภาพความเสียหายเดิม |
+| ผู้รับผิดชอบครุภัณฑ์ | Text | `EQUIPMENT.custodian` | แสดงเฉพาะครุภัณฑ์ (ชื่อผู้รับผิดชอบที่เจ้าหน้าที่กรอกไว้) |
 | ที่ตั้งปัจจุบันที่แจ้งย้าย (ถ้ากำลังถูกยืม) | Text | `BORROW_ITEM.current_location`, `BORROW_ITEM.moved_at` | สถานที่ใช้งานปัจจุบันที่นักศึกษาแจ้งย้ายไว้ |
 | **ส่วนรีวิวและคะแนนดาว (Reviews & Ratings)** | | | |
 | คะแนนเฉลี่ยและสถิติดาว | Rating Summary | คำนวณจาก `REVIEW` | `AVG(REVIEW.rating)` และ `COUNT(REVIEW.id)` ผ่าน `BORROW_ITEM.item_id = ITEM.id` |

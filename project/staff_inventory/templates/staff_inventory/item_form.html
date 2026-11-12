@@ -28,6 +28,11 @@
             {% if tag_error %}<p id="p_item_form_tag_error" class="text-xs text-red-600 font-medium">⚠️ {{ tag_error }}</p>{% endif %}
         </div>
         {% endif %}
+
+        <!-- ครุภัณฑ์: ผู้รับผิดชอบ (EQUIPMENT.custodian) — ทั้งเพิ่มและแก้ไข -->
+        <div x-cloak x-show="type === 'EQUIPMENT'" id="p_item_form_custodian">
+            {% include 'staff_inventory/_field.html' with field=form.custodian %}
+        </div>
         {% include 'staff_inventory/_field.html' with field=form.name %}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {% include 'staff_inventory/_field.html' with field=form.location %}

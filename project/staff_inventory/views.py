@@ -82,6 +82,7 @@ def item_edit_view(request, pk):
         "purchase_price": item.purchase_price, "description": item.description,
         "qty_total": getattr(d, "qty_total", None), "max_borrow_days": getattr(d, "max_borrow_days", None),
         "fine_rate_per_day": getattr(d, "fine_rate_per_day", None),
+        "custodian": getattr(d, "custodian", ""),
     }
     form = ItemForm(request.POST or None, request.FILES or None, item=item, initial=initial)
     if request.method == "POST" and form.is_valid():

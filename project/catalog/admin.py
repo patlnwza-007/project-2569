@@ -43,6 +43,6 @@ class DurableMaterialAdmin(admin.ModelAdmin):
 
 @admin.register(Equipment)
 class EquipmentAdmin(admin.ModelAdmin):
-    list_display = ("asset_tag", "item", "status", "max_borrow_days", "fine_rate_per_day")
+    list_display = ("asset_tag", "item", "status", "custodian", "max_borrow_days", "fine_rate_per_day")
     list_filter = ("status",)
-    search_fields = ("asset_tag", "item__name")
+    search_fields = ("asset_tag", "item__name", "custodian")

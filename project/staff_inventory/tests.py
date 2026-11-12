@@ -244,3 +244,32 @@ class DeleteTests(Fixture):
         self.assertContains(r, "ลบแล้ว 1 รายการ")
         self.assertContains(r, "ลบไม่ได้ 2 รายการ")
         self.assertFalse(Item.objects.filter(pk=pen.pk).exists())
+
+
+class CustodianTests(Fixture):
+    """ผู้รับผิดชอบครุภัณฑ์ (EQUIPMENT.custodian) — เพิ่มใน ERD 2026-11-13"""
+
+    def test_add_and_edit_custodian(self):
+        self.client.post(ADD, {"item_type": "EQUIPMENT", "name": "โน้ตบุ๊ก", "unit": "เครื่อง", "purchase_price": "0",
+                               "max_borrow_days": "7", "fine_rate_per_day": "0", "asset_tag": "UBU-EQ-010-01",
+                               "custodian": "  อ.สมชาย ใจดี  "})
+        nb = Item.objects.get(equipment__asset_tag="UBU-EQ-010-01")
+        self.assertEqual(nb.equipment.custodian, "อ.สมชาย ใจดี")
+        r = self.client.get(url("item_edit", nb))
+        self.assertContains(r, 'value="อ.สมชาย ใจดี"')
+        self.client.post(url("item_edit", nb), {"name": "โน้ตบุ๊ก", "unit": "เครื่อง", "purchase_price": "0",
+                                                "max_borrow_days": "7", "fine_rate_per_day": "0", "custodian": "คุณอรุณี"})
+        nb.equipment.refresh_from_db()
+        self.assertEqual(nb.equipment.custodian, "คุณอรุณี")
+
+    def test_detail_shows_custodian_for_equipment_only(self):
+        Equipment.objects.filter(pk=self.p1.pk).update(custodian="อ.วิชัย")
+        for who in [self.staff, make_student("dv@ubu.ac.th")]:
+            self.client.force_login(who)
+            r = self.client.get(reverse("catalog:item_detail", args=[self.p1.pk]))
+            self.assertContains(r, 'id="p_item_detail_custodian"')
+            self.assertContains(r, "อ.วิชัย")
+        r = self.client.get(reverse("catalog:item_detail", args=[self.paper.pk]))
+        self.assertNotContains(r, 'id="p_item_detail_custodian"')
+        r = self.client.get(reverse("catalog:item_detail", args=[self.p2.pk]))
+        self.assertContains(r, "ไม่ระบุ")
