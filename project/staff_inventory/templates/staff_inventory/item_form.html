@@ -25,7 +25,6 @@
             <label for="p_item_form_asset_tag" class="block text-xs font-bold text-indigo-800">🏷️ รหัสครุภัณฑ์ (Asset Tag) <span class="text-red-500">*</span></label>
             <input type="text" id="p_item_form_asset_tag" name="asset_tag" value="{{ asset_tag }}" placeholder="เช่น UBU-EQ-001-01" :disabled="type !== 'EQUIPMENT'"
                    class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
-            <p class="text-[11px] text-gray-500">กรอกรหัสบนตัวเครื่อง ระบบไม่สร้างรหัสให้ · เพิ่มได้ครั้งละ 1 ชิ้น (1 รายการ = 1 ชิ้น)</p>
             {% if tag_error %}<p id="p_item_form_tag_error" class="text-xs text-red-600 font-medium">⚠️ {{ tag_error }}</p>{% endif %}
         </div>
         {% endif %}
