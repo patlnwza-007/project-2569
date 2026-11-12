@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}ไม่มีสิทธิ์เข้าถึง · YuemDee{% endblock %}
+{% block content %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center max-w-xl mx-auto mt-8">
+    <div class="text-5xl mb-3">🚫</div>
+    <h1 class="text-xl font-bold text-gray-900">ไม่มีสิทธิ์เข้าถึงหน้านี้</h1>
+    <p class="mt-2 text-sm text-gray-500">{{ exception|default:"บทบาทของคุณไม่มีสิทธิ์เข้าถึงหน้านี้" }}</p>
+    <a href="{% url 'home' %}" class="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">กลับหน้าหลัก</a>
+</div>
+{% endblock %}

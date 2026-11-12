@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ page_item.label }} · YuemDee{% endblock %}
+{% block content %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center max-w-xl mx-auto mt-8">
+    <div class="text-5xl mb-3">{{ page_item.icon }}</div>
+    <h1 class="text-xl font-bold text-gray-900">{{ page_item.label }}</h1>
+    <p class="mt-2 text-sm text-gray-500">หน้านี้ยังไม่เปิดใช้งาน กำลังพัฒนาในขั้นถัดไป</p>
+    <p class="mt-4 inline-block font-mono text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">mockup: page-{{ page_item.key }}.html</p>
+</div>
+{% endblock %}

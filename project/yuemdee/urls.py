@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from accounts.views import dashboard_view
+from accounts.views import coming_soon_view, home_view
 
 from django.conf import settings
 from django.conf.urls.static import static
@@ -35,7 +35,8 @@ urlpatterns = [
     path('staff/reports/', include('staff_report.urls')),
     path('admin-panel/', include('admin_panel.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
-    path('', dashboard_view, name='dashboard'),
+    path('soon/<slug:key>/', coming_soon_view, name='coming_soon'),
+    path('', home_view, name='home'),
 ]
 
 if settings.DEBUG:

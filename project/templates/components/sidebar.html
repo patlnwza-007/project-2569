@@ -1,22 +1,22 @@
-<!-- Sidebar Navigation Component -->
-<aside class="hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 p-4 space-y-6 flex-shrink-0">
-    <div class="space-y-1">
-        <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">เมนูหลัก</p>
-        <a href="/" class="flex items-center px-3 py-2 text-sm font-medium rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-            <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-blue-600"></i>
-            แดชบอร์ด
+<!-- Side Bar — เมนูตามบทบาทจาก accounts/navigation.py (mockup: MENU ใน shared.js) -->
+<!-- มือถือ: พื้นหลังมืดเมื่อเปิดเมนู -->
+<div x-cloak x-show="mobileMenuOpen" @click="mobileMenuOpen = false"
+     class="md:hidden fixed inset-0 top-14 bg-black/30 z-10"></div>
+
+<nav id="sidebar"
+     :class="mobileMenuOpen ? 'block fixed top-14 bottom-0 left-0 z-20 shadow-xl' : 'hidden'"
+     class="md:block md:static w-60 shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
+    <div class="py-3">
+        {% for item in nav_menu %}
+        <a href="{{ item.url }}" data-key="{{ item.key }}"
+           class="nav-link flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 border-l-4 {% if item.active %}active border-blue-600{% else %}border-transparent{% endif %}"
+           {% if item.active %}aria-current="page"{% endif %}>
+            <span>{{ item.icon }}</span>
+            <span class="flex-1">{{ item.label }}</span>
+            {% if item.badge %}
+            <span class="min-w-[1.25rem] text-center bg-red-500 text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full">{{ item.badge }}</span>
+            {% endif %}
         </a>
-        <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-xl text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-colors">
-            <i data-lucide="package" class="w-5 h-5 mr-3 text-violet-600"></i>
-            คลังพัสดุและครุภัณฑ์
-        </a>
-        <!-- <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-xl text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors">
-            <i data-lucide="arrow-left-right" class="w-5 h-5 mr-3 text-teal-600"></i>
-            รายการยืม-คืน
-        </a> -->
-        <!-- <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-xl text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-colors">
-            <i data-lucide="clock" class="w-5 h-5 mr-3 text-orange-600"></i>
-            คิวของฉัน
-        </a> -->
+        {% endfor %}
     </div>
-</aside>
+</nav>
