@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load borrow_tags humanize %}
+{# UC-09 หน้าหลักนักศึกษา + UC-07 ยกเลิก + แจ้งย้ายที่ตั้ง · mockup page-request-list.html #}
+
+{% block title %}คำขอยืมของฉัน · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">🏠 คำขอยืมของฉัน</h1>
+            <p class="text-sm text-gray-500 mt-0.5">ติดตามสถานะคำขอที่กำลังดำเนินการ และที่จบภายใน 7 วันล่าสุด</p>
+        </div>
+        <div class="flex gap-2">
+            {% if history_ready %}<a href="{% url 'borrow:history' %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">📜 ประวัติทั้งหมด</a>{% endif %}
+            <a href="{% url 'catalog:item_list' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">+ ยืมสิ่งของ</a>
+        </div>
+    </div>
+
+    {% if queues %}
+    <div id="p_request_queue_summary" class="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-sm flex flex-wrap items-center justify-between gap-2">
+        <div>
+            <p class="font-semibold text-amber-900">⏳ คุณมีคิวที่จองไว้ {{ queues|length }} รายการ</p>
+            <p class="text-xs text-amber-800 mt-0.5">{% for q in queues %}{{ q.item }}{% if q.status == 'NOTIFIED' %} <b>(ถึงคิวแล้ว! ยืนยันภายใน 1 วัน)</b>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+        </div>
+        {% if queue_list_ready %}<a href="{% url 'borrow:queue_list' %}" class="text-xs font-bold text-amber-900 underline">ดูคิวของฉัน →</a>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="space-y-4">
+        {% for card in cards %}
+        {% with r=card.req %}
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" data-request="{{ r.pk }}">
+            <div class="px-5 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-gray-900">คำขอ #{{ r.pk }}</span>
+                    {% request_badge r.status %}
+                    {% if card.single_type %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{{ card.single_type }}</span>{% endif %}
+                    {% if r.is_special %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">⚡ ยืมกรณีพิเศษ{% if r.custom_due_date %} ถึง {{ r.custom_due_date|date:"j M Y" }}{% endif %}</span>{% endif %}
+                </div>
+                <span class="text-xs text-gray-400">ส่งเมื่อ {{ r.created_at|date:"j M Y H:i" }}</span>
+            </div>
+
+            {% if r.status == 'RETURN_PENDING' %}
+            <div class="px-5 py-2.5 bg-purple-50 border-b border-purple-100 text-sm text-purple-900">↩️ แจ้งคืนแล้ว กรุณานำสิ่งของไปแสดงที่เคาน์เตอร์เพื่อให้เจ้าหน้าที่ตรวจรับคืน</div>
+            {% elif r.status == 'PENDING' %}
+            <div class="px-5 py-2.5 bg-amber-50 border-b border-amber-100 text-sm text-amber-900">📍 กรุณานำสิ่งของที่หยิบไว้ไปแสดงที่เคาน์เตอร์ เจ้าหน้าที่จะตรวจและปล่อยของให้</div>
+            {% elif r.status == 'REJECTED' and r.reject_reason %}
+            <div class="px-5 py-2.5 bg-red-50 border-b border-red-100 text-sm text-red-800"><b>เหตุผลที่ไม่อนุมัติ:</b> {{ r.reject_reason }}</div>
+            {% endif %}
+
+            <div class="divide-y divide-gray-100">
+                {% for row in card.rows %}
+                {% with bi=row.bi item=row.bi.item %}
+                <div class="px-5 py-3 text-sm" x-data="{ move: false }">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <span class="font-semibold text-gray-900">{{ item.name }}</span>
+                            {% if item.is_equipment %}<span class="ml-1 font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}
+                            <span class="text-gray-500"> · {{ bi.qty }} {{ item.unit }}</span>
+                            {% if item.is_returnable and bi.qty_returned %}<span class="text-xs text-emerald-700"> · คืนแล้ว {{ bi.qty_returned }}</span>{% endif %}
+                        </div>
+                        <div class="text-xs text-right">
+                            {% if bi.due_date %}
+                                <span class="{% if row.days_left < 0 %}text-red-600 font-bold{% elif row.days_left <= 2 %}text-amber-700 font-semibold{% else %}text-gray-600{% endif %}">
+                                    กำหนดคืน {{ bi.due_date|date:"j M Y" }}
+                                    {% if row.outstanding %}({% if row.days_left < 0 %}เกิน {{ row.days_left|stringformat:"d"|slice:"1:" }} วัน{% elif row.days_left == 0 %}วันนี้{% else %}อีก {{ row.days_left }} วัน{% endif %}){% endif %}
+                                </span>
+                            {% elif item.is_material %}<span class="text-gray-400">เบิกใช้ ไม่ต้องคืน</span>
+                            {% elif r.status == 'PENDING' %}<span class="text-gray-400">กำหนดคืนนับจากวันปล่อยของ</span>{% endif %}
+                        </div>
+                    </div>
+                    {% if bi.current_location %}<p class="text-xs text-gray-500 mt-1">📍 ที่ตั้งปัจจุบัน: {{ bi.current_location }}{% if bi.moved_at %} <span class="text-gray-400">({{ bi.moved_at|date:"j M H:i" }})</span>{% endif %}</p>{% endif %}
+                    {% if row.can_relocate %}
+                    <button type="button" @click="move = !move" class="mt-1 text-xs text-blue-600 hover:underline">📍 แจ้งย้ายที่ตั้ง</button>
+                    <form x-cloak x-show="move" method="post" action="{% url 'borrow:relocate' bi.pk %}" class="mt-2 flex gap-2">
+                        {% csrf_token %}
+                        <input name="location" required maxlength="200" placeholder="เช่น ตึก EN6 ห้อง 204 / หอพัก..." class="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg px-3">บันทึก</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endwith %}
+                {% endfor %}
+            </div>
+
+            {% if card.fine or card.lost %}
+            <div class="px-5 py-2.5 bg-red-50 border-t border-red-100 text-sm text-red-800">
+                {% if card.fine %}💸 ค่าปรับเกินกำหนด ฿{{ card.fine|floatformat:2|intcomma }}{% endif %}
+                {% if card.lost %} · ค่าชดใช้ของหาย ฿{{ card.lost|floatformat:2|intcomma }}{% endif %}
+            </div>
+            {% endif %}
+
+            {% if r.status == 'PENDING' or card.can_return %}
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-end gap-2">
+                {% if r.status == 'PENDING' %}
+                <form method="post" action="{% url 'borrow:request_cancel' r.pk %}" onsubmit="return confirm('ยกเลิกคำขอ #{{ r.pk }}?')">{% csrf_token %}
+                    <button type="submit" class="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl px-4 py-2">ยกเลิกคำขอ</button>
+                </form>
+                {% endif %}
+                {% if card.can_return %}
+                    {% if return_ready %}
+                    <a href="{% url 'borrow:return_notify' r.pk %}" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl px-4 py-2">↩️ แจ้งคืนสิ่งของ</a>
+                    {% else %}
+                    <button disabled class="bg-purple-300 text-white text-xs font-semibold rounded-xl px-4 py-2 cursor-not-allowed">↩️ แจ้งคืน · เปิดใช้เร็ว ๆ นี้</button>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div id="p_request_list_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+            <div class="text-4xl mb-2">📭</div>
+            <p class="text-gray-600 font-semibold">{% if has_any %}ไม่มีคำขอที่กำลังดำเนินการ{% else %}ยังไม่มีรายการยืม{% endif %}</p>
+            <a href="{% url 'catalog:item_list' %}" class="inline-block mt-3 text-sm text-blue-600 hover:underline">เลือกสิ่งของที่ต้องการยืม →</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

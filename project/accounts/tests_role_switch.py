@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import Staff
-from .navigation import MENU
+from .navigation import MENU, home_url
 from .roles import STAFF, STUDENT
 from .tests_shell import make_admin, make_staff, make_student
 
@@ -27,7 +27,7 @@ class RoleSwitchTests(TestCase):
     def test_switch_to_student_changes_menu_and_access(self):
         self.client.force_login(make_dual())
         r = self.client.post(SWITCH, {"role": STUDENT})
-        self.assertRedirects(r, reverse("coming_soon", args=[MENU[STUDENT][0].key]))
+        self.assertRedirects(r, home_url(STUDENT), fetch_redirect_response=False)
         r = self.client.get(reverse("accounts:profile"))
         self.assertEqual(r.status_code, 200)                       # หน้าของนักศึกษาเข้าได้
         self.assertEqual([m["key"] for m in r.context["nav_menu"]], [m.key for m in MENU[STUDENT]])

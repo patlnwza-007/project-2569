@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{# UC-05 ตะกร้า · mockup page-cart.html · ตรวจตัดหน้า (Anti-Snipe) ทุกครั้งที่เปิดหน้า #}
+
+{% block title %}ตะกร้าของฉัน · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="flex items-center justify-between mb-5">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">🛒 ตะกร้าของฉัน</h1>
+            <p class="text-sm text-gray-500 mt-0.5">ตรวจสอบรายการและจำนวนก่อนส่งคำขอยืม</p>
+        </div>
+        <a href="{% url 'catalog:item_list' %}" class="text-sm text-blue-600 hover:underline">+ เพิ่มสิ่งของ</a>
+    </div>
+
+    {% if mixed %}
+    <div id="p_cart_mix_warning" class="mb-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl p-3.5 text-sm flex items-start gap-2">
+        <span class="text-lg leading-none">ℹ️</span>
+        <div><p class="font-semibold">ตะกร้ามีทั้งวัสดุและครุภัณฑ์ปนกัน</p>
+        <p class="text-xs text-blue-600 mt-0.5">วัสดุ = เบิกไม่ต้องคืน · ครุภัณฑ์/วัสดุคงทน = ยืมต้องคืน กำหนดคืนแยกตามแต่ละชิ้น</p></div>
+    </div>
+    {% endif %}
+
+    <div id="p_cart_rows" class="space-y-3 mb-5">
+        {% for line, available, sniped in lines %}
+        {% with item=line.item %}
+        <div class="rounded-2xl border p-4 flex gap-4 {% if sniped %}bg-slate-100 border-2 border-red-300{% else %}bg-white border-gray-200 shadow-sm{% endif %}" data-line="{{ line.pk }}">
+            <div class="w-16 h-16 shrink-0 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden {% if sniped %}grayscale opacity-60{% endif %}">
+                {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{% include 'catalog/_no_image.html' %}{% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <a href="{% url 'catalog:item_detail' item.pk %}" class="font-semibold text-gray-900 hover:text-blue-600">{{ item.name }}</a>
+                        <div class="flex items-center gap-1.5 mt-1 flex-wrap text-[11px]">
+                            <span class="font-semibold px-1.5 py-0.5 rounded {% if item.is_equipment %}bg-indigo-50 text-indigo-700{% elif item.is_material %}bg-teal-50 text-teal-700{% else %}bg-sky-50 text-sky-800{% endif %}">{{ item.get_item_type_display }}</span>
+                            {% if item.is_equipment %}<span class="font-mono font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}
+                            {% if not item.is_material %}<span class="text-gray-500">⏱️ ยืมได้สูงสุด {{ item.detail.max_borrow_days }} วัน</span>{% endif %}
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'borrow:cart_remove' line.pk %}">{% csrf_token %}
+                        <button type="submit" class="text-gray-400 hover:text-red-600 text-lg" title="ลบออกจากตะกร้า">🗑️</button>
+                    </form>
+                </div>
+
+                {% if sniped %}
+                <div class="mt-2 text-xs font-bold text-red-700" data-sniped>🔴 {% if item.is_equipment %}ครุภัณฑ์นี้ถูกยืมไปแล้ว{% elif available %}คงเหลือเพียง {{ available }} {{ item.unit }}{% else %}สต็อกหมดแล้ว{% endif %}</div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                    {% if item.is_returnable and not available %}
+                        {% if queue_ready %}
+                        <form method="post" action="{% url 'borrow:queue_join' item.pk %}">{% csrf_token %}<input type="hidden" name="from_cart" value="{{ line.pk }}">
+                            <button type="submit" class="bg-amber-400 hover:bg-amber-500 text-amber-950 text-xs font-bold rounded-xl px-3 py-2">⏳ จองคิวแทน</button>
+                        </form>
+                        {% else %}
+                        <button disabled class="bg-amber-200 text-amber-800/60 text-xs font-bold rounded-xl px-3 py-2 cursor-not-allowed">⏳ จองคิวแทน · เปิดใช้เร็ว ๆ นี้</button>
+                        {% endif %}
+                    {% elif available %}
+                    <form method="post" action="{% url 'borrow:cart_update' line.pk %}">{% csrf_token %}<input type="hidden" name="qty" value="{{ available }}">
+                        <button type="submit" class="bg-white border border-gray-300 text-gray-800 text-xs font-bold rounded-xl px-3 py-2">ลดเหลือ {{ available }} {{ item.unit }}</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="mt-2 flex items-center justify-between gap-3">
+                    {% if item.is_equipment %}
+                    <span class="text-xs text-gray-500">จำนวน 1 ชิ้น (ครุภัณฑ์ระบุรหัสชิ้น)</span>
+                    {% else %}
+                    <form method="post" action="{% url 'borrow:cart_update' line.pk %}" class="flex items-center gap-2" x-data="{ qty: {{ line.qty }} }">
+                        {% csrf_token %}
+                        <div class="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                            <button type="button" @click="qty = Math.max(1, qty - 1); $nextTick(() => $el.form.requestSubmit())" class="w-8 h-8 text-gray-600 hover:bg-gray-100">−</button>
+                            <input type="number" name="qty" x-model.number="qty" min="1" max="{{ available }}" @change="$el.form.requestSubmit()" class="w-12 h-8 text-center font-mono font-bold text-sm border-x border-gray-300 focus:outline-none">
+                            <button type="button" @click="qty = Math.min({{ available }}, qty + 1); $nextTick(() => $el.form.requestSubmit())" class="w-8 h-8 text-gray-600 hover:bg-gray-100">+</button>
+                        </div>
+                        <span class="text-xs text-gray-500">{{ item.unit }} · คงเหลือในคลัง {{ available }}</span>
+                    </form>
+                    {% endif %}
+                    <span class="text-xs font-semibold text-emerald-700">✅ พร้อมยืม</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div id="p_cart_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+            <div class="text-4xl mb-2">🛒</div>
+            <p class="text-gray-600 font-semibold">ตะกร้ายังว่าง</p>
+            <a href="{% url 'catalog:item_list' %}" class="inline-block mt-3 text-sm text-blue-600 hover:underline">เลือกสิ่งของ →</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if lines %}
+    <div id="p_cart_footer" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        {% if sniped_count %}
+        <div id="p_cart_snipe_alert" class="mb-4 bg-red-50 border-2 border-red-300 text-red-900 rounded-2xl p-3.5 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <p class="font-bold">มีรายการในตะกร้าถูกยืมตัดหน้าหรือไม่พร้อมใช้งาน {{ sniped_count }} รายการ</p>
+                    <p class="text-xs text-red-700 mt-0.5">กรุณากด "จองคิวแทน" หรือนำออกจากตะกร้าก่อนกดยืนยันส่งคำขอ</p>
+                </div>
+            </div>
+            <form method="post" action="{% url 'borrow:cart_remove' 0 %}">{% csrf_token %}<input type="hidden" name="all_sniped" value="1">
+                <button type="submit" class="shrink-0 bg-white border border-red-300 hover:bg-red-100 text-red-800 text-xs font-bold px-3 py-2 rounded-xl">🗑️ ลบรายการที่หมดทั้งหมด</button>
+            </form>
+        </div>
+        {% endif %}
+        <div id="p_cart_summary" class="text-sm text-gray-600 mb-4 pb-3 border-b border-gray-100">
+            รวม <b class="text-gray-900">{{ lines|length }}</b> รายการ · <b class="text-gray-900">{{ total_qty }}</b> ชิ้น
+        </div>
+        <div class="flex items-center justify-between gap-3">
+            <a href="{% url 'catalog:item_list' %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">← เพิ่มสิ่งของ</a>
+            {% if sniped_count %}
+            <button id="p_cart_submit-btn" disabled class="bg-gray-300 text-white text-sm font-semibold rounded-xl px-6 py-2.5 cursor-not-allowed">ยืนยันส่งคำขอยืม →</button>
+            {% else %}
+            <a id="p_cart_submit-btn" href="{% url 'borrow:request_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 shadow-sm">ยืนยันส่งคำขอยืม →</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

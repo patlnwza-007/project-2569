@@ -93,6 +93,15 @@ MENU = {
 NAV_BY_KEY = {item.key: (role, item) for role, items in MENU.items() for item in items}
 
 
+def url_ready(name, *args):
+    """หน้านี้ทำแล้วหรือยัง (ใช้เปิดปุ่มที่ชี้ไปหน้าของ module อื่นเมื่อ module นั้นเสร็จ)"""
+    try:
+        reverse(name, args=args)
+        return True
+    except NoReverseMatch:
+        return False
+
+
 def item_url(item):
     """URL ของหน้าจริง ถ้ายังไม่มีให้ชี้หน้า 'ยังไม่เปิดใช้งาน'"""
     try:
@@ -110,10 +119,14 @@ def build_menu(role, ubu_user, current_path):
     entries = []
     for item in MENU.get(role, []):
         url, ready = item_url(item)
-        active = current_path == url or (ready and url != "/" and current_path.startswith(url))
         badge = item.badge(ubu_user) if item.badge else 0
         entries.append({
             "key": item.key, "label": item.label, "icon": item.icon,
-            "url": url, "ready": ready, "active": active, "badge": badge,
+            "url": url, "ready": ready, "active": False, "badge": badge,
         })
+    # เมนูที่ตรงที่สุดเท่านั้นที่ active (เช่น /borrow/cart/ → "ตะกร้า" ไม่ใช่ "หน้าหลัก" /borrow/)
+    matches = [e for e in entries if current_path == e["url"]
+               or (e["ready"] and e["url"] != "/" and current_path.startswith(e["url"]))]
+    if matches:
+        max(matches, key=lambda e: len(e["url"]))["active"] = True
     return entries

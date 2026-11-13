@@ -2,12 +2,12 @@
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, render
-from django.urls import NoReverseMatch, reverse
 
-from accounts.navigation import NAV_BY_KEY, _cart_qty, item_url
+from accounts.navigation import NAV_BY_KEY, _cart_qty, item_url, url_ready
 from accounts.permissions import role_required
 from accounts.roles import STAFF, STUDENT, get_role, get_ubu_user
 from borrow.models import BorrowItem, BorrowRequest
+from borrow.services import cart_qty_map
 from evaluation.models import Review
 
 from .models import Item
@@ -27,17 +27,13 @@ SORT_LABELS = {
 }
 
 
-def _url_or_none(name):
-    """ปุ่มตะกร้า/คิวกดได้เมื่อ M3 สร้าง URL แล้ว (ตัดสินใจ M2 ข้อ 4)"""
-    try:
-        reverse(name, args=[0])
-        return True
-    except NoReverseMatch:
-        return False
-
-
-def _borrow_actions_ready():
-    return {"cart_ready": _url_or_none("borrow:cart_add"), "queue_ready": _url_or_none("borrow:queue_join")}
+def _borrow_actions_ready(request=None):
+    """ปุ่มตะกร้า/คิวกดได้เมื่อ M3 สร้าง URL แล้ว (ตัดสินใจ M2 ข้อ 4) + จำนวนในตะกร้าต่อสิ่งของ"""
+    ctx = {"cart_ready": url_ready("borrow:cart_add", 0), "queue_ready": url_ready("borrow:queue_join", 0)}
+    ubu = get_ubu_user(request.user) if request else None
+    if ubu and ubu.is_student and get_role(request.user) == STUDENT:
+        ctx["cart_map"] = cart_qty_map(ubu.student)
+    return ctx
 
 
 @role_required(STUDENT)
@@ -65,7 +61,7 @@ def item_list_view(request):
         "page_query": keep.urlencode(),
         "cart_qty": _cart_qty(get_ubu_user(request.user)),
         "cart_url": item_url(NAV_BY_KEY["cart"][1])[0],
-        **_borrow_actions_ready(),
+        **_borrow_actions_ready(request),
     })
 
 
@@ -100,5 +96,5 @@ def item_detail_view(request, pk):
         )
     back_key = "item-list" if role == STUDENT else "item-overview"
     ctx["back_url"] = item_url(NAV_BY_KEY[back_key][1])[0]
-    ctx.update(_borrow_actions_ready())
+    ctx.update(_borrow_actions_ready(request))
     return render(request, "catalog/item_detail.html", ctx)

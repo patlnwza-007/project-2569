@@ -10,7 +10,7 @@ from catalog.models import Item
 from catalog.services import create_item
 
 from .models import Staff, Student, UbuUser
-from .navigation import MENU
+from .navigation import MENU, home_url
 from .permissions import RoleRequiredMixin, role_required
 from .roles import ADMIN, STAFF, STUDENT
 
@@ -47,7 +47,7 @@ class HomeRedirectTests(TestCase):
             with self.subTest(role=role):
                 self.client.force_login(maker())
                 r = self.client.get("/")
-                self.assertRedirects(r, reverse("coming_soon", args=[MENU[role][0].key]))
+                self.assertRedirects(r, home_url(role), fetch_redirect_response=False)
 
     def test_user_without_role_gets_403(self):
         self.client.force_login(User.objects.create_user("norole"))
@@ -76,7 +76,7 @@ class MenuTests(TestCase):
 
     def test_active_menu_is_marked(self):
         self.client.force_login(make_student())
-        r = self.client.get(reverse("coming_soon", args=["cart"]))
+        r = self.client.get(reverse("borrow:cart"))
         active = [m["key"] for m in r.context["nav_menu"] if m["active"]]
         self.assertEqual(active, ["cart"])
 

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{# UC-06 ส่งคำขอยืม · mockup page-request-form.html · ไม่มีช่องเหตุผล #}
+
+{% block title %}ยืนยันส่งคำขอยืม · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto" x-data="{ special: {{ form.is_special.value|yesno:'true,false' }} }">
+    <a href="{% url 'borrow:cart' %}" class="text-sm text-gray-500 hover:text-blue-600">← กลับไปตะกร้า</a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2 mb-1">ยืนยันส่งคำขอยืม</h1>
+    <p class="text-sm text-gray-500 mb-5">ตรวจสอบรายการ แล้วนำสิ่งของไปวางที่หน้าเคาน์เตอร์ก่อนกดยืนยัน</p>
+
+    <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-3.5 text-sm flex gap-2">
+        <span class="text-lg leading-none">📍</span>
+        <p>หลังส่งคำขอ เจ้าหน้าที่จะตรวจของจริงที่เคาน์เตอร์และปล่อยของให้ทันที · สิ่งของในคำขอจะถูกจองไว้ให้คุณ</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" novalidate class="space-y-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="border border-red-300 bg-red-50 text-red-700 text-sm rounded-xl p-3">{% for e in form.non_field_errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100">
+            {% for line, available, sniped in lines %}
+            {% with item=line.item %}
+            <div class="p-4 flex flex-col sm:flex-row sm:items-center gap-3" data-line="{{ line.pk }}">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="w-12 h-12 shrink-0 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">
+                        {% if item.image %}<img src="{{ item.image.url }}" alt="" class="w-full h-full object-cover">{% else %}{% include 'catalog/_no_image.html' with icon='text-sm' label='text-[8px]' %}{% endif %}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="font-semibold text-gray-900 text-sm">{{ item.name }}</p>
+                        <p class="text-xs text-gray-500">{{ item.get_item_type_display }}{% if item.is_equipment %} · <span class="font-mono font-bold text-blue-900">{{ item.equipment.asset_tag }}</span>{% endif %} · {{ line.qty }} {{ item.unit }}</p>
+                    </div>
+                </div>
+                <label class="text-xs text-gray-600 sm:w-56">
+                    <span class="block mb-1">📷 รูปสภาพก่อนยืม <span class="text-gray-400">(ไม่บังคับ)</span></span>
+                    <input type="file" name="photo_{{ line.pk }}" accept="image/*" capture="environment" class="block w-full text-xs">
+                </label>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                <input type="checkbox" name="is_special" x-model="special" {% if form.is_special.value %}checked{% endif %} class="rounded border-gray-300 text-blue-600">
+                {{ form.is_special.label }}
+            </label>
+            <p class="text-xs text-gray-500 -mt-1">สำหรับยืมนานกว่าปกติ เช่น ทำโครงงาน/วิจัย · ไม่ต้องกรอกเหตุผล</p>
+            <div x-show="special" x-cloak>
+                <label for="id_custom_due_date" class="block text-xs font-semibold text-gray-700 mb-1">{{ form.custom_due_date.label }} <span class="text-red-500">*</span></label>
+                <input type="date" name="custom_due_date" id="id_custom_due_date" value="{{ form.custom_due_date.value|default:'' }}" :disabled="!special"
+                       class="border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                {% for e in form.custom_due_date.errors %}<p class="text-xs text-red-600 mt-1 font-medium">⚠️ {{ e }}</p>{% endfor %}
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-3">
+            <a href="{% url 'borrow:cart' %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">← แก้ไขตะกร้า</a>
+            <button type="submit" id="p_request_submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 shadow-sm">✓ ยืนยันส่งคำขอ</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

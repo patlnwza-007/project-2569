@@ -22,3 +22,9 @@ def query_with(page_query, **kwargs):
         else:
             qd[k] = v
     return qd.urlencode()
+
+
+@register.filter
+def dict_get(mapping, key):
+    """{{ cart_map|dict_get:item.pk }} → จำนวนในตะกร้า (0 ถ้าไม่มี)"""
+    return (mapping or {}).get(key, 0)

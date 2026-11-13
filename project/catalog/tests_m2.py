@@ -101,18 +101,17 @@ class ItemListTests(CatalogFixture):
         self.assertEqual(len(self.keys(r)), 24)
         self.assertEqual(len(self.keys(self.client.get(LIST + "?page=2"))), 31 - 24)
 
-    def test_buttons_follow_status_and_wait_for_m3(self):
-        """ตัดสินใจ M2 ข้อ 4: ปุ่มตามสถานะ แต่ยังกดไม่ได้จนกว่า M3"""
+    def test_buttons_follow_status(self):
+        """ตัดสินใจ M2 ข้อ 4 — ปุ่มตามสถานะ (ตะกร้าเปิดใช้แล้วใน M3 รอบ 3a)"""
         r = self.client.get(LIST)
-        self.assertContains(r, "ยืมชิ้นนี้ · เปิดใช้เร็ว ๆ นี้")
-        self.assertContains(r, "จองคิว · เปิดใช้เร็ว ๆ นี้")
+        self.assertContains(r, "+ ยืมชิ้นนี้")
         self.assertContains(r, "วัสดุหมดคลัง (ไม่ต้องคืน)")   # วัสดุสิ้นเปลืองหมด → จองคิวไม่ได้
         self.assertContains(r, "ไม่พร้อมให้บริการ")
 
     def test_no_image_placeholder(self):
         """สิ่งของที่ไม่มีรูป → ขึ้นว่า "ไม่มีรูป" (ผู้ใช้เลือก ข.) ไม่ใช้อิโมจิตามประเภท"""
         r = self.client.get(LIST)
-        self.assertContains(r, "data-no-image", count=6)
+        self.assertGreaterEqual(r.content.decode().count("data-no-image"), 6)  # การ์ด 6 ใบ + popup
         self.assertContains(r, "ไม่มีรูป")
         self.assertNotContains(r, "📽️")
 
