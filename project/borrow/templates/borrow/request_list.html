@@ -91,11 +91,16 @@
             </div>
             {% endif %}
 
-            {% if r.status == 'PENDING' or card.can_return %}
+            {% if r.status == 'PENDING' or card.can_return or card.pending_return %}
             <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-end gap-2">
                 {% if r.status == 'PENDING' %}
                 <form method="post" action="{% url 'borrow:request_cancel' r.pk %}" onsubmit="return confirm('ยกเลิกคำขอ #{{ r.pk }}?')">{% csrf_token %}
                     <button type="submit" class="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl px-4 py-2">ยกเลิกคำขอ</button>
+                </form>
+                {% endif %}
+                {% if card.pending_return and not card.pending_return.inspected_by_id %}
+                <form method="post" action="{% url 'borrow:return_cancel' card.pending_return.pk %}" onsubmit="return confirm('ยกเลิกการแจ้งคืน? สถานะจะกลับเป็นกำลังยืม')">{% csrf_token %}
+                    <button type="submit" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-semibold rounded-xl px-4 py-2">ยกเลิกการแจ้งคืน</button>
                 </form>
                 {% endif %}
                 {% if card.can_return %}

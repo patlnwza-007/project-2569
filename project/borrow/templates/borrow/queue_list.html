@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{# UC-10 คิวของฉัน · mockup page-queue-list.html · แจ้งเตือนบนหน้าเว็บ (ตัดสินใจ M3 ข้อ 5) #}
+
+{% block title %}คิวของฉัน · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-900">⏳ คิวของฉัน</h1>
+    <p class="text-sm text-gray-500 mt-0.5 mb-5">ติดตามลำดับคิวและวันที่คาดว่าจะได้ยืม · เมื่อถึงคิวต้องกดยืนยันรับสิทธิ์ภายใน 1 วัน</p>
+
+    <div class="space-y-3">
+        {% for row in active %}
+        {% with q=row.q item=row.q.item %}
+        <div class="rounded-2xl border p-4 {% if q.status == 'NOTIFIED' %}bg-emerald-50 border-emerald-300 border-2{% else %}bg-white border-gray-200 shadow-sm{% endif %}" data-queue="{{ q.pk }}">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <a href="{% url 'catalog:item_detail' item.pk %}" class="font-semibold text-gray-900 hover:text-blue-600">{{ item.name }}</a>
+                    <div class="flex items-center gap-1.5 mt-1 flex-wrap text-[11px]">
+                        <span class="font-semibold px-1.5 py-0.5 rounded {% if item.is_equipment %}bg-indigo-50 text-indigo-700{% else %}bg-sky-50 text-sky-800{% endif %}">{% if item.is_equipment %}คิวรายชิ้น{% else %}คิวรวม (วัสดุคงทน){% endif %}</span>
+                        {% if item.is_equipment %}<span class="font-mono font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}
+                        <span class="text-gray-400">เข้าคิว {{ q.joined_at|date:"j M Y H:i" }}</span>
+                    </div>
+                </div>
+                {% if row.pos %}<div class="text-center shrink-0"><div class="text-2xl font-black text-amber-600 font-mono">#{{ row.pos }}</div><div class="text-[10px] text-gray-400">ลำดับคิว</div></div>{% endif %}
+            </div>
+
+            {% if q.status == 'NOTIFIED' %}
+            <div id="p_queue_notified" class="mt-3 text-sm text-emerald-900">
+                🎉 <b>ถึงคิวของคุณแล้ว!</b> กรุณายืนยันรับสิทธิ์ภายใน {{ q.expired_at|date:"j M Y H:i" }}
+            </div>
+            <div class="mt-3 flex gap-2">
+                <form method="post" action="{% url 'borrow:queue_action' q.pk 'confirm' %}">{% csrf_token %}
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl px-4 py-2">✓ ยืนยันรับสิทธิ์</button>
+                </form>
+                <form method="post" action="{% url 'borrow:queue_action' q.pk 'leave' %}">{% csrf_token %}
+                    <button type="submit" class="bg-white border border-gray-300 text-gray-700 text-xs font-semibold rounded-xl px-4 py-2">สละสิทธิ์ / ออกจากคิว</button>
+                </form>
+            </div>
+            {% elif q.status == 'CONFIRMED' %}
+            <div class="mt-3 text-sm text-blue-900 bg-blue-50 border border-blue-200 rounded-xl p-3">✅ ยืนยันรับสิทธิ์แล้วเมื่อ {{ q.confirmed_at|date:"j M Y H:i" }} · ใส่ตะกร้าแล้วส่งคำขอยืมได้เลย</div>
+            <div class="mt-2 flex gap-2">
+                <a href="{% url 'catalog:item_detail' item.pk %}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl px-4 py-2">ไปยืมเลย →</a>
+                <form method="post" action="{% url 'borrow:queue_action' q.pk 'leave' %}">{% csrf_token %}
+                    <button type="submit" class="bg-white border border-gray-300 text-gray-700 text-xs font-semibold rounded-xl px-4 py-2">ออกจากคิว</button>
+                </form>
+            </div>
+            {% else %}
+            <div class="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm" data-estimate>
+                <p class="font-semibold text-amber-900">📅 คาดว่าจะได้ยืม: {% if row.date %}{{ row.date|date:"j M Y" }}{% else %}ยังประเมินไม่ได้{% endif %}</p>
+                <p class="text-xs text-amber-800 mt-0.5">{{ row.note }}</p>
+            </div>
+            <form method="post" action="{% url 'borrow:queue_action' q.pk 'leave' %}" class="mt-2 text-right" onsubmit="return confirm('ออกจากคิวนี้?')">{% csrf_token %}
+                <button type="submit" class="text-xs text-red-600 hover:underline">ออกจากคิว</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div id="p_queue_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+            <div class="text-4xl mb-2">⏳</div>
+            <p class="text-gray-600 font-semibold">ยังไม่มีคิวที่จองไว้</p>
+            <p class="text-xs text-gray-400 mt-1">จองคิวได้จากหน้ารายการสิ่งของ เมื่อครุภัณฑ์ถูกยืมอยู่หรือวัสดุคงทนหมด</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if past %}
+    <h2 class="text-sm font-bold text-gray-500 mt-8 mb-2">คิวที่ผ่านมา</h2>
+    <div class="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 text-sm">
+        {% for q in past %}
+        <div class="px-4 py-2.5 flex items-center justify-between">
+            <span class="text-gray-700">{{ q.item }}</span>
+            <span class="text-xs text-gray-400">{{ q.get_status_display }} · {{ q.joined_at|date:"j M Y" }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

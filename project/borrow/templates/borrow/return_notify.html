@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load humanize %}
+{# UC-08 แจ้งคืน · mockup page-notify-return.html · คืนบางส่วนได้ · รูปหลักฐานบังคับ #}
+
+{% block title %}แจ้งคืนสิ่งของ · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <a href="{% url 'borrow:request_list' %}" class="text-sm text-gray-500 hover:text-blue-600">← กลับไปคำขอของฉัน</a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2 mb-1">↩️ แจ้งคืนสิ่งของ · คำขอ #{{ req.pk }}</h1>
+    <p class="text-sm text-gray-500 mb-5">เลือกเฉพาะชิ้นที่จะนำมาคืนรอบนี้ ชิ้นที่ยังใช้งานต่อไม่ต้องติ๊ก · วัสดุสิ้นเปลืองไม่ต้องคืน</p>
+
+    {% if pending %}
+    <div id="p_notify_pending" class="bg-purple-50 border border-purple-200 text-purple-900 rounded-2xl p-4 text-sm">
+        มีการแจ้งคืนที่รอเจ้าหน้าที่ตรวจรับอยู่แล้ว (แจ้งเมื่อ {{ pending.created_at|date:"j M Y H:i" }}) · แจ้งคืนรอบใหม่ได้หลังเจ้าหน้าที่ตรวจรับรอบนี้
+    </div>
+    {% else %}
+    <form method="post" enctype="multipart/form-data" novalidate class="space-y-4"
+          x-data="{ picked: {}, toggleAll(on) { document.querySelectorAll('[data-pick]').forEach(c => { c.checked = on; this.picked[c.value] = on }) } }">
+        {% csrf_token %}
+        {% if errors %}
+        <div id="p_notify_errors" class="border border-red-300 bg-red-50 text-red-700 text-sm rounded-xl p-3 space-y-1">
+            {% for k, v in errors.items %}<p>⚠️ {{ v }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <span class="text-sm font-semibold text-gray-700">รายการที่ต้องคืน ({{ lines|length }})</span>
+                <label class="text-xs font-semibold text-blue-700 flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" @change="toggleAll($event.target.checked)" class="rounded border-gray-300 text-blue-600"> ✓ เลือกทั้งหมด
+                </label>
+            </div>
+            <div class="divide-y divide-gray-100">
+                {% for bi, left in lines %}
+                {% with item=bi.item key=bi.pk|stringformat:"d" %}
+                <div class="p-4" x-data="{ cond: 'NORMAL' }">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="pick_{{ bi.pk }}" value="{{ bi.pk }}" data-pick x-model="picked['{{ bi.pk }}']" class="mt-1 rounded border-gray-300 text-blue-600">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-gray-900 text-sm">{{ item.name }}
+                                {% if item.is_equipment %}<span class="ml-1 font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">กำลังยืม {{ left }} {{ item.unit }}{% if bi.due_date %} · กำหนดคืน {{ bi.due_date|date:"j M Y" }}{% endif %}{% if item.purchase_price %} · ราคาจัดซื้อ ฿{{ item.purchase_price|floatformat:2|intcomma }}{% endif %}</p>
+                            {% if bi.initial_photo %}<a href="{{ bi.initial_photo.url }}" target="_blank" class="text-xs text-blue-600 hover:underline">📷 ดูรูปสภาพตอนยืม</a>{% endif %}
+                        </div>
+                    </label>
+                    <div x-show="picked['{{ bi.pk }}']" x-cloak class="mt-3 ml-7 space-y-2">
+                        {% if not item.is_equipment and left > 1 %}
+                        <label class="text-xs text-gray-600 flex items-center gap-2">จำนวนที่คืนรอบนี้
+                            <input type="number" name="qty_{{ bi.pk }}" min="1" max="{{ left }}" value="{{ left }}" class="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm">
+                            <span>/ {{ left }} {{ item.unit }}</span>
+                        </label>
+                        {% else %}<input type="hidden" name="qty_{{ bi.pk }}" value="{{ left }}">{% endif %}
+                        <div class="flex flex-wrap gap-2">
+                            {% for value, label in conditions %}
+                            <label class="text-xs border rounded-xl px-3 py-1.5 cursor-pointer" :class="cond === '{{ value }}' ? 'border-blue-500 bg-blue-50 font-semibold' : 'border-gray-200'">
+                                <input type="radio" name="cond_{{ bi.pk }}" value="{{ value }}" x-model="cond" class="sr-only" {% if value == 'NORMAL' %}checked{% endif %}>
+                                {% if value == 'NORMAL' %}✅ สภาพปกติ{% elif value == 'DAMAGED' %}⚠️ ชำรุด/มีตำหนิ{% else %}🔴 สูญหาย{% endif %}
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <div x-show="cond !== 'NORMAL'" x-cloak>
+                            <input name="desc_{{ bi.pk }}" maxlength="300" placeholder="อธิบายอาการชำรุด / สาเหตุที่สูญหาย" class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs">
+                            <p x-show="cond === 'LOST'" class="text-[11px] text-red-600 mt-1">อาจต้องชดใช้ตามราคาจัดซื้อ{% if item.purchase_price %} (ประมาณ ฿{{ item.purchase_price|floatformat:2|intcomma }}){% endif %} · เจ้าหน้าที่จะแจ้งยอดตอนตรวจรับ</p>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
+            <label class="block">
+                <span class="block text-xs font-semibold text-gray-700 mb-1">📷 รูปหลักฐานสภาพสิ่งของ ณ วันคืน <span class="text-red-500">*</span></span>
+                <input type="file" name="return_photo" accept="image/*" capture="environment" class="block w-full text-sm">
+            </label>
+            <label class="block">
+                <span class="block text-xs font-semibold text-gray-700 mb-1">หมายเหตุเพิ่มเติม <span class="font-normal text-gray-400">(ไม่บังคับ)</span></span>
+                <textarea name="note" rows="2" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">{{ post.note }}</textarea>
+            </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2">
+            <a href="{% url 'borrow:request_list' %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">ยกเลิก</a>
+            <button type="submit" id="p_notify_submit" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5">↩️ ยืนยันแจ้งคืน</button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

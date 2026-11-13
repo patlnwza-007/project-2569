@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models import Prefetch, Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -153,6 +154,7 @@ def request_list_view(request):
             "req": r, "rows": rows, "single_type": items[0].item.get_item_type_display() if len(types) == 1 and items else "",
             "fine": r.total_fine, "lost": sum(ri.lost_compensation for rr in r.return_requests.all() for ri in rr.items.all()),
             "can_return": r.status == BorrowRequest.Status.BORROWING and any(row["outstanding"] > 0 for row in rows),
+            "pending_return": services.pending_return(r) if r.status == BorrowRequest.Status.RETURN_PENDING else None,
         })
     queues = Queue.objects.filter(student=student, status__in=[Queue.Status.WAITING, Queue.Status.NOTIFIED]) \
         .select_related("item", "item__equipment")
@@ -190,3 +192,162 @@ def relocate_view(request, pk):
     else:
         messages.success(request, f"บันทึกที่ตั้งใหม่ของ \"{bi.item}\" แล้ว")
     return redirect("borrow:request_list")
+
+
+# =============================================================================
+# รอบ 3b — UC-08 แจ้งคืน, UC-10 คิว, UC-11 ประวัติ, UC-38 แจ้งชำรุด
+# =============================================================================
+from .models import DamageReport, ReturnItem, ReturnRequest  # noqa: E402
+
+
+@role_required(STUDENT)
+def return_notify_view(request, pk):
+    """UC-08 (ReturnNotifyView) · ติ๊กเลือกชิ้นที่คืน + สภาพต่อชิ้น + รูปหลักฐาน (บังคับ)"""
+    student = _student(request)
+    req = get_object_or_404(BorrowRequest, pk=pk, student=student)
+    pending = services.pending_return(req)
+    lines = services.returnable_lines(req) if not pending else []
+    errors = {}
+    if request.method == "POST" and not pending:
+        selections = []
+        for bi, left in lines:
+            if request.POST.get(f"pick_{bi.pk}"):
+                selections.append((bi.pk, request.POST.get(f"qty_{bi.pk}", left),
+                                   request.POST.get(f"cond_{bi.pk}", ""), request.POST.get(f"desc_{bi.pk}", "")))
+        try:
+            services.notify_return(student, req, selections, request.FILES.get("return_photo"),
+                                   request.POST.get("note", ""))
+        except (ValidationError, ValueError) as err:
+            if isinstance(err, ValidationError) and hasattr(err, "error_dict"):
+                errors = {k: v[0] for k, v in err.message_dict.items()}
+            else:
+                errors = {"__all__": err.messages[0] if isinstance(err, ValidationError) else "จำนวนไม่ถูกต้อง"}
+        else:
+            messages.success(request, f"แจ้งคืนคำขอ #{req.pk} แล้ว กรุณานำสิ่งของไปแสดงที่เคาน์เตอร์")
+            return redirect("borrow:request_list")
+    elif request.method == "GET" and req.status != BorrowRequest.Status.BORROWING and not pending:
+        messages.error(request, f"แจ้งคืนไม่ได้ เพราะคำขอนี้อยู่ในสถานะ \"{req.get_status_display()}\"")
+        return redirect("borrow:request_list")
+    return render(request, "borrow/return_notify.html", {
+        "req": req, "lines": lines, "pending": pending, "errors": errors, "post": request.POST,
+        "conditions": ReturnItem.Condition.choices,
+    })
+
+
+@require_POST
+@role_required(STUDENT)
+def return_cancel_view(request, pk):
+    rr = get_object_or_404(ReturnRequest, pk=pk, borrow_request__student=_student(request))
+    try:
+        services.cancel_return(_student(request), rr)
+    except ValidationError as err:
+        messages.error(request, _first_error(err))
+    else:
+        messages.success(request, "ยกเลิกการแจ้งคืนแล้ว สถานะกลับเป็นกำลังยืม")
+    return redirect("borrow:request_list")
+
+
+@require_POST
+@role_required(STUDENT)
+def queue_join_view(request, item_id):
+    """UC-10 (QueueJoinView) · จากหน้ารายการ/รายละเอียด หรือ "จองคิวแทน" ในตะกร้า"""
+    student = _student(request)
+    item = get_object_or_404(Item, pk=item_id)
+    try:
+        q = services.join_queue(student, item)
+    except ValidationError as err:
+        messages.error(request, _first_error(err))
+        return _back(request, "catalog:item_list")
+    if request.POST.get("from_cart"):
+        CartItem.objects.filter(pk=request.POST["from_cart"], cart__student=student).delete()
+    pos = services.queue_position(q)
+    date, note = services.estimate_available(q, pos)
+    when = f" · คาดว่าจะได้ยืมประมาณ {date:%d/%m/%Y}" if date else ""
+    messages.success(request, f"จองคิว \"{q.item}\" แล้ว คุณอยู่ลำดับที่ {pos}{when}")
+    return redirect("borrow:queue_list")
+
+
+@role_required(STUDENT)
+def queue_list_view(request):
+    """UC-10 (QueueListView) · คิวที่หมดเวลาจะ EXPIRED และเลื่อนคิวถัดไปทุกครั้งที่เปิดหน้า"""
+    services.expire_and_advance()
+    student = _student(request)
+    qs = Queue.objects.filter(student=student).select_related("item", "item__equipment", "item__durablematerial") \
+        .order_by("-joined_at")
+    active, past = [], []
+    for q in qs:
+        if q.status in services.ACTIVE_QUEUE + (Queue.Status.CONFIRMED,):
+            pos = services.queue_position(q) if q.status != Queue.Status.CONFIRMED else None
+            date, note = services.estimate_available(q, pos) if q.status == Queue.Status.WAITING else (None, "")
+            active.append({"q": q, "pos": pos, "date": date, "note": note})
+        else:
+            past.append(q)
+    return render(request, "borrow/queue_list.html", {"active": active, "past": past[:20]})
+
+
+@require_POST
+@role_required(STUDENT)
+def queue_action_view(request, pk, action):
+    if action not in ("confirm", "leave"):
+        raise Http404
+    q = get_object_or_404(Queue, pk=pk, student=_student(request))
+    try:
+        if action == "confirm":
+            services.confirm_queue(_student(request), q)
+            messages.success(request, f"ยืนยันรับสิทธิ์คิว \"{q.item}\" แล้ว กรุณามายืมที่เคาน์เตอร์")
+        else:
+            services.leave_queue(_student(request), q)
+            messages.success(request, f"ออกจากคิว \"{q.item}\" แล้ว")
+    except ValidationError as err:
+        messages.error(request, _first_error(err))
+    return redirect("borrow:queue_list")
+
+
+@role_required(STUDENT)
+def history_view(request):
+    """UC-11 (BorrowHistoryListView) · คำขอที่จบแล้ว + สถานะการประเมินรายชิ้น"""
+    student = _student(request)
+    items_qs = BorrowItem.objects.select_related("item", "item__equipment", "review", "borrow_request")
+    status = request.GET.get("status", "")
+    reqs = BorrowRequest.objects.filter(student=student, status__in=services.FINISHED) \
+        .prefetch_related(Prefetch("items", queryset=items_qs)).order_by("-created_at")
+    if status in services.FINISHED:
+        reqs = reqs.filter(status=status)
+    rows = []
+    for r in reqs:
+        items = list(r.items.all())
+        reviewable = [bi for bi in items if services.is_reviewable(bi)]
+        done = [bi for bi in reviewable if hasattr(bi, "review")]
+        returned_at = r.return_requests.filter(status=ReturnRequest.Status.RETURNED).order_by("-returned_at") \
+            .values_list("returned_at", flat=True).first()
+        rows.append({"req": r, "items": items, "reviewable": {bi.pk for bi in reviewable},
+                     "reviewed": len(done), "review_total": len(reviewable), "returned_at": returned_at})
+    return render(request, "borrow/history.html", {
+        "rows": rows, "status": status, "has_any": BorrowRequest.objects.filter(student=student).exists(),
+        "status_choices": [(s, BorrowRequest.Status(s).label) for s in services.FINISHED],
+        "evaluate_ready": url_ready("evaluation:evaluate"),
+    })
+
+
+@role_required(STUDENT)
+def report_damage_view(request):
+    """UC-38 (ReportDamageCreateView) · อุปกรณ์ประจำห้อง หรือครุภัณฑ์ในระบบ"""
+    student = _student(request)
+    errors = {}
+    if request.method == "POST":
+        try:
+            r = services.report_damage(
+                student, request.POST.get("kind"), request.POST.get("symptom"), request.POST.get("location"),
+                request.POST.get("item_name"), request.POST.get("asset_tag"), request.FILES.get("photo"))
+        except ValidationError as err:
+            errors = {k: v[0] for k, v in err.message_dict.items()}
+        else:
+            messages.success(request, f"ส่งเรื่องแจ้งซ่อม #{r.pk} แล้ว เจ้าหน้าที่จะตรวจสอบโดยเร็ว")
+            return redirect("borrow:report_damage")
+    from catalog.models import Equipment
+    return render(request, "borrow/report_damage.html", {
+        "errors": errors, "post": request.POST, "kind": request.POST.get("kind", services.ROOM),
+        "reports": DamageReport.objects.filter(student=student).select_related("item")[:30],
+        "asset_tags": Equipment.objects.exclude(status__in=[Equipment.Status.RETIRED, Equipment.Status.LOST])
+                                       .select_related("item").order_by("asset_tag")[:500],
+    })

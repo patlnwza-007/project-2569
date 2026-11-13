@@ -247,3 +247,241 @@ def relocate(student, borrow_item, location):
     borrow_item.current_location = location[:200]
     borrow_item.moved_at = timezone.now()
     borrow_item.save(update_fields=["current_location", "moved_at"])
+
+
+# =============================================================================
+# M3 รอบ 3b · แจ้งคืน (UC-08) · คิว (UC-10) · ประวัติ (UC-11) · แจ้งชำรุด (UC-38)
+# =============================================================================
+from .models import DamageReport, Queue, ReturnItem, ReturnRequest  # noqa: E402
+
+CONDITION_LABEL = dict(ReturnItem.Condition.choices)
+FINISHED = (BorrowRequest.Status.RETURNED, BorrowRequest.Status.ISSUED, BorrowRequest.Status.REJECTED,
+            BorrowRequest.Status.CANCELLED, BorrowRequest.Status.EXPIRED)
+ACTIVE_QUEUE = (Queue.Status.WAITING, Queue.Status.NOTIFIED)
+
+
+# ---- UC-08 แจ้งคืน -----------------------------------------------------------
+def returnable_lines(borrow_request):
+    """รายการที่ยังต้องคืนในคำขอ: [(borrow_item, outstanding_qty)]"""
+    out = []
+    for bi in borrow_request.items.select_related("item", "item__equipment", "item__durablematerial"):
+        if bi.item.is_returnable and bi.qty_outstanding > 0:
+            out.append((bi, bi.qty_outstanding))
+    return out
+
+
+def pending_return(borrow_request):
+    return borrow_request.return_requests.filter(status=ReturnRequest.Status.RETURN_PENDING).first()
+
+
+@transaction.atomic
+def notify_return(student, borrow_request, selections, photo, note=""):
+    """UC-08: แจ้งคืนบางส่วน/ทั้งหมด → RETURN_PENDING
+
+    selections = [(borrow_item_id, qty, condition, description)]
+    ตัดสินใจ M3 ข้อ 7: แจ้งรอบใหม่ได้เมื่อรอบก่อนตรวจรับแล้วเท่านั้น · ข้อ 8: อาการ/สาเหตุ รวมเก็บใน note
+    """
+    req = BorrowRequest.objects.select_for_update().get(pk=borrow_request.pk)
+    if req.student_id != student.pk:
+        raise ValidationError("ไม่พบคำขอนี้")
+    if req.status != BorrowRequest.Status.BORROWING:
+        raise ValidationError(f"แจ้งคืนไม่ได้ เพราะคำขอนี้อยู่ในสถานะ \"{req.get_status_display()}\"")
+    if pending_return(req):
+        raise ValidationError("มีการแจ้งคืนที่รอเจ้าหน้าที่ตรวจรับอยู่แล้ว")
+    if not selections:
+        raise ValidationError({"selection": "กรุณาเลือกสิ่งของที่จะคืนอย่างน้อย 1 รายการ"})
+    if not photo:
+        raise ValidationError({"return_photo": "กรุณาแนบรูปหลักฐานสภาพสิ่งของ ณ วันคืน"})
+
+    outstanding = {bi.pk: (bi, qty) for bi, qty in returnable_lines(req)}
+    notes = []
+    rr = ReturnRequest.objects.create(borrow_request=req, status=ReturnRequest.Status.RETURN_PENDING,
+                                      return_photo=photo)
+    for bi_id, qty, condition, desc in selections:
+        if bi_id not in outstanding:
+            raise ValidationError("มีรายการที่เลือกคืนไม่ได้")
+        bi, left = outstanding[bi_id]
+        qty = int(qty)
+        if qty < 1 or qty > left:
+            raise ValidationError({"selection": f"\"{bi.item}\" คืนได้ 1–{left} {bi.item.unit}"})
+        if condition not in CONDITION_LABEL:
+            raise ValidationError({"selection": "กรุณาเลือกสภาพของสิ่งของที่คืน"})
+        ReturnItem.objects.create(return_request=rr, borrow_item=bi, qty_returned=qty, condition_status=condition)
+        if bi.item.is_equipment:
+            Equipment.objects.filter(pk=bi.item_id).update(status=Equipment.Status.RETURN_PENDING)
+        desc = (desc or "").strip()
+        if condition != ReturnItem.Condition.NORMAL:
+            tag = bi.item.equipment.asset_tag if bi.item.is_equipment else bi.item.name
+            notes.append(f"{tag} ({CONDITION_LABEL[condition]}): {desc or '-'}")
+    if (note or "").strip():
+        notes.append(note.strip())
+    rr.note = "\n".join(notes)
+    rr.save(update_fields=["note"])
+    req.status = BorrowRequest.Status.RETURN_PENDING
+    req.save(update_fields=["status"])
+    return rr
+
+
+@transaction.atomic
+def cancel_return(student, return_request):
+    """UC-08 Alternative: ยกเลิกการแจ้งคืน (ยังไม่ตรวจรับ) → กลับเป็นกำลังยืม"""
+    rr = ReturnRequest.objects.select_for_update().select_related("borrow_request").get(pk=return_request.pk)
+    req = rr.borrow_request
+    if req.student_id != student.pk:
+        raise ValidationError("ไม่พบการแจ้งคืนนี้")
+    if rr.status != ReturnRequest.Status.RETURN_PENDING or rr.inspected_by_id:
+        raise ValidationError("ยกเลิกไม่ได้ เพราะเจ้าหน้าที่ตรวจรับแล้ว")
+    for ri in rr.items.select_related("borrow_item__item"):
+        if ri.borrow_item.item.is_equipment:
+            Equipment.objects.filter(pk=ri.borrow_item.item_id, status=Equipment.Status.RETURN_PENDING) \
+                .update(status=Equipment.Status.BORROWED)
+    rr.delete()
+    req.status = BorrowRequest.Status.BORROWING
+    req.save(update_fields=["status"])
+
+
+# ---- UC-10 คิว ---------------------------------------------------------------
+def queue_position(queue):
+    return Queue.objects.filter(item_id=queue.item_id, status__in=ACTIVE_QUEUE, joined_at__lt=queue.joined_at).count() + 1
+
+
+def current_loan(item):
+    """รายการยืมที่ยังไม่คืนของสิ่งของนี้ที่กำหนดคืนเร็วที่สุด (ใช้ประมาณวันได้ยืม)"""
+    loans = BorrowItem.objects.filter(
+        item=item, due_date__isnull=False, borrow_request__status__in=ACTIVE_LOAN,
+    ).select_related("borrow_request").order_by("due_date")
+    for bi in loans:
+        if bi.qty_outstanding > 0:
+            return bi
+    return None
+
+
+def estimate_available(queue, position=None):
+    """UC-10 ข้อ 2 (ตัดสินใจ M3 ข้อ 4): กำหนดคืนผู้ยืมปัจจุบัน + (ลำดับ − 1) × วันยืมสูงสุด
+
+    คืน (วันที่ หรือ None, ข้อความชี้แจง)
+    """
+    item = queue.item
+    position = position or queue_position(queue)
+    loan = current_loan(item)
+    if not loan:
+        return None, "ยังประเมินไม่ได้ (ยังไม่มีกำหนดคืนของผู้ยืมปัจจุบัน)"
+    days = item.detail.max_borrow_days
+    date = loan.due_date + timedelta(days=(position - 1) * days)
+    if loan.borrow_request.is_special:
+        note = f"ผู้ยืมปัจจุบันได้รับอนุมัติยืมนานพิเศษถึง {loan.due_date:%d/%m/%Y}"
+    else:
+        note = f"ผู้ยืมปัจจุบันมีกำหนดคืน {loan.due_date:%d/%m/%Y}"
+    if position > 1:
+        note += f" · มีคิวก่อนหน้า {position - 1} คิว (คิวละประมาณ {days} วัน)"
+    return date, note
+
+
+@transaction.atomic
+def join_queue(student, item):
+    """UC-10: จองคิว (วัสดุคงทนหมด = ระดับ item · ครุภัณฑ์ถูกยืม = ระดับชิ้น)"""
+    item = Item.objects.select_for_update(of=("self",)).select_related("equipment", "durablematerial", "material") \
+        .get(pk=item.pk)
+    if not item.is_returnable:
+        raise ValidationError("วัสดุสิ้นเปลืองจองคิวไม่ได้")
+    if item.base_status in HIDDEN_BASE or (item.is_equipment and item.equipment.status in
+                                            (Equipment.Status.RETIRED, Equipment.Status.LOST)):
+        raise ValidationError("ไม่พบสิ่งของนี้")
+    if available_qty(item) > 0:
+        raise ValidationError(f"\"{item}\" ยังว่างอยู่ ยืมได้ทันทีโดยไม่ต้องจองคิว")
+    if Queue.objects.filter(item=item, student=student, status__in=ACTIVE_QUEUE + (Queue.Status.CONFIRMED,)).exists():
+        raise ValidationError("คุณอยู่ในคิวแล้ว")
+    q = Queue(item=item, student=student, status=Queue.Status.WAITING)
+    q.full_clean()
+    q.save()
+    return q
+
+
+def leave_queue(student, queue):
+    if queue.student_id != student.pk or queue.status not in ACTIVE_QUEUE + (Queue.Status.CONFIRMED,):
+        raise ValidationError("ออกจากคิวนี้ไม่ได้")
+    queue.status = Queue.Status.CANCELLED
+    queue.save(update_fields=["status"])
+
+
+def confirm_queue(student, queue, now=None):
+    """UC-10 ข้อ 4: ยืนยันรับสิทธิ์ภายใน 1 วันหลังแจ้งเตือน"""
+    now = now or timezone.now()
+    if queue.student_id != student.pk or queue.status != Queue.Status.NOTIFIED:
+        raise ValidationError("ยังไม่ถึงคิวของคุณ")
+    if queue.notified_at and now > queue.notified_at + QUEUE_CONFIRM_WINDOW:
+        raise ValidationError("เลยเวลายืนยันรับสิทธิ์ (1 วัน) แล้ว")
+    queue.status = Queue.Status.CONFIRMED
+    queue.confirmed_at = now
+    queue.save(update_fields=["status", "confirmed_at"])
+
+
+def notify_next(item, now=None):
+    """แจ้งคิวถัดไปเมื่อสิ่งของว่าง (เรียกจาก M6 ตอนตรวจรับคืน และหลังคิวหมดอายุ)
+
+    ตัดสินใจ M3 ข้อ 5: แจ้งบนหน้าเว็บ (สถานะ NOTIFIED → แบนเนอร์/ป้ายเมนู) · อีเมลต่อเติมที่ฟังก์ชันนี้ภายหลัง
+    """
+    if Queue.objects.filter(item=item, status=Queue.Status.NOTIFIED).exists():
+        return None
+    nxt = Queue.objects.filter(item=item, status=Queue.Status.WAITING).order_by("joined_at", "id").first()
+    if nxt and available_qty(Item.objects.select_related("equipment", "durablematerial", "material").get(pk=item.pk)) > 0:
+        nxt.status = Queue.Status.NOTIFIED
+        nxt.notified_at = now or timezone.now()
+        nxt.expired_at = nxt.notified_at + QUEUE_CONFIRM_WINDOW
+        nxt.save(update_fields=["status", "notified_at", "expired_at"])
+        return nxt
+    return None
+
+
+def expire_and_advance(now=None):
+    """คิวที่ไม่ยืนยันใน 1 วัน → EXPIRED แล้วแจ้งคิวถัดไปของสิ่งของนั้น"""
+    now = now or timezone.now()
+    stale = list(Queue.objects.filter(status=Queue.Status.NOTIFIED, notified_at__lte=now - QUEUE_CONFIRM_WINDOW)
+                 .values_list("item_id", flat=True))
+    expire_queues(now)
+    for item_id in set(stale):
+        notify_next(Item.objects.get(pk=item_id), now)
+
+
+# ---- UC-11 ประวัติ (ใช้ร่วมกับ UC-14 ใน M5) -------------------------------------
+def is_reviewable(borrow_item):
+    """ประเมินได้เมื่อ "คืนสำเร็จแล้ว" (ของที่ต้องคืน) หรือเบิกสำเร็จแล้ว (วัสดุสิ้นเปลือง)"""
+    if borrow_item.item.is_returnable:
+        return borrow_item.qty_returned > 0
+    return borrow_item.borrow_request.status in (BorrowRequest.Status.ISSUED, BorrowRequest.Status.BORROWING,
+                                                  BorrowRequest.Status.RETURN_PENDING, BorrowRequest.Status.RETURNED)
+
+
+# ---- UC-38 แจ้งชำรุด ---------------------------------------------------------
+ROOM, SYSTEM = "room", "system"
+
+
+def report_damage(student, kind, symptom, location="", item_name="", asset_tag="", photo=None):
+    """UC-38: แจ้งอุปกรณ์ชำรุด (ไม่ต้องมีประวัติการยืม)"""
+    symptom, location = (symptom or "").strip(), (location or "").strip()
+    errors = {}
+    item = None
+    if not symptom:
+        errors["symptom"] = "กรุณาอธิบายอาการที่พบ"
+    if kind == ROOM:
+        item_name = (item_name or "").strip()
+        if not item_name:
+            errors["item_name"] = "กรุณาระบุชื่ออุปกรณ์"
+        if not location:
+            errors["location"] = "กรุณาระบุตึก/ห้องที่พบ"
+    elif kind == SYSTEM:
+        tag = (asset_tag or "").strip()
+        eq = Equipment.objects.select_related("item").filter(asset_tag__iexact=tag).first() if tag else None
+        if not eq:
+            errors["asset_tag"] = "ไม่พบรหัสครุภัณฑ์นี้ในระบบ" if tag else "กรุณาระบุรหัสครุภัณฑ์"
+        else:
+            item, item_name = eq.item, eq.item.name
+    else:
+        errors["kind"] = "กรุณาเลือกประเภทที่จะแจ้ง"
+    if errors:
+        raise ValidationError(errors)
+    return DamageReport.objects.create(
+        student=student, item=item, item_name=item_name[:200],
+        origin_location=item.location if item else "", location=(location or (item.location if item else ""))[:200] or "-",
+        symptom=symptom, photo=photo or "", status=DamageReport.Status.PENDING,
+    )

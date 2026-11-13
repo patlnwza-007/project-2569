@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load borrow_tags %}
+{# UC-11 ประวัติการยืม · mockup page-history.html · สถานะการประเมินรายชิ้น (UC-14 ใน M5) #}
+
+{% block title %}ประวัติการยืม · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">📜 ประวัติการยืม</h1>
+            <p class="text-sm text-gray-500 mt-0.5">คำขอที่จบแล้วทั้งหมด พร้อมสถานะการประเมินรายชิ้น</p>
+        </div>
+        <form method="get">
+            <select name="status" onchange="this.form.submit()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="">ทุกสถานะ</option>
+                {% for v, label in status_choices %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="space-y-3">
+        {% for row in rows %}
+        {% with r=row.req %}
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm" data-request="{{ r.pk }}">
+            <div class="px-5 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-gray-900">คำขอ #{{ r.pk }}</span>
+                    {% request_badge r.status %}
+                    {% if row.review_total %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full {% if row.reviewed == row.review_total %}bg-emerald-50 text-emerald-700{% else %}bg-amber-50 text-amber-800{% endif %}">⭐ ประเมินแล้ว {{ row.reviewed }}/{{ row.review_total }} ชิ้น</span>{% endif %}
+                </div>
+                <span class="text-xs text-gray-400">ยืม {{ r.created_at|date:"j M Y" }}{% if row.returned_at %} · คืนสำเร็จ {{ row.returned_at|date:"j M Y H:i" }}{% endif %}</span>
+            </div>
+            <div class="divide-y divide-gray-100">
+                {% for bi in row.items %}
+                <div class="px-5 py-2.5 text-sm flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <span class="text-gray-900">{{ bi.item.name }}</span>
+                        {% if bi.item.is_equipment %}<span class="ml-1 font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ bi.item.equipment.asset_tag }}</span>{% endif %}
+                        <span class="text-gray-500"> · {{ bi.qty }} {{ bi.item.unit }}</span>
+                    </div>
+                    {% if bi.pk in row.reviewable %}
+                        {% if bi.review %}
+                        <span class="text-xs text-emerald-700">✓ ประเมินแล้ว ({{ bi.review.rating }}★)</span>
+                        {% elif evaluate_ready %}
+                        <a href="{% url 'evaluation:evaluate' %}?item={{ bi.pk }}" class="text-xs font-semibold text-amber-700 hover:underline">⭐ ประเมินชิ้นนี้</a>
+                        {% else %}
+                        <span class="text-xs text-gray-400">⭐ รอประเมิน (เปิดใช้เร็ว ๆ นี้)</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div id="p_history_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+            <div class="text-4xl mb-2">📜</div>
+            <p class="text-gray-600 font-semibold">{% if status %}ไม่พบประวัติในสถานะนี้{% else %}ยังไม่มีประวัติการยืม{% endif %}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
