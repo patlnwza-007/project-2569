@@ -32,12 +32,6 @@
 
 ---
 
-## 2. ฟิลด์บนหน้าจอที่ไม่ถูกเก็บใน ERD (หรือเป็นสถานะชั่วคราวบน UI)
-1. **`p_relocate_input` (ที่ตั้งใหม่ใน Modal แจ้งย้าย):** ข้อมูลชั่วคราวก่อนกดยืนยันบันทึกลง `BORROW_ITEM.current_location`
-2. **ตัวนับถอยหลัง / วันที่เหลือ (Calculated UI State):** คำนวณจาก `BORROW_ITEM.due_date - TODAY` ไม่ได้เก็บเป็นฟิลด์ในตาราง
-
----
-
 ## 3. ตาราง ERD ที่เกี่ยวข้อง
 - `BORROW_REQUEST`
 - `BORROW_ITEM`

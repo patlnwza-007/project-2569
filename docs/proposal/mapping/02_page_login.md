@@ -28,13 +28,7 @@
 
 ---
 
-## 2. ฟิลด์บนหน้าจอที่ไม่ถูกเก็บใน ERD (หรือเป็นสถานะชั่วคราวบน UI)
-1. **`p_login_admin_pass` (รหัสผ่าน Django Admin):** ใช้ระบบตรวจสอบรหัสผ่านของ Django (`django.contrib.auth.models.User.password`) ไม่ได้เก็บในตาราง `ADMIN` ของ ERD (มีเพียง username)
-2. **Tab Switcher:** ปุ่มสลับแท็บ "เข้าสู่ระบบด้วย UBU SSO" กับ "ผู้ดูแลระบบ (Django Admin)" เป็น Client-side UI State
-
----
-
-## 3. ตาราง ERD ที่เกี่ยวข้อง
+## 2. ตาราง ERD ที่เกี่ยวข้อง
 - `USER`
 - `STUDENT`
 - `ADMIN`
