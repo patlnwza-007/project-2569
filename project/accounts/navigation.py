@@ -87,6 +87,7 @@ MENU = {
     ADMIN: [
         NavItem("user-list", "จัดการบัญชีและสิทธิ์ผู้ใช้", "👥", "admin_panel:user_list"),
         NavItem("personnel-export", "ส่งออกรายชื่อผู้ใช้งาน (CSV)", "📤", "admin_panel:personnel_export"),
+        NavItem("admin-history", "ประวัติการยืม-คืนทั้งระบบ", "📜", "staff:all_history"),
     ],
 }
 

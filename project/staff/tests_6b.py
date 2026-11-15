@@ -123,3 +123,18 @@ class HistoryTests(ReturnFixture):
         self.client.force_login(self.s_auth)
         for url in [HISTORY, DAMAGED, reverse("staff:history_detail", args=[self.req.pk])]:
             self.assertEqual(self.client.get(url).status_code, 403)
+
+
+class AdminHistoryAccessTests(ReturnFixture):
+    """ข้อ H: แอดมินดูประวัติทั้งระบบได้"""
+
+    def test_admin_menu_and_pages(self):
+        from accounts.tests_shell import make_admin
+        self.client.force_login(make_admin())
+        r = self.client.get(HISTORY)
+        self.assertEqual(r.status_code, 200)
+        menu = {m["key"]: m for m in r.context["nav_menu"]}
+        self.assertTrue(menu["admin-history"]["ready"] and menu["admin-history"]["active"])
+        self.assertEqual(self.client.get(HISTORY + "?tab=units").status_code, 200)
+        self.assertEqual(self.client.get(reverse("staff:history_detail", args=[self.req.pk])).status_code, 200)
+        self.assertEqual(self.client.get(DAMAGED).status_code, 403)  # หน้าอื่นของเจ้าหน้าที่ยังเข้าไม่ได้

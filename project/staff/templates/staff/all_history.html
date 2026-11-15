@@ -39,7 +39,7 @@
                 {% for row in rows %}
                 {% with item=row.item loan=row.loan %}
                 <tr data-unit="{{ item.pk }}">
-                    <td class="px-4 py-2.5"><a href="{% url 'catalog:item_detail' item.pk %}" class="font-semibold hover:text-blue-600">{{ item.name }}</a><span class="block font-mono text-[11px] font-bold text-blue-900">🏷️ {{ item.equipment.asset_tag }}</span></td>
+                    <td class="px-4 py-2.5">{% if role == 'staff' %}<a href="{% url 'catalog:item_detail' item.pk %}" class="font-semibold hover:text-blue-600">{{ item.name }}</a>{% else %}<span class="font-semibold">{{ item.name }}</span>{% endif %}<span class="block font-mono text-[11px] font-bold text-blue-900">🏷️ {{ item.equipment.asset_tag }}</span></td>
                     <td class="px-4 py-2.5">{% inventory_status item %}</td>
                     <td class="px-4 py-2.5 text-xs">{% if loan %}<a href="{% url 'staff:history_detail' loan.borrow_request_id %}" class="hover:text-blue-600"><b>{{ loan.borrow_request.student.user.name }}</b></a><span class="block text-gray-400">{{ loan.borrow_request.student.student_id }} · {{ loan.borrow_request.student.phone }}</span>{% else %}<span class="text-gray-400">ในคลัง ({{ item.location|default:"-" }})</span>{% endif %}</td>
                     <td class="px-4 py-2.5 text-xs text-gray-600">{% if loan.current_location %}📍 {{ loan.current_location }}{% if loan.moved_at %}<span class="block text-gray-400">{{ loan.moved_at|date:"j M H:i" }}</span>{% endif %}{% else %}-{% endif %}</td>

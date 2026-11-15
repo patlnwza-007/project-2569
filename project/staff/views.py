@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.navigation import url_ready
 from accounts.permissions import role_required
-from accounts.roles import STAFF, get_ubu_user
+from accounts.roles import ADMIN, STAFF, get_ubu_user
 from borrow import services as borrow
 from borrow.models import BorrowItem, BorrowRequest, DamageReport, ReturnItem, ReturnRequest
 from catalog.models import Equipment
@@ -290,7 +290,7 @@ def damage_report_action_view(request, pk, action):
     return _back(request, "staff:damaged_equipment")
 
 
-@role_required(STAFF)
+@role_required(STAFF, ADMIN)  # แอดมินดูได้ด้วย (ผู้ใช้เลือก 2026-11-16)
 def all_history_view(request):
     """UC-19 (StaffHistoryAllView) · แท็บตามคำขอ / แท็บติดตามรายชิ้น · ค้นหา + กรองสถานะ + ช่วงวันที่"""
     tab = request.GET.get("tab", "requests")
@@ -337,7 +337,7 @@ def all_history_view(request):
     return render(request, "staff/all_history.html", ctx)
 
 
-@role_required(STAFF)
+@role_required(STAFF, ADMIN)  # แอดมินดูได้ด้วย (ผู้ใช้เลือก 2026-11-16)
 def history_detail_view(request, pk):
     """UC-19 (StaffHistoryDetailModalView) · รายละเอียดเจาะลึกของคำขอ"""
     req = get_object_or_404(BorrowRequest.objects.select_related("student__user", "approved_by__user"), pk=pk)
