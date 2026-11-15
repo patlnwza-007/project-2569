@@ -88,6 +88,7 @@
             <div class="px-5 py-2.5 bg-red-50 border-t border-red-100 text-sm text-red-800">
                 {% if card.fine %}💸 ค่าปรับเกินกำหนด ฿{{ card.fine|floatformat:2|intcomma }}{% endif %}
                 {% if card.lost %} · ค่าชดใช้ของหาย ฿{{ card.lost|floatformat:2|intcomma }}{% endif %}
+                {% if card.unpaid %} · <b data-unpaid>ค้างชำระ</b> กรุณาชำระที่คลัง{% else %} · ✅ ชำระแล้ว{% endif %}
             </div>
             {% endif %}
 

@@ -27,6 +27,7 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-bold text-gray-900">คำขอ #{{ r.pk }}</span>
                     {% request_badge r.status %}
+                    {% if row.unpaid %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200" data-unpaid>💸 ค้างชำระ ฿{{ row.fine|floatformat:2 }}</span>{% endif %}
                     {% if row.review_total %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full {% if row.reviewed == row.review_total %}bg-emerald-50 text-emerald-700{% else %}bg-amber-50 text-amber-800{% endif %}">⭐ ประเมินแล้ว {{ row.reviewed }}/{{ row.review_total }} ชิ้น</span>{% endif %}
                 </div>
                 <span class="text-xs text-gray-400">ยืม {{ r.created_at|date:"j M Y" }}{% if row.returned_at %} · คืนสำเร็จ {{ row.returned_at|date:"j M Y H:i" }}{% endif %}</span>

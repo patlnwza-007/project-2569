@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load humanize borrow_tags %}
+{# UC-18 ตรวจรับคืน + UC-36 ค่าปรับ · mockup page-return-list.html #}
+
+{% block title %}รับคืนสิ่งของ · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">↩️ ตรวจรับคืนสิ่งของ</h1>
+            <p class="text-sm text-gray-500 mt-0.5">ตรวจสภาพจริงเทียบกับที่นักศึกษาแจ้ง · รับคืนได้แม้ไม่ได้แจ้งคืนในระบบ</p>
+        </div>
+        <form method="get" class="flex gap-2">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <input name="q" value="{{ q }}" placeholder="เลขคำขอ / ชื่อ / รหัส นศ. / รหัสครุภัณฑ์" class="border border-gray-300 rounded-xl px-3 py-2 text-sm w-64">
+            <button class="bg-gray-800 text-white text-sm font-semibold rounded-xl px-4">ค้นหา</button>
+        </form>
+    </div>
+
+    <div class="flex gap-2 mb-4 overflow-x-auto">
+        {% for key, label in tabs %}
+        <a href="?tab={{ key }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="shrink-0 text-sm font-semibold px-4 py-1.5 rounded-full border {% if tab == key %}bg-blue-600 border-blue-600 text-white{% else %}bg-white border-gray-200 text-gray-700 hover:bg-gray-50{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    {% if tab == 'unpaid' %}
+    <!-- แท็บค้างชำระ (ตัดสินใจ M6 ข้อ 8) -->
+    <div class="space-y-3">
+        {% for rr in unpaid %}
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 text-sm" data-return="{{ rr.pk }}">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <span class="font-bold">รอบคืน #{{ rr.pk }} · คำขอ #{{ rr.borrow_request_id }} · {{ rr.borrow_request.student.user.name }}</span>
+                <span class="text-xs text-gray-400">รับคืน {{ rr.returned_at|date:"j M Y H:i" }}{% if rr.inspected_by %} โดย {{ rr.inspected_by.user.name }}{% endif %}</span>
+            </div>
+            {% if rr.total_fine %}
+            <div class="flex flex-wrap items-end gap-2 py-2 border-t border-gray-100">
+                <form method="post" action="{% url 'staff:edit_fine' rr.pk %}" class="flex flex-wrap items-end gap-2">
+                    {% csrf_token %}<input type="hidden" name="action" value="fine"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <label class="text-xs">ค่าปรับที่เก็บจริง (฿)<input name="custom_fine" value="{% if rr.custom_fine is not None %}{{ rr.custom_fine }}{% endif %}" placeholder="{{ rr.total_fine }}" class="block border border-gray-300 rounded-lg px-2 py-1 w-28"></label>
+                    <label class="text-xs">เหตุผล<input name="fine_reason" value="{{ rr.fine_reason }}" class="block border border-gray-300 rounded-lg px-2 py-1 w-48"></label>
+                    <button class="text-xs bg-gray-800 text-white rounded-lg px-3 py-1.5">✏️ บันทึกยอด</button>
+                </form>
+                <form method="post" action="{% url 'staff:edit_fine' rr.pk %}">
+                    {% csrf_token %}<input type="hidden" name="action" value="fine_paid"><input type="hidden" name="paid" value="1"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="text-xs bg-emerald-600 text-white rounded-lg px-3 py-1.5">💵 รับชำระค่าปรับ ฿{{ rr.total_fine|floatformat:2|intcomma }}</button>
+                </form>
+            </div>
+            {% endif %}
+            {% for ri in rr.items.all %}{% if ri.lost_compensation and not ri.lost_paid %}
+            <div class="flex flex-wrap items-end gap-2 py-2 border-t border-gray-100">
+                <span class="text-xs text-red-700">🔴 สูญหาย: {{ ri.borrow_item.item }} ×{{ ri.qty_returned }}</span>
+                <form method="post" action="{% url 'staff:edit_fine' rr.pk %}" class="flex items-end gap-2">
+                    {% csrf_token %}<input type="hidden" name="action" value="lost"><input type="hidden" name="item" value="{{ ri.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <input name="lost_compensation" value="{{ ri.lost_compensation }}" class="border border-gray-300 rounded-lg px-2 py-1 w-28 text-xs">
+                    <button class="text-xs bg-gray-800 text-white rounded-lg px-3 py-1.5">บันทึกยอดชดใช้</button>
+                </form>
+                <form method="post" action="{% url 'staff:edit_fine' rr.pk %}">
+                    {% csrf_token %}<input type="hidden" name="action" value="lost"><input type="hidden" name="item" value="{{ ri.pk }}"><input type="hidden" name="paid" value="1"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="text-xs bg-emerald-600 text-white rounded-lg px-3 py-1.5">💵 รับชำระค่าชดใช้</button>
+                </form>
+            </div>
+            {% endif %}{% endfor %}
+        </div>
+        {% empty %}
+        <div id="p_unpaid_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">ไม่มีรายการค้างชำระ</div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="space-y-4">
+        {% for card in cards %}
+        {% with r=card.req %}
+        <form method="post" action="{% url 'staff:return_confirm' r.pk %}" class="bg-white rounded-2xl border border-gray-200 shadow-sm" data-request="{{ r.pk }}"
+              x-data="{ all(on) { $el.querySelectorAll('[data-receive]').forEach(c => { c.checked = on; c.dispatchEvent(new Event('change')) }) } }">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="px-5 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-gray-900">คำขอ #{{ r.pk }}</span>
+                    {% request_badge r.status %}
+                    {% if card.overdue %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">🔴 เกินกำหนด</span>{% endif %}
+                    {% if card.partial %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">คืนแล้ว {{ card.returned }}/{{ card.total }} ชิ้น</span>{% endif %}
+                    {% if not card.pending %}<span class="text-[11px] text-gray-400">ยังไม่ได้แจ้งคืนในระบบ</span>{% endif %}
+                </div>
+                <span class="text-sm">👤 <b>{{ r.student.user.name }}</b> <span class="text-gray-400 text-xs">{{ r.student.student_id }} · {{ r.student.phone }}</span></span>
+            </div>
+            {% if card.pending %}
+            <div class="px-5 py-2.5 bg-purple-50 border-b border-purple-100 text-xs text-purple-900 flex flex-wrap gap-3 items-center">
+                <span>↩️ นักศึกษาแจ้งคืนเมื่อ {{ card.pending.created_at|date:"j M H:i" }}</span>
+                {% if card.pending.return_photo %}<a href="{{ card.pending.return_photo.url }}" target="_blank" class="underline">📷 รูปตอนแจ้งคืน</a>{% endif %}
+                {% if card.pending.note %}<span class="whitespace-pre-line">📝 {{ card.pending.note }}</span>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="px-5 py-2 border-b border-gray-100 text-right">
+                <label class="text-xs font-semibold text-blue-700 cursor-pointer"><input type="checkbox" @change="all($event.target.checked)" class="rounded border-gray-300 text-blue-600"> ✓ เลือกทั้งหมด</label>
+            </div>
+            <div class="divide-y divide-gray-100">
+                {% for row in card.rows %}
+                {% with bi=row.bi item=row.bi.item d=row.declared %}
+                <div class="px-5 py-3 text-sm" x-data="{ on: {% if d %}true{% else %}false{% endif %}, cond: '{% if d %}{{ d.condition_status }}{% else %}NORMAL{% endif %}' }">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="receive" value="{{ bi.pk }}" data-receive x-model="on" {% if d %}checked{% endif %} class="mt-0.5 rounded border-gray-300 text-blue-600 w-5 h-5">
+                        <div class="flex-1 min-w-0">
+                            <span class="font-semibold text-gray-900">{{ item.name }}</span>
+                            {% if item.is_equipment %}<span class="ml-1 font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}
+                            <span class="text-gray-500"> · ค้าง {{ row.left }} {{ item.unit }}</span>
+                            <span class="block text-xs {% if row.late_days %}text-red-600 font-semibold{% else %}text-gray-400{% endif %}">กำหนดคืน {{ bi.due_date|date:"j M Y"|default:"-" }}{% if row.late_days %} · เกิน {{ row.late_days }} วัน · ค่าปรับประมาณ ฿{{ row.fine_preview|floatformat:2|intcomma }}{% endif %}</span>
+                            {% if d %}<span class="block text-xs text-purple-700">นักศึกษาแจ้ง: {{ d.get_condition_status_display }} ×{{ d.qty_returned }}</span>{% endif %}
+                        </div>
+                        {% if bi.initial_photo %}<a href="{{ bi.initial_photo.url }}" target="_blank" class="text-xs text-blue-600 hover:underline shrink-0" @click.stop>📷 รูปตอนยืม</a>{% endif %}
+                    </label>
+                    <div x-show="on" x-cloak class="mt-2 ml-8 flex flex-wrap items-center gap-2">
+                        {% if not item.is_equipment and row.left > 1 %}
+                        <label class="text-xs text-gray-600">จำนวน <input type="number" name="qty_{{ bi.pk }}" min="1" max="{{ row.left }}" value="{% if d %}{{ d.qty_returned }}{% else %}{{ row.left }}{% endif %}" class="w-16 border border-gray-300 rounded-lg px-2 py-1"></label>
+                        {% else %}<input type="hidden" name="qty_{{ bi.pk }}" value="{{ row.left }}">{% endif %}
+                        {% for value, label in conditions %}
+                        <label class="text-xs border rounded-xl px-3 py-1.5 cursor-pointer" :class="cond === '{{ value }}' ? 'border-blue-500 bg-blue-50 font-semibold' : 'border-gray-200'">
+                            <input type="radio" name="cond_{{ bi.pk }}" value="{{ value }}" x-model="cond" class="sr-only" {% if d and d.condition_status == value or not d and value == 'NORMAL' %}checked{% endif %}>
+                            {% if value == 'NORMAL' %}✅ ปกติ{% elif value == 'DAMAGED' %}⚠️ ชำรุด{% else %}🔴 สูญหาย{% endif %}
+                        </label>
+                        {% endfor %}
+                        <input x-show="cond !== 'NORMAL'" name="note_{{ bi.pk }}" placeholder="อาการ / หมายเหตุ" class="border border-gray-300 rounded-lg px-2 py-1 text-xs w-48">
+                        <label x-show="cond === 'LOST'" class="text-xs text-red-700">ค่าชดใช้ (฿) <input name="lost_{{ bi.pk }}" placeholder="{{ item.purchase_price }} × จำนวน" class="w-32 border border-red-300 rounded-lg px-2 py-1"></label>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endfor %}
+            </div>
+
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 rounded-b-2xl flex flex-wrap items-end justify-between gap-3">
+                <div class="flex flex-wrap items-end gap-2 text-xs">
+                    <label>ค่าปรับที่เก็บจริง (฿) <span class="text-gray-400">ว่าง = คำนวณอัตโนมัติ</span><input name="custom_fine" class="block border border-gray-300 rounded-lg px-2 py-1 w-32"></label>
+                    <label>เหตุผลการปรับ/ลดหย่อน<input name="fine_reason" class="block border border-gray-300 rounded-lg px-2 py-1 w-48"></label>
+                    <label class="flex items-center gap-1.5 pb-1"><input type="checkbox" name="fine_paid" class="rounded border-gray-300"> ชำระค่าปรับแล้ว</label>
+                </div>
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl px-5 py-2" data-confirm>✓ ยืนยันการรับคืน</button>
+            </div>
+        </form>
+        {% endwith %}
+        {% empty %}
+        <div id="p_return_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">{% if q %}ไม่พบรายการที่ค้นหา{% else %}ไม่มีรายการในแท็บนี้{% endif %}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -57,13 +57,45 @@ from .models import BorrowItem, BorrowRequest, Cart, CartItem  # noqa: E402
 HIDDEN_BASE = (Item.BaseStatus.INACTIVE, Item.BaseStatus.RETIRED)
 
 
-def available_qty(item):
-    """จำนวนที่ยืม/เบิกได้ตอนนี้ (ครุภัณฑ์ = 1 หรือ 0) · ใช้ตรวจ "ตัดหน้า" ทุกครั้ง (Anti-Snipe)"""
+def raw_available_qty(item):
+    """จำนวนพร้อมยืมจริงในคลัง (ยังไม่หักของที่กันไว้ให้ผู้ถึงคิว)"""
     if item.base_status != Item.BaseStatus.AVAILABLE:
         return 0
     if item.is_equipment:
         return 1 if item.equipment.status == Equipment.Status.AVAILABLE else 0
     return item.detail.qty_available
+
+
+def holding_queues(item, now=None):
+    """คิวที่กำลังกันของไว้ (ตัดสินใจ M6 ข้อ 6): NOTIFIED ภายใน 1 วัน หรือ CONFIRMED ภายใน 1 วันหลังยืนยัน
+    และผู้ถือคิวยังไม่ได้ส่งคำขอยืมของชิ้นนั้น"""
+    from django.db.models import Exists, OuterRef, Q
+    now = now or timezone.now()
+    since = now - QUEUE_CONFIRM_WINDOW
+    borrowed = BorrowItem.objects.filter(
+        item_id=OuterRef("item_id"), borrow_request__student_id=OuterRef("student_id"),
+        borrow_request__created_at__gte=OuterRef("notified_at"),
+    ).exclude(borrow_request__status__in=[BorrowRequest.Status.CANCELLED, BorrowRequest.Status.REJECTED])
+    return Queue.objects.filter(item_id=item.pk).filter(
+        Q(status=Queue.Status.NOTIFIED, notified_at__gt=since) | Q(status=Queue.Status.CONFIRMED, confirmed_at__gt=since)
+    ).exclude(Exists(borrowed))
+
+
+def available_qty(item, student=None):
+    """จำนวนที่ยืม/เบิกได้ตอนนี้ของนักศึกษาคนนี้ · ใช้ตรวจ "ตัดหน้า" ทุกครั้ง (Anti-Snipe)
+    หักของที่กันไว้ให้ผู้ถึงคิวคนอื่น (คิวละ 1 ชิ้น)"""
+    raw = raw_available_qty(item)
+    if raw == 0 or not item.is_returnable:
+        return raw
+    held = holding_queues(item)
+    if student is not None:
+        held = held.exclude(student=student)
+    return max(0, raw - held.count())
+
+
+def held_for_queue(item, student=None):
+    """ของว่างจริงแต่กันไว้ให้ผู้รอคิวคนอื่นทั้งหมด"""
+    return raw_available_qty(item) > 0 and available_qty(item, student) == 0
 
 
 def get_cart(student):
@@ -79,8 +111,10 @@ def cart_add(student, item, qty=1):
     qty = int(qty)
     if qty < 1:
         raise ValidationError("จำนวนต้องมากกว่า 0")
-    available = available_qty(item)
+    available = available_qty(item, student)
     if available == 0:
+        if held_for_queue(item, student):
+            raise ValidationError(f"\"{item}\" จองไว้ให้ผู้รอคิวแล้ว จองคิวต่อได้")
         raise ValidationError(f"\"{item}\" ไม่พร้อมให้ยืมในขณะนี้")
     cart = get_cart(student)
     line = cart.items.filter(item=item).first()
@@ -107,7 +141,7 @@ def cart_update(line, qty):
         raise ValidationError("ครุภัณฑ์ยืมได้ครั้งละ 1 ชิ้น")
     if qty < 1:
         raise ValidationError("จำนวนต้องมากกว่า 0 (ถ้าไม่ต้องการ ให้ลบออกจากตะกร้า)")
-    available = available_qty(line.item)
+    available = available_qty(line.item, line.cart.student)
     if qty > available:
         raise ValidationError(f"\"{line.item.name}\" คงเหลือ {available} {line.item.unit}")
     line.qty = qty
@@ -123,7 +157,7 @@ def cart_lines(student):
         .order_by("added_at", "id")
     out = []
     for line in lines:
-        available = available_qty(line.item)
+        available = available_qty(line.item, student)
         out.append((line, available, line.qty > available))
     return out
 
@@ -147,7 +181,13 @@ def _reserve(item, qty):
 
 def release_stock(borrow_request):
     """คืนของที่จองไว้เข้าคลัง (ยกเลิก UC-07 / ปฏิเสธ UC-17)"""
-    for bi in borrow_request.items.select_related("item", "item__equipment", "item__material", "item__durablematerial"):
+    release_stock_items(borrow_request.items.select_related(
+        "item", "item__equipment", "item__material", "item__durablematerial"))
+
+
+def release_stock_items(borrow_items):
+    """คืนของที่จองไว้ของรายการที่ระบุ (ใช้ตอนเจ้าหน้าที่ติ๊กออกตอนปล่อยของ — ตัดสินใจ M6 ข้อ 2)"""
+    for bi in borrow_items:
         item = bi.item
         if item.is_equipment:
             eq = Equipment.objects.select_for_update().get(pk=item.pk)
@@ -194,7 +234,7 @@ def submit_request(student, is_special=False, custom_due_date=None, photos=None)
     sniped = []
     for line in lines:
         line.item = Item.objects.select_related("material", "durablematerial", "equipment").get(pk=line.item_id)
-        if line.qty > available_qty(line.item):
+        if line.qty > available_qty(line.item, student):
             sniped.append(str(line.item))
     if sniped:
         raise SnipedError("มีรายการถูกยืม/เบิกตัดหน้า: " + ", ".join(sniped))
@@ -387,7 +427,7 @@ def join_queue(student, item):
     if item.base_status in HIDDEN_BASE or (item.is_equipment and item.equipment.status in
                                             (Equipment.Status.RETIRED, Equipment.Status.LOST)):
         raise ValidationError("ไม่พบสิ่งของนี้")
-    if available_qty(item) > 0:
+    if available_qty(item, student) > 0:
         raise ValidationError(f"\"{item}\" ยังว่างอยู่ ยืมได้ทันทีโดยไม่ต้องจองคิว")
     if Queue.objects.filter(item=item, student=student, status__in=ACTIVE_QUEUE + (Queue.Status.CONFIRMED,)).exists():
         raise ValidationError("คุณอยู่ในคิวแล้ว")
@@ -424,7 +464,7 @@ def notify_next(item, now=None):
     if Queue.objects.filter(item=item, status=Queue.Status.NOTIFIED).exists():
         return None
     nxt = Queue.objects.filter(item=item, status=Queue.Status.WAITING).order_by("joined_at", "id").first()
-    if nxt and available_qty(Item.objects.select_related("equipment", "durablematerial", "material").get(pk=item.pk)) > 0:
+    if nxt and raw_available_qty(Item.objects.select_related("equipment", "durablematerial", "material").get(pk=item.pk)) > 0:
         nxt.status = Queue.Status.NOTIFIED
         nxt.notified_at = now or timezone.now()
         nxt.expired_at = nxt.notified_at + QUEUE_CONFIRM_WINDOW
@@ -436,9 +476,17 @@ def notify_next(item, now=None):
 def expire_and_advance(now=None):
     """คิวที่ไม่ยืนยันใน 1 วัน → EXPIRED แล้วแจ้งคิวถัดไปของสิ่งของนั้น"""
     now = now or timezone.now()
-    stale = list(Queue.objects.filter(status=Queue.Status.NOTIFIED, notified_at__lte=now - QUEUE_CONFIRM_WINDOW)
+    since = now - QUEUE_CONFIRM_WINDOW
+    stale = list(Queue.objects.filter(status=Queue.Status.NOTIFIED, notified_at__lte=since)
                  .values_list("item_id", flat=True))
     expire_queues(now)
+    # ยืนยันแล้วแต่ไม่มายืมภายใน 1 วัน → หมดสิทธิ์ (ตัดสินใจ M6 ข้อ 6)
+    for q in Queue.objects.filter(status=Queue.Status.CONFIRMED, confirmed_at__lte=since).select_related("item"):
+        if not BorrowItem.objects.filter(item=q.item, borrow_request__student=q.student,
+                                         borrow_request__created_at__gte=q.notified_at or q.joined_at).exists():
+            q.status, q.expired_at = Queue.Status.EXPIRED, now
+            q.save(update_fields=["status", "expired_at"])
+            stale.append(q.item_id)
     for item_id in set(stale):
         notify_next(Item.objects.get(pk=item_id), now)
 

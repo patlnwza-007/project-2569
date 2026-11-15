@@ -18,7 +18,7 @@ from catalog.models import Item
 
 from . import services
 from .forms import RequestForm
-from .models import BorrowItem, BorrowRequest, CartItem, Queue
+from .models import BorrowItem, BorrowRequest, CartItem, Queue, ReturnRequest
 
 ACTIVE = (BorrowRequest.Status.PENDING, BorrowRequest.Status.BORROWING, BorrowRequest.Status.RETURN_PENDING)
 RECENT_DAYS = 7  # ตัดสินใจ M3 ข้อ 9
@@ -26,6 +26,16 @@ RECENT_DAYS = 7  # ตัดสินใจ M3 ข้อ 9
 
 def _student(request):
     return get_ubu_user(request.user).student
+
+
+def _unpaid(borrow_request):
+    """UC-36 Alternative: ยังไม่ชำระค่าปรับ/ค่าชดใช้ → แสดง "ค้างชำระ" ให้นักศึกษาเห็น"""
+    for rr in borrow_request.return_requests.all():
+        if rr.status != ReturnRequest.Status.RETURNED:
+            continue
+        if (rr.total_fine > 0 and not rr.fine_paid) or any(ri.lost_compensation > 0 and not ri.lost_paid for ri in rr.items.all()):
+            return True
+    return False
 
 
 def _first_error(err):
@@ -153,6 +163,7 @@ def request_list_view(request):
         cards.append({
             "req": r, "rows": rows, "single_type": items[0].item.get_item_type_display() if len(types) == 1 and items else "",
             "fine": r.total_fine, "lost": sum(ri.lost_compensation for rr in r.return_requests.all() for ri in rr.items.all()),
+            "unpaid": _unpaid(r),
             "can_return": r.status == BorrowRequest.Status.BORROWING and any(row["outstanding"] > 0 for row in rows),
             "pending_return": services.pending_return(r) if r.status == BorrowRequest.Status.RETURN_PENDING else None,
         })
@@ -320,7 +331,8 @@ def history_view(request):
         done = [bi for bi in reviewable if hasattr(bi, "review")]
         returned_at = r.return_requests.filter(status=ReturnRequest.Status.RETURNED).order_by("-returned_at") \
             .values_list("returned_at", flat=True).first()
-        rows.append({"req": r, "items": items, "reviewable": {bi.pk for bi in reviewable},
+        rows.append({"req": r, "items": items, "reviewable": {bi.pk for bi in reviewable}, "unpaid": _unpaid(r),
+                     "fine": r.total_fine,
                      "reviewed": len(done), "review_total": len(reviewable), "returned_at": returned_at})
     return render(request, "borrow/history.html", {
         "rows": rows, "status": status, "has_any": BorrowRequest.objects.filter(student=student).exists(),

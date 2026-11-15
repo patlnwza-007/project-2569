@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{# UC-17 ตรวจของและปล่อยของหน้าเคาน์เตอร์ · mockup page-pending-requests.html #}
+
+{% block title %}คำขอรอตรวจของ · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">✅ คำขอรอตรวจของ</h1>
+            <p class="text-sm text-gray-500 mt-0.5">ตรวจนับของจริงบนโต๊ะ ติ๊กออกชิ้นที่ไม่ได้นำไป แล้วกดปล่อยของ</p>
+        </div>
+        <form method="get" class="flex gap-2">
+            <input name="q" value="{{ q }}" placeholder="เลขคำขอ / ชื่อ / รหัส นศ. / รหัสครุภัณฑ์" class="border border-gray-300 rounded-xl px-3 py-2 text-sm w-64">
+            <button class="bg-gray-800 text-white text-sm font-semibold rounded-xl px-4">ค้นหา</button>
+        </form>
+    </div>
+
+    <div class="space-y-4">
+        {% for r in reqs %}
+        <div id="req-{{ r.pk }}" class="bg-white rounded-2xl border border-gray-200 shadow-sm" data-request="{{ r.pk }}"
+             x-data="{ kept: {{ r.items.all|length }}, rejecting: false }">
+            <div class="px-5 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-gray-900">คำขอ #{{ r.pk }}</span>
+                    {% if r.is_special %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">⚡ ขอยืมกรณีพิเศษ ถึง {{ r.custom_due_date|date:"j M Y" }}</span>{% endif %}
+                </div>
+                <span class="text-xs text-gray-400">ส่งเมื่อ {{ r.created_at|date:"j M Y H:i" }}</span>
+            </div>
+            <div class="px-5 py-3 bg-gray-50 border-b border-gray-100 text-sm grid sm:grid-cols-2 gap-1">
+                <span>👤 <b>{{ r.student.user.name }}</b> · {{ r.student.student_id }}</span>
+                <span class="text-gray-600">📞 {{ r.student.phone }} · ✉️ {{ r.student.user.email }}</span>
+            </div>
+
+            <form method="post" action="{% url 'staff:request_approve' r.pk %}">
+                {% csrf_token %}
+                <div class="divide-y divide-gray-100">
+                    {% for bi in r.items.all %}
+                    {% with item=bi.item %}
+                    <label class="px-5 py-3 flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50">
+                        <input type="checkbox" name="keep" value="{{ bi.pk }}" checked @change="kept += $event.target.checked ? 1 : -1" class="rounded border-gray-300 text-blue-600 w-5 h-5">
+                        <div class="flex-1 min-w-0">
+                            <span class="font-semibold text-gray-900">{{ item.name }}</span>
+                            {% if item.is_equipment %}<span class="ml-1 font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ item.equipment.asset_tag }}</span>{% endif %}
+                            <span class="text-gray-500"> · {{ bi.qty }} {{ item.unit }} · {{ item.get_item_type_display }}</span>
+                            <span class="block text-xs text-gray-400">📍 {{ item.location|default:"-" }}{% if not item.is_material %} · ยืมได้ {{ item.detail.max_borrow_days }} วัน{% endif %}</span>
+                        </div>
+                        {% if bi.initial_photo %}<a href="{{ bi.initial_photo.url }}" target="_blank" class="text-xs text-blue-600 hover:underline shrink-0" @click.stop>📷 รูปสภาพ</a>{% endif %}
+                    </label>
+                    {% endwith %}
+                    {% endfor %}
+                </div>
+
+                {% if r.is_special %}
+                <div class="px-5 py-3 border-t border-gray-100 text-sm flex flex-wrap items-center gap-2">
+                    <label for="due-{{ r.pk }}" class="font-semibold text-indigo-800">วันที่อนุญาตคืน (กรณีพิเศษ):</label>
+                    <input type="date" id="due-{{ r.pk }}" name="custom_due_date" value="{{ r.custom_due_date|date:'Y-m-d' }}" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+                    <span class="text-xs text-gray-400">ปรับได้ก่อนปล่อยของ</span>
+                </div>
+                {% endif %}
+
+                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 rounded-b-2xl">
+                    <p class="text-xs text-gray-500" x-show="kept === 0">ไม่ได้เลือกชิ้นใดเลย ถ้าไม่ปล่อยของให้กด "ปฏิเสธคำขอ"</p>
+                    <p class="text-xs text-gray-500" x-show="kept > 0">ปล่อย <b x-text="kept"></b> รายการ · ชิ้นที่ติ๊กออกจะถูกตัดออกและคืนเข้าคลัง</p>
+                    <div class="flex gap-2">
+                        <button type="button" @click="rejecting = !rejecting" class="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-sm font-semibold rounded-xl px-4 py-2">✕ ปฏิเสธคำขอ</button>
+                        <button type="submit" :disabled="kept === 0" class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl px-4 py-2" data-approve>✓ ตรวจของครบแล้ว — ปล่อยของ</button>
+                    </div>
+                </div>
+            </form>
+
+            <form x-cloak x-show="rejecting" method="post" action="{% url 'staff:request_reject' r.pk %}" class="px-5 py-3 border-t border-red-100 bg-red-50 rounded-b-2xl flex flex-col sm:flex-row gap-2">
+                {% csrf_token %}
+                <input name="reject_reason" required placeholder="เหตุผลที่ไม่อนุมัติ (บังคับ)" class="flex-1 border border-red-300 rounded-xl px-3 py-2 text-sm">
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-4 py-2">ยืนยันปฏิเสธ</button>
+            </form>
+        </div>
+        {% empty %}
+        <div id="p_pending_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+            <div class="text-4xl mb-2">✅</div>
+            <p class="text-gray-600 font-semibold">{% if q %}ไม่พบคำขอที่ค้นหา{% else %}ไม่มีคำขอรอตรวจของในขณะนี้{% endif %}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
