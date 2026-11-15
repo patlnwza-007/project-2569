@@ -207,3 +207,48 @@ def has_unpaid(return_request):
     if return_request.total_fine > 0 and not return_request.fine_paid:
         return True
     return return_request.items.filter(lost_compensation__gt=0, lost_paid=False).exists()
+
+
+# =============================================================================
+# รอบ 6b · UC-35 ครุภัณฑ์เสียหายและเรื่องแจ้งซ่อม
+# =============================================================================
+from borrow.models import DamageReport  # noqa: E402
+from staff_inventory import services as inventory  # noqa: E402
+
+DAMAGE_STATUSES = (Equipment.Status.DAMAGED, Equipment.Status.MAINTENANCE, Equipment.Status.RETIRED)
+REPAIR_ACTIONS = {  # ปุ่มในแท็บ 1 → สถานะใหม่
+    "repair": Equipment.Status.MAINTENANCE,  # 🔧 ส่งซ่อม
+    "fixed": Equipment.Status.AVAILABLE,     # ✅ ซ่อมเสร็จแล้ว (กลับมาพร้อมให้ยืม + แจ้งคิว)
+    "retire": Equipment.Status.RETIRED,      # 📦 ปลดระวาง (ไม่ต้องระบุเหตุผล)
+}
+
+
+@transaction.atomic
+def damaged_action(items, action):
+    """UC-35 แท็บ 1: เดี่ยวหรือกลุ่ม · ทำได้เฉพาะครุภัณฑ์ที่อยู่ในรายการเสียหาย/ซ่อม/ปลดระวาง"""
+    if action not in REPAIR_ACTIONS:
+        raise ValidationError("คำสั่งไม่ถูกต้อง")
+    status = REPAIR_ACTIONS[action]
+    done, skipped = [], []
+    for item in items:
+        if not item.is_equipment or item.equipment.status not in DAMAGE_STATUSES or item.equipment.status == status:
+            skipped.append(item)
+            continue
+        inventory.change_status(item, status)
+        done.append(item)
+    return done, skipped
+
+
+REPORT_FLOW = {"accept": DamageReport.Status.IN_PROGRESS, "close": DamageReport.Status.RESOLVED}
+
+
+def damage_report_action(report, action):
+    """UC-35 แท็บ 2: รับเรื่อง (PENDING → IN_PROGRESS) · ปิดงานซ่อม (→ RESOLVED)"""
+    if action not in REPORT_FLOW:
+        raise ValidationError("คำสั่งไม่ถูกต้อง")
+    if report.status == DamageReport.Status.RESOLVED:
+        raise ValidationError("เรื่องนี้ปิดงานไปแล้ว")
+    if action == "accept" and report.status != DamageReport.Status.PENDING:
+        raise ValidationError("รับเรื่องนี้ไปแล้ว")
+    report.status = REPORT_FLOW[action]
+    report.save(update_fields=["status"])

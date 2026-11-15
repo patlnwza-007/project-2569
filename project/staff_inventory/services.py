@@ -83,11 +83,17 @@ def change_status(item, status, note=""):
         if note:
             eq.note = note
         eq.save(update_fields=["status", "note"])
+        if status == Equipment.Status.AVAILABLE:  # กลับมาพร้อมยืม (ซ่อมเสร็จ) → แจ้งคิวถัดไป
+            from borrow.services import notify_next
+            notify_next(item)
     elif item.item_type == Item.ItemType.DURABLE_MATERIAL:
         if status not in dict(DURABLE_CHOICES):
             raise ValidationError({"status": "สถานะไม่ถูกต้อง"})
         item.base_status = status
         item.save(update_fields=["base_status"])
+        if status == Item.BaseStatus.AVAILABLE:
+            from borrow.services import notify_next
+            notify_next(item)
     else:
         raise ValidationError("เปลี่ยนสถานะได้เฉพาะครุภัณฑ์และวัสดุคงทน")
 

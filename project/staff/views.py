@@ -212,3 +212,137 @@ def edit_fine_view(request, pk):
     except ValidationError as err:
         messages.error(request, _err(err))
     return _back(request, "staff:return_list")
+
+
+# =============================================================================
+# รอบ 6b — UC-35 ครุภัณฑ์เสียหาย, UC-19 ประวัติทั้งระบบ
+# =============================================================================
+from django.core.paginator import Paginator  # noqa: E402
+
+from catalog.models import Item  # noqa: E402
+
+DAMAGE_FILTERS = [("", "ทั้งหมด"), ("DAMAGED", "รอส่งซ่อม"), ("MAINTENANCE", "กำลังส่งซ่อม"), ("RETIRED", "ปลดระวาง")]
+
+
+@role_required(STAFF)
+def damaged_equipment_view(request):
+    """UC-35 (DamagedEquipmentListView) · แท็บ 1 ครุภัณฑ์เสียหายในคลัง · แท็บ 2 แจ้งซ่อมจากนักศึกษา"""
+    tab = request.GET.get("tab", "warehouse")
+    ctx = {"tab": tab, "filters": DAMAGE_FILTERS}
+    if tab == "reports":
+        status = request.GET.get("status", "")
+        reports = DamageReport.objects.select_related("student__user", "item__equipment").order_by("-created_at")
+        if status in DamageReport.Status.values:
+            reports = reports.filter(status=status)
+        ctx.update({"reports": reports, "status": status, "report_statuses": DamageReport.Status.choices})
+    else:
+        f = request.GET.get("f", "")
+        items = Item.objects.filter(item_type=Item.ItemType.EQUIPMENT,
+                                    equipment__status__in=services.DAMAGE_STATUSES).select_related("equipment") \
+            .order_by("equipment__status", "equipment__asset_tag")
+        if f in dict(DAMAGE_FILTERS) and f:
+            items = items.filter(equipment__status=f)
+        ctx.update({"items": items, "f": f})
+    ctx["counts"] = {
+        "warehouse": Equipment.objects.filter(status__in=services.DAMAGE_STATUSES[:2]).count(),
+        "reports": DamageReport.objects.exclude(status=DamageReport.Status.RESOLVED).count(),
+    }
+    return render(request, "staff/damaged_equipment.html", ctx)
+
+
+@require_POST
+@role_required(STAFF)
+def damaged_action_view(request):
+    """UC-35 แท็บ 1: ส่งซ่อม / ซ่อมเสร็จ / ปลดระวาง — รายชิ้น (ids=1 ตัว) หรือกลุ่ม"""
+    try:
+        ids = [int(x) for x in request.POST.get("ids", "").split(",") if x.strip()]
+    except ValueError:
+        ids = []
+    action = request.POST.get("action", "")
+    labels = {"repair": "ส่งซ่อม", "fixed": "ซ่อมเสร็จ (พร้อมให้ยืม)", "retire": "ปลดระวาง"}
+    if not ids:
+        messages.error(request, "กรุณาเลือกครุภัณฑ์อย่างน้อย 1 ชิ้น")
+    else:
+        try:
+            done, skipped = services.damaged_action(
+                Item.objects.filter(pk__in=ids).select_related("equipment"), action)
+        except ValidationError as err:
+            messages.error(request, _err(err))
+        else:
+            msg = f"{labels.get(action, action)} แล้ว {len(done)} ชิ้น"
+            if skipped:
+                msg += f" · ข้าม {len(skipped)} ชิ้น (สถานะไม่ตรง)"
+            (messages.warning if skipped else messages.success)(request, msg)
+    return _back(request, "staff:damaged_equipment")
+
+
+@require_POST
+@role_required(STAFF)
+def damage_report_action_view(request, pk, action):
+    """UC-35 แท็บ 2: รับเรื่อง / ปิดงานซ่อม"""
+    report = get_object_or_404(DamageReport, pk=pk)
+    try:
+        services.damage_report_action(report, action)
+    except ValidationError as err:
+        messages.error(request, _err(err))
+    else:
+        messages.success(request, f"เรื่องแจ้งซ่อม #{pk}: {report.get_status_display()}")
+    return _back(request, "staff:damaged_equipment")
+
+
+@role_required(STAFF)
+def all_history_view(request):
+    """UC-19 (StaffHistoryAllView) · แท็บตามคำขอ / แท็บติดตามรายชิ้น · ค้นหา + กรองสถานะ + ช่วงวันที่"""
+    tab = request.GET.get("tab", "requests")
+    q, status = request.GET.get("q", "").strip(), request.GET.get("status", "")
+    d_from, d_to = request.GET.get("from", ""), request.GET.get("to", "")
+    keep = request.GET.copy()
+    keep.pop("page", None)
+    ctx = {"tab": tab, "q": q, "status": status, "from": d_from, "to": d_to, "page_query": keep.urlencode(),
+           "today": timezone.localdate()}
+    if tab == "units":
+        units = Item.objects.filter(item_type=Item.ItemType.EQUIPMENT).select_related("equipment") \
+            .order_by("equipment__asset_tag")
+        if q:
+            units = units.filter(Q(name__icontains=q) | Q(equipment__asset_tag__icontains=q)
+                                 | Q(borrow_items__borrow_request__student__user__name__icontains=q)
+                                 | Q(borrow_items__borrow_request__student__student_id__icontains=q)).distinct()
+        if status in Equipment.Status.values:
+            units = units.filter(equipment__status=status)
+        page = Paginator(units, 30).get_page(request.GET.get("page"))
+        rows = []
+        for item in page:
+            loan = borrow.current_loan(item) if item.equipment.status in (
+                Equipment.Status.BORROWED, Equipment.Status.RETURN_PENDING) else None
+            if loan is None and item.equipment.status in (Equipment.Status.BORROWED, Equipment.Status.RETURN_PENDING):
+                loan = ITEMS.filter(item=item, borrow_request__status__in=[S.PENDING, S.BORROWING, S.RETURN_PENDING]) \
+                    .select_related("borrow_request__student__user").order_by("-borrow_request__created_at").first()
+            rows.append({"item": item, "loan": loan})
+        ctx.update({"page": page, "rows": rows, "statuses": Equipment.Status.choices})
+    else:
+        reqs = BorrowRequest.objects.select_related("student__user") \
+            .prefetch_related(Prefetch("items", queryset=ITEMS)).order_by("-created_at")
+        if q:
+            reqs = reqs.filter(_search(q)).distinct()
+        if status in S.values:
+            reqs = reqs.filter(status=status)
+        try:
+            if d_from:
+                reqs = reqs.filter(created_at__date__gte=date.fromisoformat(d_from))
+            if d_to:
+                reqs = reqs.filter(created_at__date__lte=date.fromisoformat(d_to))
+        except ValueError:
+            messages.error(request, "รูปแบบวันที่ไม่ถูกต้อง")
+        ctx.update({"page": Paginator(reqs, 30).get_page(request.GET.get("page")), "statuses": S.choices})
+    return render(request, "staff/all_history.html", ctx)
+
+
+@role_required(STAFF)
+def history_detail_view(request, pk):
+    """UC-19 (StaffHistoryDetailModalView) · รายละเอียดเจาะลึกของคำขอ"""
+    req = get_object_or_404(BorrowRequest.objects.select_related("student__user", "approved_by__user"), pk=pk)
+    items = list(ITEMS.filter(borrow_request=req))
+    rounds = req.return_requests.select_related("inspected_by__user") \
+        .prefetch_related(Prefetch("items", queryset=ReturnItem.objects.select_related("borrow_item__item__equipment"))) \
+        .order_by("created_at")
+    return render(request, "staff/history_detail.html", {"req": req, "items": items, "rounds": rounds})

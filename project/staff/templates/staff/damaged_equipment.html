@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load inventory_tags %}
+{# UC-35 ครุภัณฑ์เสียหายและเรื่องแจ้งซ่อม · mockup page-damaged-equipment.html · 2 แท็บ #}
+
+{% block title %}ครุภัณฑ์เสียหาย · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-900">⚠️ ครุภัณฑ์เสียหายและเรื่องแจ้งซ่อม</h1>
+    <p class="text-sm text-gray-500 mt-0.5 mb-4">ครุภัณฑ์ที่ตรวจรับคืนแล้วพบว่าชำรุด และเรื่องที่นักศึกษาแจ้งซ่อมเข้ามา</p>
+
+    <div class="flex gap-6 border-b border-gray-200 mb-4">
+        <a href="?tab=warehouse" class="tab pb-2 text-sm {% if tab == 'warehouse' %}active{% else %}text-gray-500 hover:text-gray-800{% endif %}">ครุภัณฑ์เสียหายในคลัง ({{ counts.warehouse }})</a>
+        <a href="?tab=reports" class="tab pb-2 text-sm {% if tab == 'reports' %}active{% else %}text-gray-500 hover:text-gray-800{% endif %}">รายการแจ้งซ่อมจากนักศึกษา ({{ counts.reports }})</a>
+    </div>
+
+    {% if tab == 'reports' %}
+    <div class="flex gap-2 mb-3 flex-wrap">
+        <a href="?tab=reports" class="text-xs font-semibold px-3 py-1.5 rounded-full border {% if not status %}bg-blue-600 border-blue-600 text-white{% else %}bg-white border-gray-200 text-gray-700{% endif %}">ทั้งหมด</a>
+        {% for v, label in report_statuses %}
+        <a href="?tab=reports&status={{ v }}" class="text-xs font-semibold px-3 py-1.5 rounded-full border {% if status == v %}bg-blue-600 border-blue-600 text-white{% else %}bg-white border-gray-200 text-gray-700{% endif %}">{% if v == 'PENDING' %}รอตรวจสอบ{% else %}{{ label }}{% endif %}</a>
+        {% endfor %}
+    </div>
+    <div class="space-y-3">
+        {% for r in reports %}
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 text-sm flex flex-col sm:flex-row gap-4" data-report="{{ r.pk }}">
+            {% if r.photo %}<a href="{{ r.photo.url }}" target="_blank" class="shrink-0"><img src="{{ r.photo.url }}" alt="" class="w-24 h-24 rounded-xl object-cover border border-gray-200"></a>{% endif %}
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="font-bold text-gray-900">#{{ r.pk }} {{ r.item_name }}{% if r.item %} <span class="font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ r.item.equipment.asset_tag }}</span>{% endif %}</span>
+                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full {% if r.status == 'RESOLVED' %}bg-emerald-50 text-emerald-700{% elif r.status == 'IN_PROGRESS' %}bg-blue-50 text-blue-700{% else %}bg-amber-50 text-amber-800{% endif %}">{% if r.status == 'PENDING' %}รอตรวจสอบ{% else %}{{ r.get_status_display }}{% endif %}</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5">📍 {{ r.location }}{% if r.origin_location %} · ที่ตั้งเดิมในคลัง {{ r.origin_location }}{% endif %} · แจ้งโดย {{ r.student.user.name }} ({{ r.student.student_id }}) · {{ r.created_at|date:"j M Y H:i" }}</p>
+                <p class="text-gray-700 mt-1.5">{{ r.symptom }}</p>
+                {% if r.status != 'RESOLVED' %}
+                <div class="flex gap-2 mt-2">
+                    {% if r.status == 'PENDING' %}
+                    <form method="post" action="{% url 'staff:damage_report_action' r.pk 'accept' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-3 py-1.5">รับเรื่อง</button></form>
+                    {% endif %}
+                    <form method="post" action="{% url 'staff:damage_report_action' r.pk 'close' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg px-3 py-1.5">ปิดงานซ่อม</button></form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div id="p_reports_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">ไม่มีรายการในขณะนี้</div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div x-data="{ sel: [] }">
+        <div class="flex gap-2 mb-3 flex-wrap">
+            {% for v, label in filters %}
+            <a href="?tab=warehouse{% if v %}&f={{ v }}{% endif %}" class="text-xs font-semibold px-3 py-1.5 rounded-full border {% if f == v %}bg-blue-600 border-blue-600 text-white{% else %}bg-white border-gray-200 text-gray-700{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+
+        <form method="post" action="{% url 'staff:damaged_action' %}" x-cloak x-show="sel.length" class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex flex-wrap items-center justify-between gap-2" id="p_damaged_bulk">
+            {% csrf_token %}
+            <input type="hidden" name="ids" :value="sel.join(',')"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <span class="text-sm font-semibold text-blue-900">เลือกแล้ว <span x-text="sel.length"></span> ชิ้น</span>
+            <div class="flex gap-2">
+                <button name="action" value="repair" class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg px-3 py-1.5">🔧 ส่งซ่อมที่เลือก</button>
+                <button name="action" value="fixed" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg px-3 py-1.5">✅ ซ่อมเสร็จแล้ว</button>
+                <button name="action" value="retire" class="text-xs bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-lg px-3 py-1.5" onclick="return confirm('ปลดระวางครุภัณฑ์ที่เลือก?')">📦 ปลดระวางที่เลือก</button>
+            </div>
+        </form>
+
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-xs text-gray-500"><tr>
+                    <th class="px-3 py-2 w-10"></th><th class="text-left px-4 py-2">ครุภัณฑ์</th><th class="text-left px-4 py-2">ที่ตั้ง</th>
+                    <th class="text-left px-4 py-2">สถานะ</th><th class="text-left px-4 py-2">หมายเหตุอาการ</th><th class="text-left px-4 py-2">ดำเนินการ</th>
+                </tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for item in items %}
+                    <tr data-item="{{ item.pk }}">
+                        <td class="px-3 py-3 text-center">{% if item.equipment.status != 'RETIRED' %}<input type="checkbox" value="{{ item.pk }}" x-model="sel" class="rounded border-gray-300 text-blue-600">{% endif %}</td>
+                        <td class="px-4 py-3"><span class="font-semibold text-gray-900">{{ item.name }}</span><span class="block font-mono text-[11px] font-bold text-blue-900">🏷️ {{ item.equipment.asset_tag }}</span></td>
+                        <td class="px-4 py-3 text-xs text-gray-600">{{ item.location|default:"-" }}</td>
+                        <td class="px-4 py-3">{% inventory_status item %}</td>
+                        <td class="px-4 py-3 text-xs text-gray-600 max-w-xs">{{ item.equipment.note|default:"-" }}</td>
+                        <td class="px-4 py-3">
+                            {% if item.equipment.status != 'RETIRED' %}
+                            <form method="post" action="{% url 'staff:damaged_action' %}" class="flex gap-1 whitespace-nowrap">
+                                {% csrf_token %}<input type="hidden" name="ids" value="{{ item.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                {% if item.equipment.status == 'DAMAGED' %}<button name="action" value="repair" class="text-xs border border-amber-300 text-amber-800 rounded-lg px-2 py-1">🔧 ส่งซ่อม</button>{% endif %}
+                                <button name="action" value="fixed" class="text-xs border border-emerald-300 text-emerald-700 rounded-lg px-2 py-1">✅ ซ่อมเสร็จ</button>
+                                <button name="action" value="retire" class="text-xs border border-gray-300 text-gray-700 rounded-lg px-2 py-1" onclick="return confirm('ปลดระวาง {{ item.equipment.asset_tag }}?')">📦 ปลดระวาง</button>
+                            </form>
+                            {% else %}<span class="text-xs text-gray-400">ปลดระวางแล้ว</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" id="p_damaged_empty" class="px-4 py-10 text-center text-gray-500">ไม่มีรายการในขณะนี้</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

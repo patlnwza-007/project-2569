@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load borrow_tags inventory_tags catalog_tags %}
+{# UC-19 ประวัติการยืม-คืนทั้งระบบ · mockup page-all-history.html · แท็บตามคำขอ / ติดตามรายชิ้น #}
+
+{% block title %}ประวัติทั้งระบบ · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-900">📜 ประวัติการยืม-คืนทั้งระบบ</h1>
+    <p class="text-sm text-gray-500 mt-0.5 mb-4">ตรวจสอบย้อนหลังทั้งระดับใบคำขอ และติดตามครุภัณฑ์รายชิ้นว่าอยู่กับใคร</p>
+
+    <div class="flex gap-6 border-b border-gray-200 mb-4">
+        <a href="?tab=requests" class="tab pb-2 text-sm {% if tab == 'requests' %}active{% else %}text-gray-500 hover:text-gray-800{% endif %}">ตามใบคำขอยืม</a>
+        <a href="?tab=units" class="tab pb-2 text-sm {% if tab == 'units' %}active{% else %}text-gray-500 hover:text-gray-800{% endif %}">ติดตามครุภัณฑ์รายชิ้น</a>
+    </div>
+
+    <form method="get" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 mb-4 flex flex-wrap gap-2 items-end text-sm">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <input id="p_all_history_q" name="q" value="{{ q }}" placeholder="เลขคำขอ / ชื่อ / รหัส นศ. / รหัสครุภัณฑ์" class="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2">
+        <select id="p_all_history_status" name="status" class="border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">ทุกสถานะ</option>
+            {% for v, label in statuses %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        {% if tab == 'requests' %}
+        <label class="text-xs text-gray-500">ตั้งแต่<input type="date" name="from" value="{{ from }}" class="block border border-gray-300 rounded-lg px-2 py-1.5"></label>
+        <label class="text-xs text-gray-500">ถึง<input type="date" name="to" value="{{ to }}" class="block border border-gray-300 rounded-lg px-2 py-1.5"></label>
+        {% endif %}
+        <button class="bg-gray-800 text-white font-semibold rounded-lg px-4 py-2">ค้นหา</button>
+    </form>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
+        {% if tab == 'units' %}
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-xs text-gray-500"><tr>
+                <th class="text-left px-4 py-2">ครุภัณฑ์</th><th class="text-left px-4 py-2">สถานะ</th><th class="text-left px-4 py-2">ผู้ถือครอง</th>
+                <th class="text-left px-4 py-2">ที่ตั้งปัจจุบัน</th><th class="text-left px-4 py-2">กำหนดคืน</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for row in rows %}
+                {% with item=row.item loan=row.loan %}
+                <tr data-unit="{{ item.pk }}">
+                    <td class="px-4 py-2.5"><a href="{% url 'catalog:item_detail' item.pk %}" class="font-semibold hover:text-blue-600">{{ item.name }}</a><span class="block font-mono text-[11px] font-bold text-blue-900">🏷️ {{ item.equipment.asset_tag }}</span></td>
+                    <td class="px-4 py-2.5">{% inventory_status item %}</td>
+                    <td class="px-4 py-2.5 text-xs">{% if loan %}<a href="{% url 'staff:history_detail' loan.borrow_request_id %}" class="hover:text-blue-600"><b>{{ loan.borrow_request.student.user.name }}</b></a><span class="block text-gray-400">{{ loan.borrow_request.student.student_id }} · {{ loan.borrow_request.student.phone }}</span>{% else %}<span class="text-gray-400">ในคลัง ({{ item.location|default:"-" }})</span>{% endif %}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-600">{% if loan.current_location %}📍 {{ loan.current_location }}{% if loan.moved_at %}<span class="block text-gray-400">{{ loan.moved_at|date:"j M H:i" }}</span>{% endif %}{% else %}-{% endif %}</td>
+                    <td class="px-4 py-2.5 text-xs {% if loan.due_date and loan.due_date < today %}text-red-600 font-bold{% else %}text-gray-600{% endif %}">{{ loan.due_date|date:"j M Y"|default:"-" }}</td>
+                </tr>
+                {% endwith %}
+                {% empty %}
+                <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500" id="p_all_history_empty">ไม่พบข้อมูล</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-xs text-gray-500"><tr>
+                <th class="text-left px-4 py-2">เลขที่</th><th class="text-left px-4 py-2">ผู้ยืม</th><th class="text-left px-4 py-2">รายการ</th>
+                <th class="text-left px-4 py-2">วันที่ยืม</th><th class="text-left px-4 py-2">สถานะ</th><th class="px-4 py-2"></th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for r in page %}
+                <tr data-request="{{ r.pk }}">
+                    <td class="px-4 py-2.5 font-bold">#{{ r.pk }}</td>
+                    <td class="px-4 py-2.5">{{ r.student.user.name }}<span class="block text-[11px] text-gray-400">{{ r.student.student_id }}</span></td>
+                    <td class="px-4 py-2.5 text-xs text-gray-600">{% for bi in r.items.all %}{{ bi.item.name }}{% if bi.item.is_equipment %} ({{ bi.item.equipment.asset_tag }}){% endif %} ×{{ bi.qty }}{% if bi.due_date %} · คืน {{ bi.due_date|date:"j M" }}{% endif %}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-500">{{ r.created_at|date:"j M Y H:i" }}</td>
+                    <td class="px-4 py-2.5">{% request_badge r.status %}</td>
+                    <td class="px-4 py-2.5 text-right"><a href="{% url 'staff:history_detail' r.pk %}" class="text-xs font-semibold text-blue-600 hover:underline">ดูรายละเอียด</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="px-4 py-10 text-center text-gray-500" id="p_all_history_empty">ไม่พบข้อมูล</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    {% if page.has_other_pages %}
+    <nav class="flex items-center justify-center gap-3 mt-4 text-sm">
+        {% if page.has_previous %}<a href="?{% query_with page_query page=page.previous_page_number %}" class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white">← ก่อนหน้า</a>{% endif %}
+        <span class="text-gray-500">หน้า {{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a href="?{% query_with page_query page=page.next_page_number %}" class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white">ถัดไป →</a>{% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

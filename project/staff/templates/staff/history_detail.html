@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load borrow_tags humanize %}
+{# UC-19 รายละเอียดคำขอแบบเจาะลึก (StaffHistoryDetailModalView) #}
+
+{% block title %}คำขอ #{{ req.pk }} · YuemDee{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-4">
+    <a href="javascript:history.back()" class="text-sm text-gray-500 hover:text-blue-600">← กลับ</a>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+            <h1 class="text-xl font-bold text-gray-900">คำขอ #{{ req.pk }}</h1>
+            {% request_badge req.status %}
+            {% if req.is_special %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">⚡ กรณีพิเศษ ถึง {{ req.custom_due_date|date:"j M Y" }}</span>{% endif %}
+        </div>
+        <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+            <div><dt class="inline text-gray-500">ผู้ยืม:</dt> <dd class="inline font-semibold">{{ req.student.user.name }}</dd> <span class="text-xs text-gray-400">{{ req.student.student_id }} · {{ req.student.phone }}</span></div>
+            <div><dt class="inline text-gray-500">ส่งคำขอ:</dt> <dd class="inline">{{ req.created_at|date:"j M Y H:i" }}</dd></div>
+            <div id="p_hd_approver"><dt class="inline text-gray-500">{% if req.status == 'REJECTED' %}ผู้ปฏิเสธ{% else %}ผู้ปล่อยของ{% endif %}:</dt> <dd class="inline">{{ req.approved_by.user.name|default:"-" }}</dd></div>
+            <div><dt class="inline text-gray-500">เวลา:</dt> <dd class="inline">{{ req.approved_at|date:"j M Y H:i"|default:"-" }}</dd></div>
+            {% if req.reject_reason %}<div class="sm:col-span-2 text-red-700"><dt class="inline">เหตุผลที่ไม่อนุมัติ:</dt> <dd class="inline">{{ req.reject_reason }}</dd></div>{% endif %}
+        </dl>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <div class="px-5 py-3 border-b border-gray-100 font-semibold text-sm">รายการสิ่งของ</div>
+        <div class="divide-y divide-gray-100">
+            {% for bi in items %}
+            <div class="px-5 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <span class="font-semibold">{{ bi.item.name }}</span>
+                    {% if bi.item.is_equipment %}<span class="ml-1 font-mono text-[11px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">🏷️ {{ bi.item.equipment.asset_tag }}</span>{% endif %}
+                    <span class="text-gray-500"> · {{ bi.qty }} {{ bi.item.unit }}{% if bi.item.is_returnable %} · คืนแล้ว {{ bi.qty_returned }}{% endif %}</span>
+                    {% if bi.current_location %}<span class="block text-xs text-gray-500">📍 {{ bi.current_location }} ({{ bi.moved_at|date:"j M H:i" }})</span>{% endif %}
+                </div>
+                <div class="text-xs text-gray-500 flex items-center gap-3">
+                    {% if bi.due_date %}<span>กำหนดคืน {{ bi.due_date|date:"j M Y" }}</span>{% endif %}
+                    {% if bi.initial_photo %}<a href="{{ bi.initial_photo.url }}" target="_blank" class="text-blue-600 hover:underline">📷 รูปก่อนยืม</a>{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% for rr in rounds %}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-sm" data-round="{{ rr.pk }}">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span class="font-semibold">รอบคืน #{{ rr.pk }} · {{ rr.get_status_display }}</span>
+            <span class="text-xs text-gray-500">แจ้ง {{ rr.created_at|date:"j M Y H:i" }}{% if rr.returned_at %} · ตรวจรับ {{ rr.returned_at|date:"j M Y H:i" }} โดย {{ rr.inspected_by.user.name }}{% endif %}</span>
+        </div>
+        <ul class="space-y-1 text-xs">
+            {% for ri in rr.items.all %}
+            <li>{{ ri.borrow_item.item }} ×{{ ri.qty_returned }} · <b>{{ ri.get_condition_status_display }}</b>{% if ri.fine %} · ค่าปรับ ฿{{ ri.fine|floatformat:2|intcomma }}{% endif %}{% if ri.lost_compensation %} · ค่าชดใช้ ฿{{ ri.lost_compensation|floatformat:2|intcomma }} ({% if ri.lost_paid %}ชำระแล้ว{% else %}ค้างชำระ{% endif %}){% endif %}</li>
+            {% endfor %}
+        </ul>
+        {% if rr.status == 'RETURNED' %}
+        <p class="mt-2 text-xs">ยอดค่าปรับที่เก็บ: <b>฿{{ rr.total_fine|floatformat:2|intcomma }}</b>{% if rr.custom_fine is not None %} (แก้โดยเจ้าหน้าที่{% if rr.fine_reason %}: {{ rr.fine_reason }}{% endif %}){% endif %} · {% if rr.fine_paid %}✅ ชำระแล้ว{% elif rr.total_fine %}💸 ค้างชำระ{% else %}ไม่มีค่าปรับ{% endif %}</p>
+        {% endif %}
+        {% if rr.note %}<p class="mt-1 text-xs text-gray-500 whitespace-pre-line">📝 {{ rr.note }}</p>{% endif %}
+        {% if rr.return_photo %}<a href="{{ rr.return_photo.url }}" target="_blank" class="inline-block mt-1 text-xs text-blue-600 hover:underline">📷 รูปตอนส่งคืน</a>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
