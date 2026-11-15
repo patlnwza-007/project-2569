@@ -66,8 +66,8 @@ def raw_available_qty(item):
     return item.detail.qty_available
 
 
-def holding_queues(item, now=None):
-    """คิวที่กำลังกันของไว้ (ตัดสินใจ M6 ข้อ 6): NOTIFIED ภายใน 1 วัน หรือ CONFIRMED ภายใน 1 วันหลังยืนยัน
+def holding_queues_q(now=None):
+    """คิวทั้งหมดที่กำลังกันของไว้ (ตัดสินใจ M6 ข้อ 6): NOTIFIED ภายใน 1 วัน หรือ CONFIRMED ภายใน 1 วันหลังยืนยัน
     และผู้ถือคิวยังไม่ได้ส่งคำขอยืมของชิ้นนั้น"""
     from django.db.models import Exists, OuterRef, Q
     now = now or timezone.now()
@@ -76,9 +76,13 @@ def holding_queues(item, now=None):
         item_id=OuterRef("item_id"), borrow_request__student_id=OuterRef("student_id"),
         borrow_request__created_at__gte=OuterRef("notified_at"),
     ).exclude(borrow_request__status__in=[BorrowRequest.Status.CANCELLED, BorrowRequest.Status.REJECTED])
-    return Queue.objects.filter(item_id=item.pk).filter(
+    return Queue.objects.filter(
         Q(status=Queue.Status.NOTIFIED, notified_at__gt=since) | Q(status=Queue.Status.CONFIRMED, confirmed_at__gt=since)
     ).exclude(Exists(borrowed))
+
+
+def holding_queues(item, now=None):
+    return holding_queues_q(now).filter(item_id=item.pk)
 
 
 def available_qty(item, student=None):

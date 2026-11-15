@@ -313,3 +313,59 @@ class QueueHoldTests(ReturnFixture):
 def tearDownModule():
     import shutil
     shutil.rmtree("/tmp/yuemdee-test-media-6a", ignore_errors=True)
+
+
+class QueueHoldDisplayTests(ReturnFixture):
+    """ของที่กันไว้ให้ผู้รอคิว: การ์ด/รายละเอียดแสดง "จองไว้ให้ผู้รอคิว" + ถึงคิวแล้วไปหน้าส่งคำขอทันที"""
+
+    def setUp(self):
+        super().setUp()
+        self.w_auth, self.waiting = student(2)
+        self.o_auth, self.other = student(3)
+        self.q = borrow.join_queue(self.waiting, self.fresh(self.proj))
+        self.confirm([(self.proj_bi, 1, "NORMAL")])  # คืนแล้ว → แจ้งคิว
+
+    def list_status(self, auth, qs=""):
+        self.client.force_login(auth)
+        r = self.client.get(reverse("catalog:item_list") + qs)
+        return {i.pk: i.availability for i in r.context["page"]}, r
+
+    def test_others_see_held_holder_sees_available(self):
+        status, r = self.list_status(self.o_auth)
+        self.assertEqual(status[self.proj.pk], "held")
+        self.assertContains(r, "จองไว้ให้ผู้รอคิว")
+        self.assertContains(r, "จองคิวต่อ")
+        status, _ = self.list_status(self.w_auth)
+        self.assertEqual(status[self.proj.pk], "available")
+        self.client.force_login(self.o_auth)
+        r = self.client.get(reverse("catalog:item_detail", args=[self.proj.pk]))
+        self.assertContains(r, "ว่างแล้ว แต่จองไว้ให้ผู้รอคิว")
+
+    def test_status_filters(self):
+        status, _ = self.list_status(self.o_auth, "?status=available")
+        self.assertNotIn(self.proj.pk, status)
+        status, _ = self.list_status(self.o_auth, "?status=empty")
+        self.assertIn(self.proj.pk, status)
+
+    def test_others_can_queue_behind(self):
+        self.client.force_login(self.o_auth)
+        self.client.post(reverse("borrow:queue_join", args=[self.proj.pk]))
+        self.assertTrue(Queue.objects.filter(student=self.other, item=self.proj, status="WAITING").exists())
+
+    def test_banner_on_every_student_page_and_confirm_goes_to_request_form(self):
+        self.client.force_login(self.w_auth)
+        for name in ["borrow:request_list", "catalog:item_list", "accounts:profile"]:
+            self.assertContains(self.client.get(reverse(name)), "data-queue-alert")
+        r = self.client.post(reverse("borrow:queue_action", args=[self.q.pk, "confirm"]))
+        self.assertRedirects(r, reverse("borrow:request_create"))
+        self.q.refresh_from_db()
+        self.assertEqual(self.q.status, Queue.Status.CONFIRMED)
+        from borrow.models import CartItem
+        self.assertTrue(CartItem.objects.filter(cart__student=self.waiting, item=self.proj).exists())
+        self.client.post(reverse("borrow:request_create"), {})
+        self.assertEqual(self.fresh(self.proj).equipment.status, Equipment.Status.BORROWED)
+        self.assertNotContains(self.client.get(reverse("borrow:request_list")), "data-queue-alert")
+
+    def test_others_do_not_see_banner(self):
+        self.client.force_login(self.o_auth)
+        self.assertNotContains(self.client.get(reverse("borrow:request_list")), "data-queue-alert")

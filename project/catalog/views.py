@@ -46,7 +46,8 @@ def item_list_view(request):
     if sort not in SORTS:
         sort = DEFAULT_SORT
 
-    base = student_items()
+    ubu = get_ubu_user(request.user)
+    base = student_items(ubu.student)
     total = base.count()
     results = search_items(base, q=q, item_type=item_type, status=status, sort=sort)
     page = Paginator(results, PAGE_SIZE).get_page(request.GET.get("page"))
@@ -69,7 +70,10 @@ def item_list_view(request):
 def item_detail_view(request, pk):
     """UC-03 รายละเอียด + UC-37 แท็บรีวิว (ItemDetailView / UnitReviewListView) · ?tab=reviews&stars=N"""
     role = get_role(request.user)
-    qs = student_items() if role == STUDENT else annotated_items()  # นักศึกษาไม่เห็นของที่ซ่อน (ข้อ 3)
+    if role == STUDENT:  # นักศึกษาไม่เห็นของที่ซ่อน (ข้อ 3) + เห็นของที่กันไว้ให้ผู้รอคิว (M6 ข้อ 6)
+        qs = student_items(get_ubu_user(request.user).student)
+    else:
+        qs = annotated_items()
     item = get_object_or_404(qs, pk=pk)
 
     ctx = {"item": item, "role": role, "tab": "details"}

@@ -304,8 +304,14 @@ def queue_action_view(request, pk, action):
     q = get_object_or_404(Queue, pk=pk, student=_student(request))
     try:
         if action == "confirm":
-            services.confirm_queue(_student(request), q)
-            messages.success(request, f"ยืนยันรับสิทธิ์คิว \"{q.item}\" แล้ว กรุณามายืมที่เคาน์เตอร์")
+            student = _student(request)
+            services.confirm_queue(student, q)
+            # ถึงคิว → ยืนยันแล้วไปหน้าส่งคำขอทันที (ผู้ใช้ขอ 2026-11-16): ใส่ของลงตะกร้าให้ 1 ชิ้น
+            if not CartItem.objects.filter(cart__student=student, item=q.item).exists():
+                services.cart_add(student, Item.objects.select_related(
+                    "material", "durablematerial", "equipment").get(pk=q.item_id), 1)
+            messages.success(request, f"ยืนยันรับสิทธิ์คิว \"{q.item}\" แล้ว ใส่ตะกร้าให้แล้ว กรุณายืนยันส่งคำขอ")
+            return redirect("borrow:request_create")
         else:
             services.leave_queue(_student(request), q)
             messages.success(request, f"ออกจากคิว \"{q.item}\" แล้ว")

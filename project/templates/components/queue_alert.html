@@ -1,0 +1,17 @@
+{# ถึงคิวแล้ว: แบนเนอร์ทุกหน้าของนักศึกษา · กดแล้วยืนยันรับสิทธิ์ + ใส่ตะกร้า + ไปหน้าส่งคำขอทันที #}
+{% for q in queue_alerts %}
+<div class="mb-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-queue-alert>
+    <div class="text-sm text-emerald-900">
+        <p class="font-bold">🎉 ถึงคิวของคุณแล้ว: {{ q.item }}</p>
+        <p class="text-xs mt-0.5">จองไว้ให้คุณถึง {{ q.expired_at|date:"j M Y H:i" }} · กดยืนยันแล้วไปหน้าส่งคำขอได้ทันที</p>
+    </div>
+    <div class="flex gap-2 shrink-0">
+        <form method="post" action="{% url 'borrow:queue_action' q.pk 'confirm' %}">{% csrf_token %}
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl px-4 py-2">✓ ยืนยันและส่งคำขอยืม</button>
+        </form>
+        <form method="post" action="{% url 'borrow:queue_action' q.pk 'leave' %}" onsubmit="return confirm('สละสิทธิ์คิวนี้?')">{% csrf_token %}
+            <button type="submit" class="bg-white border border-emerald-300 text-emerald-800 text-sm font-semibold rounded-xl px-3 py-2">สละสิทธิ์</button>
+        </form>
+    </div>
+</div>
+{% endfor %}

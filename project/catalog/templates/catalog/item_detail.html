@@ -76,8 +76,9 @@
                 <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <span class="text-[11px] font-semibold text-gray-400 block">สถานะความพร้อมในระบบ</span>
-                        <span class="text-sm md:text-base font-bold {% if item.availability == 'available' %}text-emerald-700{% elif item.availability == 'empty' %}text-slate-800{% else %}text-red-700{% endif %}">
+                        <span class="text-sm md:text-base font-bold {% if item.availability == 'available' %}text-emerald-700{% elif item.availability == 'empty' %}text-slate-800{% elif item.availability == 'held' %}text-amber-700{% else %}text-red-700{% endif %}">
                             {% if item.availability == 'available' %}พร้อมให้ยืม{% if not item.is_equipment %} · คงเหลือ {{ item.detail.qty_available }} / {{ item.detail.qty_total }} {{ item.unit }}{% endif %}
+                            {% elif item.availability == 'held' %}ว่างแล้ว แต่จองไว้ให้ผู้รอคิว (จองคิวต่อได้)
                             {% elif item.availability == 'empty' %}{% if item.is_equipment %}กำลังถูกยืม{% else %}หมดคลัง (0 / {{ item.detail.qty_total }} {{ item.unit }}){% endif %}
                             {% else %}ไม่พร้อมให้บริการ (ชำรุด/ส่งซ่อม){% endif %}
                         </span>
