@@ -9,7 +9,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">📜 ประวัติการยืม</h1>
-            <p class="text-sm text-gray-500 mt-0.5">คำขอที่จบแล้วทั้งหมด พร้อมสถานะการประเมินรายชิ้น</p>
+            <p class="text-sm text-gray-500 mt-0.5">คำขอยืมทั้งหมดของคุณ ทั้งที่กำลังดำเนินการและที่จบแล้ว พร้อมสถานะการประเมินรายชิ้น</p>
         </div>
         <form method="get">
             <select name="status" onchange="this.form.submit()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
@@ -57,7 +57,7 @@
         {% empty %}
         <div id="p_history_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
             <div class="text-4xl mb-2">📜</div>
-            <p class="text-gray-600 font-semibold">{% if status %}ไม่พบประวัติในสถานะนี้{% else %}ยังไม่มีประวัติการยืม{% endif %}</p>
+            <p class="text-gray-600 font-semibold">{% if status %}ไม่พบคำขอในสถานะนี้{% else %}ยังไม่มีประวัติการยืม{% endif %}</p>
         </div>
         {% endfor %}
     </div>

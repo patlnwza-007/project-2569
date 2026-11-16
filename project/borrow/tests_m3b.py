@@ -227,6 +227,18 @@ class HistoryTests(Fixture):
     def test_empty(self):
         self.assertContains(self.client.get(reverse("borrow:history")), "ยังไม่มีประวัติการยืม")
 
+    def test_includes_active_requests(self):
+        """UC-11 "ทั้งหมด": คำขอที่กำลังยืม/รอตรวจของก็อยู่ในประวัติด้วย (ผู้ใช้เลือก)"""
+        services.cart_add(self.student, self.proj, 1)
+        pending = services.submit_request(self.student)
+        services.cart_add(self.student, self.reload(self.hdmi)[0], 1)
+        borrowing = services.submit_request(self.student)
+        release(borrowing)
+        r = self.client.get(reverse("borrow:history"))
+        self.assertEqual({row["req"].pk for row in r.context["rows"]}, {pending.pk, borrowing.pk})
+        r = self.client.get(reverse("borrow:history") + "?status=BORROWING")
+        self.assertEqual([row["req"].pk for row in r.context["rows"]], [borrowing.pk])
+
     @override_settings(MEDIA_ROOT=MEDIA)
     def test_finished_requests_with_review_progress(self):
         services.cart_add(self.student, self.proj, 1)

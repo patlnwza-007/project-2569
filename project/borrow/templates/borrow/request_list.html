@@ -12,7 +12,7 @@
             <p class="text-sm text-gray-500 mt-0.5">ติดตามสถานะคำขอที่กำลังดำเนินการ และที่จบภายใน 7 วันล่าสุด</p>
         </div>
         <div class="flex gap-2">
-            {% if history_ready %}<a href="{% url 'borrow:history' %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">📜 ประวัติทั้งหมด</a>{% endif %}
+            {% if history_ready %}<a href="{% url 'borrow:history' %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2">📜 ประวัติการยืมทั้งหมด</a>{% endif %}
             <a href="{% url 'catalog:item_list' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-4 py-2">+ ยืมสิ่งของ</a>
         </div>
     </div>

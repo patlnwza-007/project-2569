@@ -323,13 +323,14 @@ def queue_action_view(request, pk, action):
 
 @role_required(STUDENT)
 def history_view(request):
-    """UC-11 (BorrowHistoryListView) · คำขอที่จบแล้ว + สถานะการประเมินรายชิ้น"""
+    """UC-11 (BorrowHistoryListView) · คำขอทั้งหมด (รวมที่กำลังยืม) + สถานะการประเมินรายชิ้น"""
     student = _student(request)
     items_qs = BorrowItem.objects.select_related("item", "item__equipment", "review", "borrow_request")
     status = request.GET.get("status", "")
-    reqs = BorrowRequest.objects.filter(student=student, status__in=services.FINISHED) \
+    # แสดงทุกคำขอ รวมที่กำลังยืม ตาม UC-11 "ประวัติการยืม-คืนทั้งหมด" (ผู้ใช้เลือก 2026-11-16)
+    reqs = BorrowRequest.objects.filter(student=student) \
         .prefetch_related(Prefetch("items", queryset=items_qs)).order_by("-created_at")
-    if status in services.FINISHED:
+    if status in BorrowRequest.Status.values:
         reqs = reqs.filter(status=status)
     rows = []
     for r in reqs:
@@ -343,7 +344,7 @@ def history_view(request):
                      "reviewed": len(done), "review_total": len(reviewable), "returned_at": returned_at})
     return render(request, "borrow/history.html", {
         "rows": rows, "status": status, "has_any": BorrowRequest.objects.filter(student=student).exists(),
-        "status_choices": [(s, BorrowRequest.Status(s).label) for s in services.FINISHED],
+        "status_choices": BorrowRequest.Status.choices,
         "evaluate_ready": url_ready("evaluation:evaluate"),
     })
 
