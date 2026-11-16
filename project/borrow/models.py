@@ -172,7 +172,7 @@ class ReturnRequest(models.Model):
         related_name="inspected_returns", verbose_name="ผู้ตรวจรับคืน",
     )
     status = models.CharField("สถานะ", max_length=20, choices=Status.choices, default=Status.RETURN_PENDING)
-    return_photo = models.ImageField("รูปถ่ายหลักฐานการส่งคืน", upload_to="borrow/return/", blank=True)
+    return_photo = models.ImageField("รูปรวมทั้งรอบคืน (ไม่บังคับ)", upload_to="borrow/return/", blank=True)
     custom_fine = models.DecimalField("ยอดค่าปรับที่เรียกเก็บจริง", null=True, blank=True, **MONEY)
     fine_paid = models.BooleanField("ชำระค่าปรับแล้ว", default=False)
     fine_reason = models.TextField("เหตุผลการปรับ/ลดหย่อน", blank=True)
@@ -213,6 +213,7 @@ class ReturnItem(models.Model):
     )
     qty_returned = models.PositiveIntegerField("จำนวนที่คืนในรอบนี้", default=1, validators=[MinValueValidator(1)])
     condition_status = models.CharField("สภาพ", max_length=10, choices=Condition.choices, default=Condition.NORMAL)
+    photo = models.ImageField("รูปสภาพชิ้นนี้ ณ วันคืน", upload_to="borrow/return/items/", blank=True)
     fine = models.DecimalField("ค่าปรับเกินกำหนด", default=Decimal("0.00"), **MONEY)
     lost_compensation = models.DecimalField("ค่าชดใช้กรณีสูญหาย", default=Decimal("0.00"), **MONEY)
     lost_paid = models.BooleanField("ชำระค่าชดใช้แล้ว", default=False)

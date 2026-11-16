@@ -319,10 +319,11 @@ def pending_return(borrow_request):
 
 
 @transaction.atomic
-def notify_return(student, borrow_request, selections, photo, note=""):
+def notify_return(student, borrow_request, selections, photo=None, note=""):
     """UC-08: แจ้งคืนบางส่วน/ทั้งหมด → RETURN_PENDING
 
-    selections = [(borrow_item_id, qty, condition, description)]
+    selections = [(borrow_item_id, qty, condition, description, item_photo)]
+    รูปรายชิ้น (RETURN_ITEM.photo) บังคับทุกชิ้น ยกเว้นสูญหาย · photo = รูปรวมทั้งรอบ ไม่บังคับ (ผู้ใช้เลือก 2026-11-16)
     ตัดสินใจ M3 ข้อ 7: แจ้งรอบใหม่ได้เมื่อรอบก่อนตรวจรับแล้วเท่านั้น · ข้อ 8: อาการ/สาเหตุ รวมเก็บใน note
     """
     req = BorrowRequest.objects.select_for_update().get(pk=borrow_request.pk)
@@ -334,14 +335,13 @@ def notify_return(student, borrow_request, selections, photo, note=""):
         raise ValidationError("มีการแจ้งคืนที่รอเจ้าหน้าที่ตรวจรับอยู่แล้ว")
     if not selections:
         raise ValidationError({"selection": "กรุณาเลือกสิ่งของที่จะคืนอย่างน้อย 1 รายการ"})
-    if not photo:
-        raise ValidationError({"return_photo": "กรุณาแนบรูปหลักฐานสภาพสิ่งของ ณ วันคืน"})
 
     outstanding = {bi.pk: (bi, qty) for bi, qty in returnable_lines(req)}
     notes = []
     rr = ReturnRequest.objects.create(borrow_request=req, status=ReturnRequest.Status.RETURN_PENDING,
-                                      return_photo=photo)
-    for bi_id, qty, condition, desc in selections:
+                                      return_photo=photo or "")
+    for bi_id, qty, condition, desc, *rest in selections:
+        item_photo = rest[0] if rest else None
         if bi_id not in outstanding:
             raise ValidationError("มีรายการที่เลือกคืนไม่ได้")
         bi, left = outstanding[bi_id]
@@ -350,7 +350,10 @@ def notify_return(student, borrow_request, selections, photo, note=""):
             raise ValidationError({"selection": f"\"{bi.item}\" คืนได้ 1–{left} {bi.item.unit}"})
         if condition not in CONDITION_LABEL:
             raise ValidationError({"selection": "กรุณาเลือกสภาพของสิ่งของที่คืน"})
-        ReturnItem.objects.create(return_request=rr, borrow_item=bi, qty_returned=qty, condition_status=condition)
+        if condition != ReturnItem.Condition.LOST and not item_photo:
+            raise ValidationError({"photo": f"กรุณาแนบรูปสภาพของ \"{bi.item}\" ณ วันคืน"})
+        ReturnItem.objects.create(return_request=rr, borrow_item=bi, qty_returned=qty, condition_status=condition,
+                                  photo=item_photo or "")
         if bi.item.is_equipment:
             Equipment.objects.filter(pk=bi.item_id).update(status=Equipment.Status.RETURN_PENDING)
         desc = (desc or "").strip()

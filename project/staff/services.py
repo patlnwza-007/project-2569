@@ -109,7 +109,8 @@ def confirm_return(staff, borrow_request, rows, custom_fine=None, fine_reason=""
 
     rr = pending or ReturnRequest.objects.create(borrow_request=req, status=ReturnRequest.Status.RETURN_PENDING,
                                                  note=WALK_IN_NOTE)
-    declared_ids = set(rr.items.values_list("borrow_item_id", flat=True))
+    declared_photos = dict(rr.items.values_list("borrow_item_id", "photo"))  # เก็บรูปรายชิ้นที่ นศ. แนบไว้
+    declared_ids = set(declared_photos)
     rr.items.all().delete()
 
     received, notify_items, equipment_notes = set(), [], []
@@ -131,7 +132,7 @@ def confirm_return(staff, borrow_request, rows, custom_fine=None, fine_reason=""
                 comp = (item.purchase_price * qty).quantize(Decimal("0.01"))
         ReturnItem.objects.create(
             return_request=rr, borrow_item=bi, qty_returned=qty, condition_status=condition,
-            fine=borrow.compute_fine(bi, today, qty), lost_compensation=comp,
+            fine=borrow.compute_fine(bi, today, qty), lost_compensation=comp, photo=declared_photos.get(bi_id) or "",
         )
         received.add(bi_id)
         note = (note or "").strip()

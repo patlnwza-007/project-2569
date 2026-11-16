@@ -224,7 +224,8 @@ def return_notify_view(request, pk):
         for bi, left in lines:
             if request.POST.get(f"pick_{bi.pk}"):
                 selections.append((bi.pk, request.POST.get(f"qty_{bi.pk}", left),
-                                   request.POST.get(f"cond_{bi.pk}", ""), request.POST.get(f"desc_{bi.pk}", "")))
+                                   request.POST.get(f"cond_{bi.pk}", ""), request.POST.get(f"desc_{bi.pk}", ""),
+                                   request.FILES.get(f"photo_{bi.pk}")))
         try:
             services.notify_return(student, req, selections, request.FILES.get("return_photo"),
                                    request.POST.get("note", ""))

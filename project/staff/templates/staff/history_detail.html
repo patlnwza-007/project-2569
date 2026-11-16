@@ -50,14 +50,14 @@
         </div>
         <ul class="space-y-1 text-xs">
             {% for ri in rr.items.all %}
-            <li>{{ ri.borrow_item.item }} ×{{ ri.qty_returned }} · <b>{{ ri.get_condition_status_display }}</b>{% if ri.fine %} · ค่าปรับ ฿{{ ri.fine|floatformat:2|intcomma }}{% endif %}{% if ri.lost_compensation %} · ค่าชดใช้ ฿{{ ri.lost_compensation|floatformat:2|intcomma }} ({% if ri.lost_paid %}ชำระแล้ว{% else %}ค้างชำระ{% endif %}){% endif %}</li>
+            <li>{{ ri.borrow_item.item }} ×{{ ri.qty_returned }} · <b>{{ ri.get_condition_status_display }}</b>{% if ri.photo %} · <a href="{{ ri.photo.url }}" target="_blank" class="text-blue-600 hover:underline">📷 รูปตอนคืน</a>{% endif %}{% if ri.borrow_item.initial_photo %} · <a href="{{ ri.borrow_item.initial_photo.url }}" target="_blank" class="text-blue-600 hover:underline">📷 รูปตอนยืม</a>{% endif %}{% if ri.fine %} · ค่าปรับ ฿{{ ri.fine|floatformat:2|intcomma }}{% endif %}{% if ri.lost_compensation %} · ค่าชดใช้ ฿{{ ri.lost_compensation|floatformat:2|intcomma }} ({% if ri.lost_paid %}ชำระแล้ว{% else %}ค้างชำระ{% endif %}){% endif %}</li>
             {% endfor %}
         </ul>
         {% if rr.status == 'RETURNED' %}
         <p class="mt-2 text-xs">ยอดค่าปรับที่เก็บ: <b>฿{{ rr.total_fine|floatformat:2|intcomma }}</b>{% if rr.custom_fine is not None %} (แก้โดยเจ้าหน้าที่{% if rr.fine_reason %}: {{ rr.fine_reason }}{% endif %}){% endif %} · {% if rr.fine_paid %}✅ ชำระแล้ว{% elif rr.total_fine %}💸 ค้างชำระ{% else %}ไม่มีค่าปรับ{% endif %}</p>
         {% endif %}
         {% if rr.note %}<p class="mt-1 text-xs text-gray-500 whitespace-pre-line">📝 {{ rr.note }}</p>{% endif %}
-        {% if rr.return_photo %}<a href="{{ rr.return_photo.url }}" target="_blank" class="inline-block mt-1 text-xs text-blue-600 hover:underline">📷 รูปตอนส่งคืน</a>{% endif %}
+        {% if rr.return_photo %}<a href="{{ rr.return_photo.url }}" target="_blank" class="inline-block mt-1 text-xs text-blue-600 hover:underline">📷 รูปรวมทั้งชุด</a>{% endif %}
     </div>
     {% endfor %}
 </div>

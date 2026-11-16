@@ -18,13 +18,14 @@
 | **ข้อมูลคำขอและผู้ส่งคืน** | | | |
 | เลขที่คำขอยืม | Text | `BORROW_REQUEST.id` | รหัสคำขอ |
 | ชื่อนักศึกษา | Text | `USER.name` | ดึงชื่อผู้ยืม |
-| รูปถ่ายหลักฐานตอนส่งคืน | Image | `RETURN_REQUEST.return_photo` | รูปที่ นศ. ถ่ายส่งมาตอนแจ้งคืน |
+| รูปรวมตอนส่งคืน (ถ้ามี) | Image | `RETURN_REQUEST.return_photo` | รูปรวมที่ นศ. แนบมา (ไม่บังคับ) |
 | หมายเหตุการส่งคืนที่ นศ. แจ้ง | Text | `RETURN_REQUEST.note` | ข้อความที่ผู้ยืมระบุ |
 | **การตรวจรับสภาพจริงรายชิ้น (Smart Pre-check)** | | | |
 | Checkbox เลือกรับคืนชิ้นนี้ | Checkbox | ระบุแถวใน `RETURN_ITEM` | ติ๊กนำร่องให้อัตโนมัติตามที่ นศ. แจ้งคืนมา |
 | ข้อมูลสิ่งของและรหัสชิ้น | Text / Badge | `ITEM.name`, `EQUIPMENT.asset_tag`, `ITEM.unit` | ข้อมูลสิ่งของ |
 | กำหนดส่งคืนเดิม | Date | `BORROW_ITEM.due_date` | ใช้วันนี้เทียบเพื่อคำนวณค่าปรับ |
 | รูปถ่ายสภาพก่อนยืม (เทียบสภาพ) | Image | `BORROW_ITEM.initial_photo` | รูปถ่ายตอนรับของ |
+| รูปสภาพตอนคืนรายชิ้น (เทียบกับตอนยืม) | Image | `RETURN_ITEM.photo` | รูปที่ นศ. ถ่ายแยกชิ้นตอนแจ้งคืน |
 | ตัวเลือกผลตรวจสภาพจริง | Radio / Select | `RETURN_ITEM.condition_status` | **ปกติ (NORMAL):** คืนสต็อกเข้าคลัง, ครุภัณฑ์กลับเป็น `AVAILABLE`<br>**ชำรุด (DAMAGED):** ครุภัณฑ์เปลี่ยนเป็น `DAMAGED` ไม่คืนสต็อก<br>**สูญหาย (LOST):** ครุภัณฑ์เปลี่ยนเป็น `LOST` (ตัดสต็อกรวม) |
 | **การคำนวณค่าปรับและยอดชดใช้** | | | |
 | ค่าปรับเกินกำหนดคำนวณอัตโนมัติ | Text | `RETURN_ITEM.fine` | คำนวณจาก `max(0, วันที่คืน − BORROW_ITEM.due_date) × fine_rate_per_day × qty_returned` |

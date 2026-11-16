@@ -22,12 +22,13 @@
 | จำนวนที่กำลังยืมอยู่ | Text | `BORROW_ITEM.qty` | จำนวนที่อยู่ในความรับผิดชอบ |
 | รูปถ่ายสภาพก่อนยืม (อ้างอิง) | Image | `BORROW_ITEM.initial_photo` | รูปที่ถ่ายไว้ตอนรับของ เพื่อเทียบสภาพ |
 | ตัวเลือกแจ้งสภาพที่นำมาคืน | Radio / Select | `RETURN_ITEM.condition_status` | นักศึกษาแจ้งสภาพเบื้องต้น (`NORMAL`, `DAMAGED`, `LOST`) |
+| รูปสภาพชิ้นนี้ ณ วันคืน (รายชิ้น) | Input (File) | `RETURN_ITEM.photo` | บังคับ 1 รูปต่อชิ้นที่คืน ยกเว้นชิ้นที่แจ้งว่าสูญหาย |
 | **หลักฐานและบันทึกการส่งคืน** | | | |
-| อัปโหลดรูปถ่ายหลักฐานการส่งคืน | Input (File) | `RETURN_REQUEST.return_photo` | บังคับแนบรูปสภาพสิ่งของ ณ จุดส่งคืนเคาน์เตอร์ |
+| รูปรวมทั้งชุด (ถ้ามี) | Input (File) | `RETURN_REQUEST.return_photo` | ไม่บังคับ · รูปหลักฐานหลักคือรูปรายชิ้น |
 | หมายเหตุเพิ่มเติมการส่งคืน | Input (Textarea) | `RETURN_REQUEST.note` | ระบุหมายเหตุเพิ่มเติม (ถ้ามี) |
 | **การบันทึกข้อมูลเมื่อกดยืนยัน** | | | |
 | ใบแจ้งคืน | Table Record | `RETURN_REQUEST` | บันทึก `borrow_request_id`, `status = 'RETURN_PENDING'`, `return_photo`, `note`, `created_at = NOW()` |
-| รายการสิ่งของที่คืน | Table Record | `RETURN_ITEM` | บันทึกแถว `return_request_id`, `borrow_item_id`, `qty_returned`, `condition_status` |
+| รายการสิ่งของที่คืน | Table Record | `RETURN_ITEM` | บันทึกแถว `return_request_id`, `borrow_item_id`, `qty_returned`, `condition_status`, `photo` |
 | อัปเดตสถานะคำขอยืมหลัก | Status Update | `BORROW_REQUEST.status` | ปรับสถานะคำขอเป็น `'RETURN_PENDING'` (รอเจ้าหน้าที่ตรวจรับคืน) |
 
 ---

@@ -196,14 +196,19 @@ class ReturnTests(ReturnFixture):
         from borrow.tests_m3b import png
         from django.test import override_settings
         with override_settings(MEDIA_ROOT="/tmp/yuemdee-test-media-6a"):
-            borrow.notify_return(self.st, self.req, [(self.proj_bi.pk, 1, "NORMAL", ""), (self.hdmi_bi.pk, 1, "NORMAL", "")], png())
+            borrow.notify_return(self.st, self.req, [(self.proj_bi.pk, 1, "NORMAL", "", png()),
+                                                     (self.hdmi_bi.pk, 1, "NORMAL", "", png())])
         r = self.client.get(reverse("staff:return_list"))
         self.assertEqual(r.context["tab"], "pending")
         rows = {row["bi"].pk: row for row in r.context["cards"][0]["rows"]}
         self.assertIsNotNone(rows[self.proj_bi.pk]["declared"])
-        self.confirm([(self.hdmi_bi, 1, "NORMAL")])  # โปรเจกเตอร์ไม่ได้นำมาจริง
+        self.assertContains(r, "data-return-photo", count=2)  # เจ้าหน้าที่เห็นรูปรายชิ้นที่ นศ. แนบ
+        with override_settings(MEDIA_ROOT="/tmp/yuemdee-test-media-6a"):
+            self.confirm([(self.hdmi_bi, 1, "NORMAL")])  # โปรเจกเตอร์ไม่ได้นำมาจริง
         self.assertEqual(self.fresh(self.proj).equipment.status, Equipment.Status.BORROWED)
-        self.assertEqual(ReturnRequest.objects.get().items.count(), 1)
+        kept = ReturnRequest.objects.get().items.get()
+        self.assertEqual(kept.borrow_item_id, self.hdmi_bi.pk)
+        self.assertTrue(kept.photo)  # รูปของ นศ. ยังอยู่หลังเจ้าหน้าที่ตรวจรับ
 
     def test_damaged_and_lost_effects(self):
         """UC-18 ข้อ 3 + ตัดสินใจ M6 ข้อ 4, 5"""

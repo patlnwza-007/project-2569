@@ -64,12 +64,13 @@ class ReturnTests(Fixture):
     def test_partial_return_with_conditions(self):
         r = self.client.post(self.url, {
             f"pick_{self.hdmi_bi.pk}": "1", f"qty_{self.hdmi_bi.pk}": "2", f"cond_{self.hdmi_bi.pk}": "DAMAGED",
-            f"desc_{self.hdmi_bi.pk}": "หัวงอ", "return_photo": png(), "note": "มาคืนช่วงบ่าย"})
+            f"desc_{self.hdmi_bi.pk}": "หัวงอ", f"photo_{self.hdmi_bi.pk}": png(), "note": "มาคืนช่วงบ่าย"})
         self.assertRedirects(r, reverse("borrow:request_list"))
         self.req.refresh_from_db()
         self.assertEqual(self.req.status, "RETURN_PENDING")
         rr = ReturnRequest.objects.get()
-        self.assertTrue(rr.return_photo)
+        self.assertFalse(rr.return_photo)          # รูปรวมไม่บังคับ
+        self.assertTrue(rr.items.get().photo)      # รูปรายชิ้น
         self.assertIn("หัวงอ", rr.note)
         self.assertIn("มาคืนช่วงบ่าย", rr.note)
         ri = rr.items.get()
@@ -78,26 +79,31 @@ class ReturnTests(Fixture):
 
     def test_equipment_goes_return_pending(self):
         self.client.post(self.url, {f"pick_{self.proj_bi.pk}": "1", f"qty_{self.proj_bi.pk}": "1",
-                                    f"cond_{self.proj_bi.pk}": "NORMAL", "return_photo": png()})
+                                    f"cond_{self.proj_bi.pk}": "NORMAL", f"photo_{self.proj_bi.pk}": png()})
         self.assertEqual(Equipment.objects.get(pk=self.proj.pk).status, Equipment.Status.RETURN_PENDING)
 
-    def test_photo_required_and_pick_required(self):
-        r = self.client.post(self.url, {f"pick_{self.proj_bi.pk}": "1", f"cond_{self.proj_bi.pk}": "NORMAL"})
-        self.assertContains(r, "กรุณาแนบรูปหลักฐาน")
-        r = self.client.post(self.url, {"return_photo": png()})
+    def test_item_photo_required_except_lost_and_pick_required(self):
+        """รูปรายชิ้นบังคับ (ยกเว้นสูญหาย) · รูปรวมไม่บังคับ"""
+        r = self.client.post(self.url, {f"pick_{self.proj_bi.pk}": "1", f"cond_{self.proj_bi.pk}": "NORMAL",
+                                        "return_photo": png()})
+        self.assertContains(r, "กรุณาแนบรูปสภาพของ")
+        r = self.client.post(self.url, {})
         self.assertContains(r, "เลือกสิ่งของที่จะคืนอย่างน้อย 1 รายการ")
         self.assertFalse(ReturnRequest.objects.exists())
+        r = self.client.post(self.url, {f"pick_{self.proj_bi.pk}": "1", f"qty_{self.proj_bi.pk}": "1",
+                                        f"cond_{self.proj_bi.pk}": "LOST", f"desc_{self.proj_bi.pk}": "ลืมไว้บนรถ"})
+        self.assertRedirects(r, reverse("borrow:request_list"))  # สูญหาย → ไม่ต้องมีรูป
 
     def test_over_qty_rejected(self):
         r = self.client.post(self.url, {f"pick_{self.hdmi_bi.pk}": "1", f"qty_{self.hdmi_bi.pk}": "9",
-                                        f"cond_{self.hdmi_bi.pk}": "NORMAL", "return_photo": png()})
+                                        f"cond_{self.hdmi_bi.pk}": "NORMAL", f"photo_{self.hdmi_bi.pk}": png()})
         self.assertContains(r, "คืนได้ 1–3")
         self.assertFalse(ReturnRequest.objects.exists())
 
     def test_one_round_at_a_time_then_next_round(self):
         """ตัดสินใจ M3 ข้อ 7"""
         self.client.post(self.url, {f"pick_{self.hdmi_bi.pk}": "1", f"qty_{self.hdmi_bi.pk}": "1",
-                                    f"cond_{self.hdmi_bi.pk}": "NORMAL", "return_photo": png()})
+                                    f"cond_{self.hdmi_bi.pk}": "NORMAL", f"photo_{self.hdmi_bi.pk}": png()})
         r = self.client.get(self.url)
         self.assertContains(r, "รอเจ้าหน้าที่ตรวจรับอยู่แล้ว")
         inspect(ReturnRequest.objects.get())
@@ -108,7 +114,7 @@ class ReturnTests(Fixture):
     def test_cancel_notification(self):
         """UC-08 Alternative: ยกเลิกแจ้งคืน → กลับเป็นกำลังยืม"""
         self.client.post(self.url, {f"pick_{self.proj_bi.pk}": "1", f"cond_{self.proj_bi.pk}": "NORMAL",
-                                    f"qty_{self.proj_bi.pk}": "1", "return_photo": png()})
+                                    f"qty_{self.proj_bi.pk}": "1", f"photo_{self.proj_bi.pk}": png()})
         rr = ReturnRequest.objects.get()
         self.assertContains(self.client.get(reverse("borrow:request_list")), "ยกเลิกการแจ้งคืน")
         self.client.post(reverse("borrow:return_cancel", args=[rr.pk]))
@@ -227,7 +233,7 @@ class HistoryTests(Fixture):
         services.cart_add(self.student, self.hdmi, 1)
         req = services.submit_request(self.student)
         release(req)
-        rr = services.notify_return(self.student, req, [(bi.pk, bi.qty, "NORMAL", "") for bi in req.items.all()], png())
+        rr = services.notify_return(self.student, req, [(bi.pk, bi.qty, "NORMAL", "", png()) for bi in req.items.all()])
         inspect(rr)
         services.cart_add(self.student, self.reload(self.paper)[0], 1)
         services.cancel_request(self.student, services.submit_request(self.student))
