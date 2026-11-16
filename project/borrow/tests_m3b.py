@@ -299,3 +299,41 @@ class ReportDamageTests(Fixture):
 def tearDownModule():
     import shutil
     shutil.rmtree(MEDIA, ignore_errors=True)
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class OwnItemQueueTests(Fixture):
+    """ห้ามจองคิวสิ่งของที่ตัวเองยืม/ขอยืมอยู่ (ผู้ใช้เลือก ก)"""
+
+    def setUp(self):
+        super().setUp()
+        services.cart_add(self.student, self.hdmi, 3)   # วัสดุคงทนหมดเพราะตัวเอง
+        self.req = services.submit_request(self.student)
+
+    def join(self, item):
+        return self.client.post(reverse("borrow:queue_join", args=[item.pk]), follow=True)
+
+    def test_pending_request_blocks_queue(self):
+        r = self.join(self.hdmi)
+        self.assertContains(r, "อยู่แล้ว จองคิวซ้ำไม่ได้")
+        self.assertFalse(Queue.objects.exists())
+
+    def test_borrowing_blocks_queue_and_catalog_shows_badge(self):
+        release(self.req)
+        r = self.join(self.hdmi)
+        self.assertContains(r, "จองคิวซ้ำไม่ได้")
+        r = self.client.get(reverse("catalog:item_list"))
+        self.assertContains(r, "data-own")
+        self.assertContains(r, "คุณยืม/ขอยืมอยู่แล้ว")
+
+    def test_other_student_can_still_queue(self):
+        _, other = self.other_student()
+        q = services.join_queue(other, self.hdmi)
+        self.assertEqual(q.status, "WAITING")
+
+    def test_after_full_return_not_own_anymore(self):
+        release(self.req)
+        bi = self.req.items.get()
+        services.notify_return(self.student, self.req, [(bi.pk, 3, "NORMAL", "", png())])
+        inspect(self.req.return_requests.get())
+        self.assertNotIn(self.hdmi.pk, services.own_item_ids(self.student))

@@ -425,6 +425,16 @@ def estimate_available(queue, position=None):
 
 
 @transaction.atomic
+def own_item_ids(student):
+    """สิ่งของที่นักศึกษาคนนี้ "ถืออยู่แล้ว" = อยู่ในคำขอรออนุมัติ หรือยืมอยู่และยังคืนไม่ครบ · ห้ามจองคิวซ้อนตัวเอง"""
+    rows = BorrowItem.objects.filter(
+        borrow_request__student=student,
+        borrow_request__status__in=(BorrowRequest.Status.PENDING,) + ACTIVE_LOAN,
+    ).select_related("item", "borrow_request")
+    return {bi.item_id for bi in rows
+            if bi.borrow_request.status == BorrowRequest.Status.PENDING or bi.qty_outstanding > 0}
+
+
 def join_queue(student, item):
     """UC-10: จองคิว (วัสดุคงทนหมด = ระดับ item · ครุภัณฑ์ถูกยืม = ระดับชิ้น)"""
     item = Item.objects.select_for_update(of=("self",)).select_related("equipment", "durablematerial", "material") \
@@ -434,6 +444,8 @@ def join_queue(student, item):
     if item.base_status in HIDDEN_BASE or (item.is_equipment and item.equipment.status in
                                             (Equipment.Status.RETIRED, Equipment.Status.LOST)):
         raise ValidationError("ไม่พบสิ่งของนี้")
+    if item.pk in own_item_ids(student):
+        raise ValidationError(f"คุณยืม/ขอยืม \"{item}\" อยู่แล้ว จองคิวซ้ำไม่ได้")
     if available_qty(item, student) > 0:
         raise ValidationError(f"\"{item}\" ยังว่างอยู่ ยืมได้ทันทีโดยไม่ต้องจองคิว")
     if Queue.objects.filter(item=item, student=student, status__in=ACTIVE_QUEUE + (Queue.Status.CONFIRMED,)).exists():

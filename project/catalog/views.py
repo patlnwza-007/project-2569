@@ -7,7 +7,7 @@ from accounts.navigation import NAV_BY_KEY, _cart_qty, item_url, url_ready
 from accounts.permissions import role_required
 from accounts.roles import STAFF, STUDENT, get_role, get_ubu_user
 from borrow.models import BorrowItem, BorrowRequest
-from borrow.services import cart_qty_map
+from borrow.services import cart_qty_map, own_item_ids
 from evaluation.models import Review
 
 from .models import Item
@@ -33,6 +33,7 @@ def _borrow_actions_ready(request=None):
     ubu = get_ubu_user(request.user) if request else None
     if ubu and ubu.is_student and get_role(request.user) == STUDENT:
         ctx["cart_map"] = cart_qty_map(ubu.student)
+        ctx["own_ids"] = own_item_ids(ubu.student)
     return ctx
 
 
