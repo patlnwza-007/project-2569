@@ -22,8 +22,8 @@ from . import services
 
 S = BorrowRequest.Status
 ITEMS = BorrowItem.objects.select_related("item", "item__equipment", "item__material", "item__durablematerial")
-TABS = [("all", "ทั้งหมด"), ("pending", "รอตรวจรับคืน"), ("overdue", "เกินกำหนด"), ("partial", "คืนบางส่วน"),
-        ("unpaid", "ค้างชำระ")]
+TABS = [("notified", "📥 แจ้งคืนแล้ว"), ("counter", "🏃 รับคืนที่เคาน์เตอร์"), ("overdue", "🔴 เกินกำหนด"),
+        ("partial", "คืนบางส่วน"), ("unpaid", "💸 ค้างชำระ")]
 
 
 def _staff(request):
@@ -63,7 +63,7 @@ def dashboard_view(request):
          + DamageReport.objects.filter(status=DamageReport.Status.PENDING).count(), "staff:damaged_equipment", "orange"),
         ("💡", "คำเสนอแนะรอพิจารณา", Suggestion.objects.filter(status=Suggestion.Status.SUBMITTED).count(), "suggestion:review", "teal"),
     ]
-    tab_for = {"↩️": "?tab=pending", "🔴": "?tab=overdue"}
+    tab_for = {"↩️": "?tab=notified", "🔴": "?tab=overdue", "📦": "?tab=counter"}
     cards = [{"icon": i, "label": l, "count": c, "url": n if url_ready(n) else "", "suffix": tab_for.get(i, ""),
               "color": col} for i, l, c, n, col in cards]
     latest = BorrowRequest.objects.filter(status=S.PENDING).select_related("student__user") \
@@ -115,13 +115,19 @@ def request_reject_view(request, pk):
 # ---- UC-18 + UC-36 ----------------------------------------------------------
 @role_required(STAFF)
 def return_list_view(request):
-    """UC-18 (ReturnConfirmView) + UC-36 · แท็บ ทั้งหมด/รอตรวจรับคืน/เกินกำหนด/คืนบางส่วน/ค้างชำระ"""
+    """UC-18 (ReturnConfirmView) + UC-36
+    แยกที่มาให้ชัด (ผู้ใช้เลือก 2026-11-16): แจ้งคืนแล้ว / รับคืนที่เคาน์เตอร์ (ยังไม่แจ้ง) / เกินกำหนด / คืนบางส่วน / ค้างชำระ"""
     borrow.expire_and_advance()
-    tab = request.GET.get("tab", "pending" if ReturnRequest.objects.filter(
-        status=ReturnRequest.Status.RETURN_PENDING).exists() else "all")
+    tab = request.GET.get("tab", "notified")
+    if tab not in dict(TABS):
+        tab = "notified"
     q = request.GET.get("q", "").strip()
     today = timezone.localdate()
-    ctx = {"tab": tab, "tabs": TABS, "q": q, "today": today}
+    counts = {
+        "notified": BorrowRequest.objects.filter(status=S.RETURN_PENDING).count(),
+        "counter": BorrowRequest.objects.filter(status=S.BORROWING).count(),
+    }
+    ctx = {"tab": tab, "tabs": TABS, "q": q, "today": today, "counts": counts}
 
     if tab == "unpaid":  # ตัดสินใจ M6 ข้อ 8
         rrs = ReturnRequest.objects.filter(status=ReturnRequest.Status.RETURNED) \
@@ -137,8 +143,10 @@ def return_list_view(request):
         .select_related("student__user").prefetch_related(Prefetch("items", queryset=ITEMS)).order_by("created_at")
     if q:
         reqs = reqs.filter(_search(q)).distinct()
-    if tab == "pending":
+    if tab == "notified":
         reqs = reqs.filter(status=S.RETURN_PENDING)
+    elif tab == "counter":  # ยังไม่ได้แจ้งคืนในระบบ
+        reqs = reqs.filter(status=S.BORROWING)
     cards = []
     for r in reqs:
         lines, pending = services.outstanding_lines(r)
@@ -321,7 +329,7 @@ def all_history_view(request):
         ctx.update({"page": page, "rows": rows, "statuses": Equipment.Status.choices})
     else:
         reqs = BorrowRequest.objects.select_related("student__user") \
-            .prefetch_related(Prefetch("items", queryset=ITEMS)).order_by("-created_at")
+            .prefetch_related(Prefetch("items", queryset=ITEMS), "return_requests").order_by("-created_at")
         if q:
             reqs = reqs.filter(_search(q)).distinct()
         if status in S.values:

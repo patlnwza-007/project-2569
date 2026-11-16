@@ -14,7 +14,7 @@ from catalog.models import DurableMaterial, Equipment
 
 S = BorrowRequest.Status
 C = ReturnItem.Condition
-WALK_IN_NOTE = "รับคืนที่เคาน์เตอร์ (นักศึกษาไม่ได้แจ้งคืนในระบบ)"
+WALK_IN_NOTE = ReturnRequest.WALK_IN_NOTE
 
 
 def _money(value, field):

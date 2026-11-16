@@ -21,3 +21,9 @@ REQUEST_BADGE = {
 def request_badge(status):
     label, css = REQUEST_BADGE.get(status, (status, "bg-gray-100 text-gray-600 border-gray-200"))
     return {"label": label, "css": css}
+
+
+@register.inclusion_tag("borrow/_return_source_badge.html")
+def return_source_badge(return_request):
+    """ป้ายวิธีคืน: แจ้งคืนผ่านระบบ / รับคืนที่เคาน์เตอร์"""
+    return {"walk_in": return_request.is_walk_in}

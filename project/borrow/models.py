@@ -189,6 +189,13 @@ class ReturnRequest(models.Model):
     def __str__(self):
         return f"แจ้งคืน #{self.pk} · คำขอ #{self.borrow_request_id}"
 
+    WALK_IN_NOTE = "รับคืนที่เคาน์เตอร์ (นักศึกษาไม่ได้แจ้งคืนในระบบ)"
+
+    @property
+    def is_walk_in(self):
+        """เจ้าหน้าที่รับคืนที่เคาน์เตอร์โดยนักศึกษาไม่ได้แจ้งคืนในระบบ (ตัดสินใจ M6 ข้อ 3)"""
+        return (self.note or "").startswith(self.WALK_IN_NOTE)
+
     @property
     def total_fine(self):
         """ยอดเรียกเก็บของรอบคืน (UC-36): custom_fine ถ้ามี ไม่อย่างนั้น SUM(RETURN_ITEM.fine)"""

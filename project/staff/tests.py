@@ -173,8 +173,13 @@ class ReturnTests(ReturnFixture):
 
     def test_walk_in_return_all_normal(self):
         """ตัดสินใจ M6 ข้อ 3: นักศึกษาไม่ได้แจ้งคืน → เจ้าหน้าที่รับคืนเองได้"""
-        r = self.client.get(reverse("staff:return_list") + "?tab=all")
+        r = self.client.get(reverse("staff:return_list") + "?tab=counter")
         self.assertEqual([c["req"].pk for c in r.context["cards"]], [self.req.pk])
+        self.assertContains(r, "data-not-notified")
+        self.assertContains(r, "data-open-counter")      # การ์ดหุบไว้ ต้องกดเปิดก่อน
+        self.assertContains(r, "🏃 รับคืนที่เคาน์เตอร์</button>")
+        r = self.client.get(reverse("staff:return_list"))  # แท็บแรก = แจ้งคืนแล้ว → ยังไม่มี
+        self.assertEqual((r.context["tab"], r.context["cards"]), ("notified", []))
         r = self.confirm([(self.proj_bi, 1, "NORMAL"), (self.hdmi_bi, 3, "NORMAL")])
         self.assertContains(r, "คืนครบแล้ว")
         self.req.refresh_from_db()
@@ -199,7 +204,11 @@ class ReturnTests(ReturnFixture):
             borrow.notify_return(self.st, self.req, [(self.proj_bi.pk, 1, "NORMAL", "", png()),
                                                      (self.hdmi_bi.pk, 1, "NORMAL", "", png())])
         r = self.client.get(reverse("staff:return_list"))
-        self.assertEqual(r.context["tab"], "pending")
+        self.assertEqual(r.context["tab"], "notified")
+        self.assertContains(r, 'data-source="notified"')
+        self.assertNotContains(r, "data-open-counter")
+        r2 = self.client.get(reverse("staff:return_list") + "?tab=counter")
+        self.assertEqual(r2.context["cards"], [])           # แจ้งแล้ว → ไม่ปนในแท็บเคาน์เตอร์
         rows = {row["bi"].pk: row for row in r.context["cards"][0]["rows"]}
         self.assertIsNotNone(rows[self.proj_bi.pk]["declared"])
         self.assertContains(r, "data-return-photo", count=2)  # เจ้าหน้าที่เห็นรูปรายชิ้นที่ นศ. แนบ
@@ -374,3 +383,27 @@ class QueueHoldDisplayTests(ReturnFixture):
     def test_others_do_not_see_banner(self):
         self.client.force_login(self.o_auth)
         self.assertNotContains(self.client.get(reverse("borrow:request_list")), "data-queue-alert")
+
+
+
+class ReturnSourceBadgeTests(ReturnFixture):
+    """ป้ายวิธีคืนในประวัติ: รับคืนที่เคาน์เตอร์ vs แจ้งคืนผ่านระบบ"""
+
+    def test_walk_in_badge_in_history(self):
+        self.confirm([(self.proj_bi, 1, "NORMAL")])
+        rr = ReturnRequest.objects.get()
+        self.assertTrue(rr.is_walk_in)
+        r = self.client.get(reverse("staff:history_detail", args=[self.req.pk]))
+        self.assertContains(r, 'data-source="counter"')
+        r = self.client.get(reverse("staff:all_history"))
+        self.assertContains(r, "รับคืนที่เคาน์เตอร์")
+
+    def test_notified_badge(self):
+        from borrow.tests_m3b import png
+        from django.test import override_settings
+        with override_settings(MEDIA_ROOT="/tmp/yuemdee-test-media-6a"):
+            borrow.notify_return(self.st, self.req, [(self.proj_bi.pk, 1, "NORMAL", "", png())])
+            self.confirm([(self.proj_bi, 1, "NORMAL")])
+        self.assertFalse(ReturnRequest.objects.get().is_walk_in)
+        r = self.client.get(reverse("staff:history_detail", args=[self.req.pk]))
+        self.assertContains(r, 'data-source="notified"')

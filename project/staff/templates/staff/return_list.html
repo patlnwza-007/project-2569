@@ -9,7 +9,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">↩️ ตรวจรับคืนสิ่งของ</h1>
-            <p class="text-sm text-gray-500 mt-0.5">ตรวจสภาพจริงเทียบกับที่นักศึกษาแจ้ง · รับคืนได้แม้ไม่ได้แจ้งคืนในระบบ</p>
+            <p class="text-sm text-gray-500 mt-0.5">📥 แจ้งคืนแล้ว = นักศึกษากดแจ้งคืนในระบบพร้อมรูป · 🏃 รับคืนที่เคาน์เตอร์ = นักศึกษาถือของมาโดยยังไม่ได้แจ้ง</p>
         </div>
         <form method="get" class="flex gap-2">
             <input type="hidden" name="tab" value="{{ tab }}">
@@ -20,7 +20,7 @@
 
     <div class="flex gap-2 mb-4 overflow-x-auto">
         {% for key, label in tabs %}
-        <a href="?tab={{ key }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="shrink-0 text-sm font-semibold px-4 py-1.5 rounded-full border {% if tab == key %}bg-blue-600 border-blue-600 text-white{% else %}bg-white border-gray-200 text-gray-700 hover:bg-gray-50{% endif %}">{{ label }}</a>
+        <a href="?tab={{ key }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="shrink-0 text-sm font-semibold px-4 py-1.5 rounded-full border {% if tab == key %}bg-blue-600 border-blue-600 text-white{% else %}bg-white border-gray-200 text-gray-700 hover:bg-gray-50{% endif %}" data-tab="{{ key }}">{{ label }}{% if key == 'notified' %} ({{ counts.notified }}){% elif key == 'counter' %} ({{ counts.counter }}){% endif %}</a>
         {% endfor %}
     </div>
 
@@ -68,11 +68,17 @@
     </div>
 
     {% else %}
+    {% if tab == 'counter' %}
+    <div class="mb-4 bg-orange-50 border border-orange-200 text-orange-900 rounded-2xl p-3.5 text-sm" id="p_counter_hint">
+        🏃 คำขอในแท็บนี้ <b>นักศึกษายังไม่ได้แจ้งคืนในระบบ</b> · ค้นหาชื่อ / รหัสนักศึกษา / รหัสครุภัณฑ์ด้านบน แล้วกด "เปิดเพื่อรับคืน" ที่คำขอของคนที่ถือของมาจริง
+    </div>
+    {% endif %}
     <div class="space-y-4">
         {% for card in cards %}
         {% with r=card.req %}
-        <form method="post" action="{% url 'staff:return_confirm' r.pk %}" class="bg-white rounded-2xl border border-gray-200 shadow-sm" data-request="{{ r.pk }}"
-              x-data="{ all(on) { $el.querySelectorAll('[data-receive]').forEach(c => { c.checked = on; c.dispatchEvent(new Event('change')) }) } }">
+        <form method="post" action="{% url 'staff:return_confirm' r.pk %}" data-request="{{ r.pk }}" data-source="{% if card.pending %}notified{% else %}counter{% endif %}"
+              class="bg-white rounded-2xl shadow-sm border-2 {% if card.pending %}border-purple-300{% else %}border-gray-300 border-dashed{% endif %}"
+              x-data="{ open: {% if card.pending %}true{% else %}false{% endif %}, all(on) { $el.querySelectorAll('[data-receive]').forEach(c => { c.checked = on; c.dispatchEvent(new Event('change')) }) } }">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
             <div class="px-5 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
@@ -81,10 +87,18 @@
                     {% request_badge r.status %}
                     {% if card.overdue %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">🔴 เกินกำหนด</span>{% endif %}
                     {% if card.partial %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">คืนแล้ว {{ card.returned }}/{{ card.total }} ชิ้น</span>{% endif %}
-                    {% if not card.pending %}<span class="text-[11px] text-gray-400">ยังไม่ได้แจ้งคืนในระบบ</span>{% endif %}
+                    {% if card.pending %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300">📥 นักศึกษาแจ้งคืนแล้ว {{ card.pending.created_at|date:"j M H:i" }}</span>
+                    {% else %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-300" data-not-notified>⚠️ นักศึกษายังไม่ได้แจ้งคืน · ไม่มีรูปจากนักศึกษา</span>{% endif %}
                 </div>
                 <span class="text-sm">👤 <b>{{ r.student.user.name }}</b> <span class="text-gray-400 text-xs">{{ r.student.student_id }} · {{ r.student.phone }}</span></span>
             </div>
+            {% if not card.pending %}
+            <div x-show="!open" class="px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span class="text-gray-600">{% for row in card.rows %}{{ row.bi.item.name }}{% if row.bi.item.is_equipment %} ({{ row.bi.item.equipment.asset_tag }}){% endif %} ×{{ row.left }}{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+                <button type="button" @click="open = true" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl px-4 py-2" data-open-counter>🏃 เปิดเพื่อรับคืน</button>
+            </div>
+            {% endif %}
+            <div x-show="open" {% if not card.pending %}x-cloak{% endif %}>
             {% if card.pending %}
             <div class="px-5 py-2.5 bg-purple-50 border-b border-purple-100 text-xs text-purple-900 flex flex-wrap gap-3 items-center">
                 <span>↩️ นักศึกษาแจ้งคืนเมื่อ {{ card.pending.created_at|date:"j M H:i" }}</span>
@@ -135,12 +149,17 @@
                     <label>เหตุผลการปรับ/ลดหย่อน<input name="fine_reason" class="block border border-gray-300 rounded-lg px-2 py-1 w-48"></label>
                     <label class="flex items-center gap-1.5 pb-1"><input type="checkbox" name="fine_paid" class="rounded border-gray-300"> ชำระค่าปรับแล้ว</label>
                 </div>
-                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl px-5 py-2" data-confirm>✓ ยืนยันการรับคืน</button>
+                {% if card.pending %}
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl px-5 py-2" data-confirm>✓ ยืนยันรับคืน</button>
+                {% else %}
+                <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl px-5 py-2" data-confirm>🏃 รับคืนที่เคาน์เตอร์</button>
+                {% endif %}
+            </div>
             </div>
         </form>
         {% endwith %}
         {% empty %}
-        <div id="p_return_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">{% if q %}ไม่พบรายการที่ค้นหา{% else %}ไม่มีรายการในแท็บนี้{% endif %}</div>
+        <div id="p_return_empty" class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">{% if q %}ไม่พบรายการที่ค้นหา{% else %}{% if tab == 'notified' %}ยังไม่มีนักศึกษาแจ้งคืนเข้ามา{% else %}ไม่มีรายการในแท็บนี้{% endif %}{% endif %}</div>
         {% endfor %}
     </div>
     {% endif %}

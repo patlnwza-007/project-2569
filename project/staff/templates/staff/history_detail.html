@@ -45,7 +45,7 @@
     {% for rr in rounds %}
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-sm" data-round="{{ rr.pk }}">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <span class="font-semibold">รอบคืน #{{ rr.pk }} · {{ rr.get_status_display }}</span>
+            <span class="font-semibold">รอบคืน #{{ rr.pk }} · {{ rr.get_status_display }} {% return_source_badge rr %}</span>
             <span class="text-xs text-gray-500">แจ้ง {{ rr.created_at|date:"j M Y H:i" }}{% if rr.returned_at %} · ตรวจรับ {{ rr.returned_at|date:"j M Y H:i" }} โดย {{ rr.inspected_by.user.name }}{% endif %}</span>
         </div>
         <ul class="space-y-1 text-xs">
